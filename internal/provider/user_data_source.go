@@ -104,6 +104,13 @@ func (d *userDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		resp.Diagnostics.AddError("Client Error",
 			fmt.Sprintf("Unable to read user, got status code: %d", clientResp.GetStatusCode()))
 		return
+	} else if len(data) == 0 {
+		tflog.Error(ctx, "HTTP request to JSM User API Returned an Empty Response."+
+			"Either no user is found, or the credentials are invalid")
+		resp.Diagnostics.AddError("Client Error",
+			"Unable to read user, got an empty response. "+
+				"This could be due to invalid credentials or no user being found for the given email address")
+		return
 	}
 
 	tflog.Trace(ctx, "HTTP request to JSM User API Succeeded. Parsing the fetched data to Terraform model")
