@@ -1,7 +1,7 @@
 package dataModels
 
 import (
-	"github.com/atlassian/jsm-ops-terraform-provider/internal/dto"
+	"github.com/atlassian/terraform-provider-jsm-ops/internal/dto"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 

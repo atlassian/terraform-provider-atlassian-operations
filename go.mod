@@ -1,4 +1,4 @@
-module github.com/atlassian/jsm-ops-terraform-provider
+module github.com/atlassian/terraform-provider-jsm-ops
 
 go 1.22.7
 

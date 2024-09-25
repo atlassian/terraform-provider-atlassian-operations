@@ -6,9 +6,9 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/atlassian/jsm-ops-terraform-provider/internal/dto"
-	"github.com/atlassian/jsm-ops-terraform-provider/internal/provider/dataModels"
-	"github.com/atlassian/jsm-ops-terraform-provider/internal/provider/schemaAttributes"
+	"github.com/atlassian/terraform-provider-jsm-ops/internal/dto"
+	"github.com/atlassian/terraform-provider-jsm-ops/internal/provider/dataModels"
+	"github.com/atlassian/terraform-provider-jsm-ops/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
