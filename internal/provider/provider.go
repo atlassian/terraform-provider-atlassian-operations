@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"github.com/atlassian/jsm-ops-terraform-provider/internal/httpClient"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -20,9 +21,9 @@ type jsmopsProviderModel struct {
 }
 
 type JsmOpsClient struct {
-	OpsClient  any
-	TeamClient any
-	UserClient any
+	OpsClient  *httpClient.HttpClient
+	TeamClient *httpClient.HttpClient
+	UserClient *httpClient.HttpClient
 }
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -138,7 +139,20 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	tflog.Debug(ctx, "Creating JsmOps client")
 
 	// Create a new jsmops client using the configuration values
-	client := &JsmOpsClient{}
+	client := &JsmOpsClient{
+		OpsClient: httpClient.
+			NewHttpClient().
+			SetDefaultBasicAuth(config.Username.ValueString(), config.Password.ValueString()).
+			SetBaseUrl("https://api.stg.atlassian.com/jsm/ops/api" + config.CloudId.ValueString()),
+		TeamClient: httpClient.
+			NewHttpClient().
+			SetDefaultBasicAuth(config.Username.ValueString(), config.Password.ValueString()).
+			SetBaseUrl("https://" + config.DomainName.ValueString() + "/gateway/api/public/teams/v1/org"),
+		UserClient: httpClient.
+			NewHttpClient().
+			SetDefaultBasicAuth(config.Username.ValueString(), config.Password.ValueString()).
+			SetBaseUrl("https://" + config.DomainName.ValueString() + "/rest/api/3/user"),
+	}
 
 	// Make the jsmops client available during DataSource and Resource
 	// type Configure methods.
