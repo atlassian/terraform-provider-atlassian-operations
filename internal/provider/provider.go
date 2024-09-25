@@ -166,6 +166,7 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 func (p *jsmopsProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewUserDataSource,
+		NewTeamDataSource,
 	}
 }
 
