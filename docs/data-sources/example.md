@@ -6,14 +6,14 @@ description: |-
   User data source
 ---
 
-# jsmops_user (Data Source)
+# jsm-ops_user (Data Source)
 
 User data source
 
 ## Example Usage
 
 ```terraform
-data "jsmops_user" "example" {
+data "jsm-ops_user" "example" {
   email = "your-email-address"
 }
 ```

@@ -50,7 +50,7 @@ type jsmopsProvider struct {
 
 // Metadata returns the provider type name.
 func (p *jsmopsProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "jsmops"
+	resp.TypeName = "jsm-ops"
 	resp.Version = p.version
 }
 
@@ -75,9 +75,9 @@ func (p *jsmopsProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 	}
 }
 
-// Configure prepares a jsmops API client for data sources and resources.
+// Configure prepares a jsm-ops API client for data sources and resources.
 func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	tflog.Info(ctx, "Configuring jsmops provider")
+	tflog.Info(ctx, "Configuring jsm-ops provider")
 
 	// Retrieve provider data from configuration
 	var config jsmopsProviderModel
@@ -94,7 +94,7 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		resp.Diagnostics.AddAttributeError(
 			path.Root("cloud_id"),
 			"Unknown cloud instance ID",
-			"The provider cannot create the jsmops API client as there is an unknown configuration value for the cloudId. "+
+			"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the cloudId. "+
 				"Either target apply the source of the value first, set the value statically in the configuration.",
 		)
 	}
@@ -103,7 +103,7 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		resp.Diagnostics.AddAttributeError(
 			path.Root("domain_name"),
 			"Unknown domain name",
-			"The provider cannot create the jsmops API client as there is an unknown configuration value for the domain_name. "+
+			"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the domain_name. "+
 				"Either target apply the source of the value first, set the value statically in the configuration.",
 		)
 	}
@@ -111,8 +111,8 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	if config.Username.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("username"),
-			"Unknown jsmops API Username",
-			"The provider cannot create the jsmops API client as there is an unknown configuration value for the jsmops API username. "+
+			"Unknown jsm-ops API Username",
+			"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the jsm-ops API username. "+
 				"Either target apply the source of the value first, set the value statically in the configuration.",
 		)
 	}
@@ -120,8 +120,8 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	if config.Password.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("password"),
-			"Unknown jsmops API Password",
-			"The provider cannot create the jsmops API client as there is an unknown configuration value for the jsmops API password. "+
+			"Unknown jsm-ops API Password",
+			"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the jsm-ops API password. "+
 				"Either target apply the source of the value first, set the value statically in the configuration.",
 		)
 	}
@@ -130,15 +130,15 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 
-	ctx = tflog.SetField(ctx, "jsmOps_CloudId", config.CloudId)
-	ctx = tflog.SetField(ctx, "jsmOps_domainName", config.DomainName)
-	ctx = tflog.SetField(ctx, "jsmOps_username", config.Username)
-	ctx = tflog.SetField(ctx, "jsmOps_password", config.Password)
-	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "jsmOps_password")
+	ctx = tflog.SetField(ctx, "jsm-ops_cloud_id", config.CloudId)
+	ctx = tflog.SetField(ctx, "jsm-ops_domain_name", config.DomainName)
+	ctx = tflog.SetField(ctx, "jsm-ops_username", config.Username)
+	ctx = tflog.SetField(ctx, "jsm-ops_password", config.Password)
+	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "jsm-ops_password")
 
-	tflog.Debug(ctx, "Creating JsmOps client")
+	tflog.Debug(ctx, "Creating jsm-ops client")
 
-	// Create a new jsmops client using the configuration values
+	// Create a new jsm-ops client using the configuration values
 	client := &JsmOpsClient{
 		OpsClient: httpClient.
 			NewHttpClient().
@@ -154,12 +154,12 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			SetBaseUrl("https://" + config.DomainName.ValueString() + "/rest/api/3/user"),
 	}
 
-	// Make the jsmops client available during DataSource and Resource
+	// Make the jsm-ops client available during DataSource and Resource
 	// type Configure methods.
 	resp.DataSourceData = client
 	resp.ResourceData = client
 
-	tflog.Info(ctx, "Configured JsmOps client", map[string]any{"success": true})
+	tflog.Info(ctx, "Configured jsm-ops client", map[string]any{"success": true})
 }
 
 // DataSources defines the data sources implemented in the provider.
