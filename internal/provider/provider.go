@@ -167,6 +167,7 @@ func (p *jsmopsProvider) DataSources(_ context.Context) []func() datasource.Data
 	return []func() datasource.DataSource{
 		NewUserDataSource,
 		NewTeamDataSource,
+		NewScheduleDataSource,
 	}
 }
 
