@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     jsmops = {
-      source = "registry.terraform.io/atlassian/jsm-ops-terraform-provider"
+      source = "registry.terraform.io/atlassian/jsm-ops"
     }
   }
 }

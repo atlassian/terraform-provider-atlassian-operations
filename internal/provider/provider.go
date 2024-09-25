@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"github.com/atlassian/jsm-ops-terraform-provider/internal/httpClient"
+	"github.com/atlassian/terraform-provider-jsm-ops/internal/httpClient"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
