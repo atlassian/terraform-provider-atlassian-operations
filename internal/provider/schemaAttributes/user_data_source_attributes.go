@@ -6,7 +6,7 @@ import (
 )
 
 var UserDataSourceAttributes = map[string]schema.Attribute{
-	"id": schema.StringAttribute{
+	"account_id": schema.StringAttribute{
 		Description: "The account ID of the user",
 		Computed:    true,
 	},
@@ -30,7 +30,7 @@ var UserDataSourceAttributes = map[string]schema.Attribute{
 		Computed:    true,
 		Attributes:  AvatarUrlsBeanDataSourceAttributes,
 	},
-	"full_name": schema.StringAttribute{
+	"display_name": schema.StringAttribute{
 		Description: "The display name of the user",
 		Computed:    true,
 	},
