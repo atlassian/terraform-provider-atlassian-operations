@@ -1,64 +1,122 @@
-# Terraform Provider Scaffolding (Terraform Plugin Framework)
+# Jira Service Management Operations (JSM Ops) Terraform Provider
 
-_This template repository is built on the [Terraform Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework). The template repository built on the [Terraform Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) can be found at [terraform-provider-scaffolding](https://github.com/hashicorp/terraform-provider-scaffolding). See [Which SDK Should I Use?](https://developer.hashicorp.com/terraform/plugin/framework-benefits) in the Terraform documentation for additional information._
+This project aims to enable users to manipulate Operations resources in Jira Service Management, via Terraform.
+It is a functional replication of the _now transitioned_ [Opsgenie Provider](https://github.com/opsgenie/terraform-provider-opsgenie).
 
-This repository is a *template* for a [Terraform](https://www.terraform.io) provider. It is intended as a starting point for creating Terraform providers, containing:
+The provider is still under development. It currently supports the following resources:
 
-- A resource and a data source (`internal/provider/`),
-- Examples (`examples/`) and generated documentation (`docs/`),
-- Miscellaneous meta files.
+* User\*
+* Team
+* Schedule (incl. Rotation)
 
-These files contain boilerplate code that you will need to edit to create your own Terraform provider. Tutorials for creating Terraform providers can be found on the [HashiCorp Developer](https://developer.hashicorp.com/terraform/tutorials/providers-plugin-framework) platform. _Terraform Plugin Framework specific guides are titled accordingly._
+\*Due to the internal structure of JSM, _user_ is implemented solely as a data source and supports **read operations only**.
 
-Please see the [GitHub template repository documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) for how to create a new repository from this template on GitHub.
+### Related Links
 
-Once you've written your provider, you'll want to [publish it on the Terraform Registry](https://developer.hashicorp.com/terraform/registry/providers/publishing) so that others can use it.
+- [Terraform Website](https://www.terraform.io)
+- [Jira Service Management](https://www.atlassian.com/software/jira/service-management?tab=it-operations)
+- [JSM Ops REST API](https://developer.atlassian.com/cloud/jira/service-desk-ops/rest/v2/intro/)
 
-## Requirements
+## How To Run Locally
 
-- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.22
+The process to run the provider in a local environment requires the following steps:
 
-## Building The Provider
+1. Check the [Requirements](#1-requirements) section and install the missing components
+2. Clone this repository
+3. Compile & install the provider binary
+4. Set local overrides, so terraform uses your local version of the provider
+5. Test the configuration with a sample .tf file
 
-1. Clone the repository
-1. Enter the repository directory
-1. Build the provider using the Go `install` command:
+### 1. Requirements
 
-```shell
-go install
+This project requires the following programs to be installed on your computer, and their main executables to be available in your PATH:
+
+-	[Go](https://golang.org/doc/install) 1.22.7 (or higher, to build the provider plugin)
+-	[Terraform](https://www.terraform.io/downloads.html) 1.9.5 (To test the plugin)
+
+
+### 2. Cloning the repository
+
+```bash
+git clone git@bitbucket.org:jira-service-management/terraform-provider-jsm-ops.git
 ```
 
-## Adding Dependencies
+### 3. Compiling & Installing
+_Make sure that go is already installed and the command is available on your path.
+Check the [Go Documentation](https://go.dev/wiki/SettingGOPATH) for instructions on how to add the 
+go executable to your path, if not already added._
 
-This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).
-Please see the Go documentation for the most up to date information about using Go modules.
+While in the project directory, run the following commands:
 
-To add a new dependency `github.com/author/dependency` to your Terraform provider:
-
-```shell
-go get github.com/author/dependency
-go mod tidy
+```bash
+go mod download
+go install .
+```
+Go, _unless specified otherwise with the -o flag_, will install the resulting binary in the `$GOPATH/bin` directory.
+If you do not know where your `$GOPATH` is, you can run:
+```bash
+go env GOPATH
 ```
 
-Then commit the changes to `go.mod` and `go.sum`.
+### 4. Setting local overrides
+This step is required for Terraform to use the plugin executable that you just compiled, 
+instead of the one downloaded from the Terraform Registry.
 
-## Using the provider
+* For macOS & Linux: Create a file called `.terraformrc` in your `$HOME` directory
+* For Windows: Create a file called `terraform.rc` in your `%APPDATA%` directory
 
-Fill this in for each provider
+Add the following content to the file:
 
-## Developing the Provider
+```hcl
+provider_installation {
+  
+  # "/Users/<YOUR_USERNAME>/go/bin" is the path to the compiled provider ($GOPATH/bin).
+  # Change it accordingly if your configuration is different.
+   dev_overrides {
+      # Replace <YOUR_USERNAME> with your username
+      "registry.terraform.io/atlassian/jsm-ops" = "/Users/<YOUR_USERNAME>/go/bin"
+   }
 
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
-
-To compile the provider, run `go install`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
-
-To generate or update documentation, run `go generate`.
-
-In order to run the full suite of Acceptance tests, run `make testacc`.
-
-*Note:* Acceptance tests create real resources, and often cost money to run.
-
-```shell
-make testacc
+   # For all other providers, install them directly from their origin provider
+   # registries as normal. If you omit this, Terraform will _only_ use
+   # the dev_overrides block, and so no other providers will be available.
+   direct {}
+}
 ```
+
+### 5. Test the configuration
+
+* Create a basic terraform project locally with a `main.tf` file:
+
+   ```hcl
+   terraform {
+      required_providers {
+         jsm-ops = {
+            source = "registry.terraform.io/atlassian/jsm-ops"
+         }
+      }
+   }
+   
+   provider "jsm-ops" {
+      cloud_id = "<YOUR_CLOUD_ID>"
+      domain_name="<YOUR_DOMAIN>"      // e.g. domain.atlassian.net
+      username = "<YOUR_USERNAME>"     // e.g. user@example.com
+      password = "<YOUR_TOKEN_HERE>"   // e.g. API token created in Atlassian account settings
+   }
+   
+   data "jsm-ops_user" "example" {
+      email_address = "user1@example.com"
+   }
+   
+   output "example" {
+      value = "data.jsm-ops_user.example"
+   }
+   ```
+
+* Run the following commands to test the provider:
+
+   ```bash
+   terraform plan
+   terraform apply
+   ```
+   _`terraform init` is not necessary_
