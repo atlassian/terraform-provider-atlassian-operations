@@ -27,8 +27,8 @@ func NewTeamResource() resource.Resource {
 
 // TeamResource defines the resource implementation.
 type TeamResource struct {
-	client          *httpClient.HttpClient
-	enableOpsClient *httpClient.HttpClient
+	teamClient *httpClient.HttpClient
+	opsClient  *httpClient.HttpClient
 }
 
 func (r *TeamResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -60,8 +60,8 @@ func (r *TeamResource) Configure(ctx context.Context, req resource.ConfigureRequ
 		return
 	}
 
-	r.client = client.TeamClient
-	r.enableOpsClient = client.TeamEnableOpsClient
+	r.teamClient = client.TeamClient
+	r.opsClient = client.OpsClient
 
 	tflog.Trace(ctx, "Configured TeamResource")
 }
@@ -78,7 +78,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	tflog.Trace(ctx, "Creating the Team")
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := r.teamClient.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("%s/teams/", teamDto.OrganizationId)).
 		Method(httpClient.POST).
 		SetBody(teamDto).
@@ -114,7 +114,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	autoCreatedMembers := dto.TeamMemberListResponse{}
 	errorMap = httpClient.NewTeamClientErrorMap()
-	httpResp, err = r.client.NewRequest().
+	httpResp, err = r.teamClient.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members", teamDto.OrganizationId, teamDto.TeamId)).
 		Method(httpClient.POST).
 		SetBodyParseObject(&autoCreatedMembers).
@@ -153,10 +153,18 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	tflog.Trace(ctx, "Enabling Operations for the Team")
-	errorMap = httpClient.NewTeamEnableOpsClientErrorMap()
+	errorMap = httpClient.NewOpsClientErrorMap()
 
 	// Enable OPS for the Team
-	httpResp, err = r.enableOpsClient.NewRequest().
+	httpResp, err = r.opsClient.
+		AddRetryCondition(func(response *httpClient.Response, err error) bool {
+			if response.GetStatusCode() == 404 {
+				return true
+			}
+			return false
+		}).
+		NewRequest().
+		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/enable-ops", teamDto.TeamId)).
 		Method(httpClient.POST).
 		SetBody(enableOpsBody).
 		SetErrorParseMap(&errorMap).
@@ -191,7 +199,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		tflog.Trace(ctx, "Adding users to the team")
 
 		errorMap = httpClient.NewTeamClientErrorMap()
-		httpResp, err = r.client.NewRequest().
+		httpResp, err = r.teamClient.NewRequest().
 			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/add", teamDto.OrganizationId, teamDto.TeamId)).
 			Method(httpClient.POST).
 			SetBody(dto.TeamMemberList{Members: membersDto}).
@@ -242,7 +250,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	teamDto := dto.TeamDto{}
 	errorMap := httpClient.NewTeamClientErrorMap()
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := r.teamClient.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.GET).
 		SetBodyParseObject(&teamDto).
@@ -277,7 +285,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	memberData := dto.TeamMemberListResponse{}
 	errorMap = httpClient.NewTeamClientErrorMap()
 
-	httpResp, err = r.client.NewRequest().
+	httpResp, err = r.teamClient.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("/%s/teams/%s/members", data.OrganizationId.ValueString(), data.Id.ValueString())).
 		Method("POST").
 		SetBodyParseObject(&memberData).
@@ -343,7 +351,7 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	_, currentUsersDto := TeamModelToDto(ctx, currentData)
 	errorMap := httpClient.NewTeamClientErrorMap()
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := r.teamClient.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", newData.OrganizationId.ValueString(), newData.Id.ValueString())).
 		Method(httpClient.PATCH).
 		SetBody(newTeamDto).
@@ -380,7 +388,7 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	if len(addedUsers) > 0 {
 		tflog.Trace(ctx, "Adding new team members")
 		errorMap = httpClient.NewTeamClientErrorMap()
-		httpResp, err = r.client.NewRequest().
+		httpResp, err = r.teamClient.NewRequest().
 			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/add", newData.OrganizationId.ValueString(), newData.Id.ValueString())).
 			Method(httpClient.POST).
 			SetBody(dto.TeamMemberList{Members: addedUsers}).
@@ -414,7 +422,7 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	if len(removedUsers) > 0 {
 		tflog.Trace(ctx, "Removing old team members")
 		errorMap = httpClient.NewTeamClientErrorMap()
-		httpResp, err = r.client.NewRequest().
+		httpResp, err = r.teamClient.NewRequest().
 			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/remove", currentData.OrganizationId.ValueString(), currentData.Id.ValueString())).
 			Method(httpClient.POST).
 			SetBody(dto.TeamMemberList{Members: removedUsers}).
@@ -466,7 +474,7 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	tflog.Trace(ctx, "Deleting the TeamResource")
 	errorMap := httpClient.NewTeamClientErrorMap()
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := r.teamClient.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.DELETE).
 		SetErrorParseMap(&errorMap).
