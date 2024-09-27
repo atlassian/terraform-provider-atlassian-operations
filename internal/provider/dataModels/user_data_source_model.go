@@ -7,12 +7,12 @@ import (
 
 type (
 	UserDataSourceModel struct {
-		Id               types.String                     `tfsdk:"id"`
+		AccountId        types.String                     `tfsdk:"account_id"`
 		AccountType      types.String                     `tfsdk:"account_type"`
 		Active           types.Bool                       `tfsdk:"active"`
 		ApplicationRoles []ApplicationRoleDataSourceModel `tfsdk:"application_roles"`
 		AvatarUrls       *AvatarUrlsBeanDataSourceModel   `tfsdk:"avatar_urls"`
-		FullName         types.String                     `tfsdk:"full_name"`
+		DisplayName      types.String                     `tfsdk:"display_name"`
 		EmailAddress     types.String                     `tfsdk:"email_address"`
 		Expand           types.String                     `tfsdk:"expand"`
 		Groups           []GroupNameDataSourceModel       `tfsdk:"groups"`
@@ -46,12 +46,12 @@ type (
 
 func UserDtoToModel(dto dto.UserDto) UserDataSourceModel {
 	model := UserDataSourceModel{
-		Id:               types.StringValue(dto.AccountId),
+		AccountId:        types.StringValue(dto.AccountId),
 		AccountType:      types.StringValue(string(dto.AccountType)),
 		Active:           types.BoolValue(dto.Active),
 		ApplicationRoles: make([]ApplicationRoleDataSourceModel, dto.ApplicationRoles.Size),
 		AvatarUrls:       AvatarUrlsBeanDtoToModel(dto.AvatarUrls),
-		FullName:         types.StringValue(dto.DisplayName),
+		DisplayName:      types.StringValue(dto.DisplayName),
 		EmailAddress:     types.StringValue(dto.EmailAddress),
 		Expand:           types.StringValue(dto.Expand),
 		Groups:           make([]GroupNameDataSourceModel, dto.Groups.Size),
