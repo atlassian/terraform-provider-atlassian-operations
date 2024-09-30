@@ -46,7 +46,6 @@ func (d *userDataSource) Configure(ctx context.Context, req datasource.Configure
 
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
-		tflog.Error(ctx, "Cannot configure user_data_source. Provider is not configured")
 		return
 	}
 
