@@ -7,6 +7,10 @@ var RotationDataSourceAttributes = map[string]schema.Attribute{
 		Description: "The ID of the rotation",
 		Computed:    true,
 	},
+	"schedule_id": schema.StringAttribute{
+		Description: "The ID of the schedule that owns the rotation",
+		Computed:    true,
+	},
 	"name": schema.StringAttribute{
 		Description: "The name of the rotation",
 		Computed:    true,

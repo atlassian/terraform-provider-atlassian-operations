@@ -68,7 +68,7 @@ func (d *userDataSource) Configure(ctx context.Context, req datasource.Configure
 }
 
 func (d *userDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var model dataModels.UserDataSourceModel
+	var model dataModels.UserModel
 	var data []dto.UserDto
 
 	tflog.Trace(ctx, "Reading user data source")
@@ -89,6 +89,7 @@ func (d *userDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		SetQueryParams(map[string]string{
 			"query":      model.EmailAddress.ValueString(),
 			"maxResults": "1",
+			"expand":     "groups,applicationRoles",
 		}).
 		SetBodyParseObject(&data).
 		Send()
@@ -113,7 +114,7 @@ func (d *userDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	}
 
 	tflog.Trace(ctx, "HTTP request to JSM User API Succeeded. Parsing the fetched data to Terraform model")
-	model = dataModels.UserDtoToModel(data[0])
+	model = UserDtoToModel(data[0])
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

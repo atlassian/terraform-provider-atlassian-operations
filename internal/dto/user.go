@@ -10,7 +10,7 @@ const (
 type (
 	accountType  string
 	GroupNameDto struct {
-		GroupId string `json:"group_id"`
+		GroupId string `json:"groupId"`
 		Name    string `json:"name"`
 		Self    string `json:"self"`
 	}
