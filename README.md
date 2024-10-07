@@ -21,15 +21,18 @@ The provider is still under development. It currently supports the following res
 
 The process to run the provider in a local environment requires the following steps:
 
-1. Check the [Requirements](#1-requirements) section and install the missing components
-2. Clone this repository
-3. Compile & install the provider binary
-4. Set local overrides, so terraform uses your local version of the provider
-5. Test the configuration with a sample .tf file
+1. [Check the Requirements and install the missing components](#1-requirements)
+2. [Clone this repository](#2-cloning-the-repository)
+3. [Compile & install the provider binary](#3-compiling--installing)
+4. [Set local overrides, so terraform uses your local version of the provider](#4-setting-local-overrides)
+5. [Testing & Debugging](#5-testing--debugging)
+   1. [Create a simple .tf file](#51-create-a-simple-maintf-file)
+   2. [Configure Delve and the development environment for debugging](#52-debugging)
 
 ### 1. Requirements
 
-This project requires the following programs to be installed on your computer, and their main executables to be available in your PATH:
+This project requires the following programs to be installed on your computer, and their main executables to be 
+available in your PATH:
 
 -	[Go](https://golang.org/doc/install) 1.22.7 (or higher, to build the provider plugin)
 -	[Terraform](https://www.terraform.io/downloads.html) 1.9.5 (To test the plugin)
@@ -84,9 +87,9 @@ provider_installation {
 }
 ```
 
-### 5. Test the configuration
+### 5. Testing & Debugging
 
-* Create a basic terraform project locally with a `main.tf` file:
+#### 5.1 Create a simple `main.tf` file:
 
    ```hcl
    terraform {
@@ -113,10 +116,77 @@ provider_installation {
    }
    ```
 
-* Run the following commands to test the provider:
+_If you do not want to debug the provider with a debugger, and would like to simply execute the Terraform file you 
+just created, you can skip the next part and jump directly to [Running Without Debugging](#53-running-without-debugging)_
+
+#### 5.2. Debugging
+
+To enable debugging for the provider and make it connect to Delve before carrying on with the execution of the 
+instructions in the .tf file, you need to set the `debug` flag to `true`, via altering the `flag.BoolVar` statement in 
+the `main.tf` file:
+
+```go
+package main
+import "flag"
+// ...
+
+func main() {
+	var debug bool
+
+	flag.BoolVar(&debug, "debug", true, "set to true to run the provider with support for debuggers like delve")
+	flag.Parse()
+
+	// Rest of the main.go file
+}
+```
+This will make the provider executable pause the execution and wait for a debugger to connect before proceeding.
+
+With the default configuration, the provider binary is compiled **without debug information**. 
+To include the necessary debug information within the library, you need to build the provider with the 
+-gcflags="all=-N -l" flag. Afterward, you can run and attach the process to the Delve debugger with the `dlv` command.
+
+```bash
+go build -gcflags="all=-N -l" .
+dlv exec --accept-multiclient --continue --headless ./terraform_provider_jsm_ops -- -debug
+```
+_Most IDE's do building with debug flags and attaching to Delve debugger in the background automatically when the 
+debugger is run from their UI._
+
+When the provider executable is run with this configuration, it will output a message similar to the following:
+
+```bash
+API server listening at: 127.0.0.1:63446
+debugserver-@(#)PROGRAM:LLDB  PROJECT:lldb-1600.0.36.3 for arm64.
+Got a connection, launched process /Users/username/Library/Caches/JetBrains/GoLand2024.2/tmp/GoLand/___go_build_github_com_atlassian_terraform_provider_jsm_ops (pid = 47822).
+{"@level":"debug","@message":"plugin address","@timestamp":"2024-10-02T00:03:48.057576+03:00","address":"/var/folders/5n/wcvl0l8d4nx15qz3jy9jn7wh0000gn/T/plugin3023012805","network":"unix"}
+Provider started. To attach Terraform CLI, set the TF_REATTACH_PROVIDERS environment variable with the following:
+
+        TF_REATTACH_PROVIDERS='{"registry.terraform.io/atlassian/jsm-ops":{"Protocol":"grpc","ProtocolVersion":6,"Pid":47822,"Test":true,"Addr":{"Network":"unix","String":"/var/folders/5n/wcvl0l8d4nx15qz3jy9jn7wh0000gn/T/plugin3023012805"}}}'
+```
+
+Simply follow the instructions as they are prompted. Either set the `TF_REATTACH_PROVIDERS` environment variable in 
+your terminal, or prepend it to your every Terraform command.
+
+* Set the environment variable:
+```bash
+export TF_REATTACH_PROVIDERS=<_PROMPTED_STRING_AT_THE_DEBUG_CONSOLE_>
+```
+
+* Run the Terraform commands directly:
+```bash
+TF_REATTACH_PROVIDERS=<_PROMPTED_STRING_AT_THE_DEBUG_CONSOLE_> terraform plan
+TF_REATTACH_PROVIDERS=<_PROMPTED_STRING_AT_THE_DEBUG_CONSOLE_> terraform apply
+```
+
+More information on how to use Delve with Terraform can be found in the 
+[Terraform documentation](https://developer.hashicorp.com/terraform/plugin/debugging).
+
+#### 5.3. Running Without Debugging
+
+Run the following commands to test the provider:
 
    ```bash
    terraform plan
    terraform apply
    ```
-   _`terraform init` is not necessary_
+  _`terraform init` is **not** necessary_
