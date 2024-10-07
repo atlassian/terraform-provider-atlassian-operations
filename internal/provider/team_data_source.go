@@ -44,7 +44,6 @@ func (d *teamDataSource) Configure(ctx context.Context, req datasource.Configure
 	tflog.Trace(ctx, "Configuring team_data_source")
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
-		tflog.Error(ctx, "Cannot configure team_data_source. Provider is not configured")
 		return
 	}
 

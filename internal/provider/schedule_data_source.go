@@ -45,8 +45,6 @@ func (d *ScheduleDataSource) Configure(ctx context.Context, req datasource.Confi
 	tflog.Trace(ctx, "Configuring schedule_data_source")
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
-		tflog.Error(ctx, "Cannot configure schedule_data_source. Provider is not configured")
-		resp.Diagnostics.AddError("Cannot configure schedule_data_source", "Provider is not configured")
 		return
 	}
 
