@@ -3,6 +3,7 @@ package httpClient
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
 	urlpkg "net/url"
@@ -32,7 +33,7 @@ func NewRequest(client *HttpClient) *Request {
 		innerRequest: inReq,
 		Client:       client,
 	}
-	newReq.SetHeader("Accept", "application/json")
+	newReq.SetHeader("Content-Type", "application/json")
 	client.innerClient.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		return client.shouldRetryBecauseCondition(ctx, &Response{nativeResponse: resp}, err)
 	}
@@ -44,6 +45,12 @@ func NewRequest(client *HttpClient) *Request {
 			}
 		}
 		return nil
+	}
+	client.innerClient.ErrorHandler = func(resp *http.Response, err error, numTries int) (*http.Response, error) {
+		if err == nil {
+			return resp, fmt.Errorf("%s request giving up after %d attempt(s)", resp.Request.Method, numTries)
+		}
+		return resp, err
 	}
 	return newReq
 }
@@ -105,7 +112,8 @@ func (r *Request) SetQueryParams(params map[string]string) *Request {
 }
 
 func (r *Request) SetBody(body interface{}) *Request {
-	_ = r.innerRequest.SetBody(body)
+	rawBody, _ := json.Marshal(body)
+	_ = r.innerRequest.SetBody(rawBody)
 	return r
 }
 

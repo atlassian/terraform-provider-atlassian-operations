@@ -143,15 +143,15 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		OpsClient: httpClient.
 			NewHttpClient().
 			SetDefaultBasicAuth(config.Username.ValueString(), config.Password.ValueString()).
-			SetBaseUrl("https://api.stg.atlassian.com/jsm/ops/api" + config.CloudId.ValueString()),
+			SetBaseUrl("https://api.stg.atlassian.com/jsm/ops/api/" + config.CloudId.ValueString()),
 		TeamClient: httpClient.
 			NewHttpClient().
 			SetDefaultBasicAuth(config.Username.ValueString(), config.Password.ValueString()).
-			SetBaseUrl("https://" + config.DomainName.ValueString() + "/gateway/api/public/teams/v1/org"),
+			SetBaseUrl("https://" + config.DomainName.ValueString() + "/gateway/api/public/teams/v1/org/"),
 		UserClient: httpClient.
 			NewHttpClient().
 			SetDefaultBasicAuth(config.Username.ValueString(), config.Password.ValueString()).
-			SetBaseUrl("https://" + config.DomainName.ValueString() + "/rest/api/3/user"),
+			SetBaseUrl("https://" + config.DomainName.ValueString() + "/rest/api/3/user/"),
 	}
 
 	// Make the jsm-ops client available during DataSource and Resource
@@ -173,5 +173,7 @@ func (p *jsmopsProvider) DataSources(_ context.Context) []func() datasource.Data
 
 // Resources defines the resources implemented in the provider.
 func (p *jsmopsProvider) Resources(_ context.Context) []func() resource.Resource {
-	return nil
+	return []func() resource.Resource{
+		NewScheduleRotationResource,
+	}
 }

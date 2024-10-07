@@ -67,7 +67,7 @@ func (d *ScheduleDataSource) Configure(ctx context.Context, req datasource.Confi
 }
 
 func (d *ScheduleDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var model dataModels.ScheduleDataSourceModel
+	var model dataModels.ScheduleModel
 	var data dto.ListResponse[dto.Schedule]
 
 	tflog.Trace(ctx, "Reading schedule data source from JSM OPS API")
@@ -106,7 +106,7 @@ func (d *ScheduleDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 
 	tflog.Trace(ctx, "HTTP request to JSM OPS API Succeeded. Parsing the fetched data to Terraform model")
-	model = dataModels.ScheduleDtoToModel(data.Values[0])
+	model = ScheduleDtoToModel(data.Values[0])
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

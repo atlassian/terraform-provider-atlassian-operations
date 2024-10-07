@@ -2,6 +2,8 @@ package httpClient
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"github.com/hashicorp/go-retryablehttp"
 	"net/url"
 	"time"
@@ -101,18 +103,21 @@ func (receiver *HttpClient) SetDefaultBearerAuth(token string) *HttpClient {
 }
 
 func (receiver *HttpClient) shouldRetryBecauseCondition(ctx context.Context, resp *Response, err error) (bool, error) {
-	shouldRetry := resp.IsError()
-	for _, fun := range receiver.retryConditions {
-		if fun(resp, err) {
-			shouldRetry = true
-			break
+	shouldRetry, _ := retryablehttp.DefaultRetryPolicy(ctx, resp.nativeResponse, err)
+	if !shouldRetry {
+		for _, fun := range receiver.retryConditions {
+			if fun(resp, err) {
+				shouldRetry = true
+				break
+			}
+		}
+	} else if err != nil {
+		var invalidUnmarshalError *json.InvalidUnmarshalError
+		if errors.As(err, &invalidUnmarshalError) {
+			shouldRetry = false
 		}
 	}
-	if shouldRetry {
-		return shouldRetry, nil
-	} else {
-		return retryablehttp.DefaultRetryPolicy(ctx, resp.GetNativeResponse(), err)
-	}
+	return shouldRetry, err
 }
 
 func (receiver *HttpClient) NewRequest() *Request {

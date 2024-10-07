@@ -66,7 +66,7 @@ func (d *teamDataSource) Configure(ctx context.Context, req datasource.Configure
 }
 
 func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var model dataModels.TeamDataSourceModel
+	var model dataModels.TeamModel
 	var data dto.TeamDto
 	var memberData dto.TeamMemberListResponse
 
@@ -174,7 +174,7 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	tflog.Trace(ctx, "Converting Team Data into Terraform Model")
 	// Convert the fetched data into the model
-	model = dataModels.TeamDtoToModel(data, memberData.Results)
+	model = TeamDtoToModel(data, memberData.Results)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

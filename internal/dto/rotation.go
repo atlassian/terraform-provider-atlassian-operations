@@ -19,12 +19,12 @@ type ResponderInfo struct {
 }
 
 type Rotation struct {
-	Id              string
-	Name            string
-	StartDate       string
-	EndDate         string
-	Type            RotationType
-	Length          int32
-	Participants    []ResponderInfo
-	TimeRestriction *TimeRestriction
+	Id              string           `json:"id"`
+	Name            string           `json:"name"`
+	StartDate       string           `json:"startDate"`
+	EndDate         string           `json:"endDate"`
+	Type            RotationType     `json:"type"`
+	Length          int32            `json:"length"`
+	Participants    []ResponderInfo  `json:"participants"`
+	TimeRestriction *TimeRestriction `json:"timeRestriction"`
 }

@@ -29,15 +29,14 @@ func (receiver *Response) Body() ([]byte, error) {
 }
 
 func (receiver *Response) GetStatusCode() int {
+	if receiver.nativeResponse == nil {
+		return -1
+	}
 	return receiver.nativeResponse.StatusCode
 }
 
 func (receiver *Response) IsError() bool {
-	if receiver.nativeResponse != nil {
-		return receiver.GetStatusCode() > 399
-	} else {
-		return true
-	}
+	return receiver.GetStatusCode() == -1 || receiver.GetStatusCode() > 399
 }
 
 func (receiver *Response) GetNativeResponse() *http.Response {
