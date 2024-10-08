@@ -284,13 +284,13 @@ func TimeRestrictionModelToDto(ctx context.Context, model dataModels.TimeRestric
 	if model.Restriction.IsNull() || model.Restriction.IsUnknown() {
 		var restriction dataModels.TimeOfDayTimeRestrictionSettingsModel
 		model.Restriction.As(ctx, &restriction, basetypes.ObjectAsOptions{})
-		dtoObj.TimeOfDayRestriction = TimeOfDayTimeRestrictionSettingsModelToDto(ctx, restriction)
+		dtoObj.TimeOfDayRestriction = TimeOfDayTimeRestrictionSettingsModelToDto(restriction)
 	}
 
 	return &dtoObj
 }
 
-func TimeOfDayTimeRestrictionSettingsModelToDto(ctx context.Context, model dataModels.TimeOfDayTimeRestrictionSettingsModel) *dto.TimeOfDayTimeRestrictionSettings {
+func TimeOfDayTimeRestrictionSettingsModelToDto(model dataModels.TimeOfDayTimeRestrictionSettingsModel) *dto.TimeOfDayTimeRestrictionSettings {
 	return &dto.TimeOfDayTimeRestrictionSettings{
 		StartHour: model.StartHour.ValueInt32(),
 		EndHour:   model.EndHour.ValueInt32(),
@@ -307,52 +307,5 @@ func WeekdayTimeRestrictionSettingsModelToDto(model dataModels.WeekdayTimeRestri
 		EndHour:   model.EndHour.ValueInt32(),
 		StartMin:  model.StartMin.ValueInt32(),
 		EndMin:    model.EndMin.ValueInt32(),
-	}
-}
-
-func TimeRestrictionDtoToModel(dto dto.TimeRestriction) *dataModels.TimeRestrictionModel {
-	model := dataModels.TimeRestrictionModel{
-		Type: types.StringValue(string(dto.Type)),
-		Restrictions: types.ListNull(types.ObjectType{
-			AttrTypes: dataModels.WeekdayTimeRestrictionSettingsModelMap,
-		}),
-		Restriction: types.ObjectNull(dataModels.TimeOfDayTimeRestrictionSettingsModelMap),
-	}
-	if dto.WeekAndTimeOfDayRestriction != nil {
-		restrictions := make([]attr.Value, len(*dto.WeekAndTimeOfDayRestriction))
-		for i, restriction := range *dto.WeekAndTimeOfDayRestriction {
-			toModel := WeekdayTimeRestrictionSettingsDtoToModel(restriction)
-			restrictions[i] = toModel.AsValue()
-		}
-		model.Restrictions = types.ListValueMust(
-			types.ObjectType{AttrTypes: dataModels.WeekdayTimeRestrictionSettingsModelMap},
-			restrictions,
-		)
-	}
-	if dto.TimeOfDayRestriction != nil {
-		toModel := TimeOfDayTimeRestrictionSettingsDtoToModel(*dto.TimeOfDayRestriction)
-		model.Restriction = toModel.AsValue()
-	}
-
-	return &model
-}
-
-func TimeOfDayTimeRestrictionSettingsDtoToModel(dto dto.TimeOfDayTimeRestrictionSettings) dataModels.TimeOfDayTimeRestrictionSettingsModel {
-	return dataModels.TimeOfDayTimeRestrictionSettingsModel{
-		StartHour: types.Int32Value(dto.StartHour),
-		EndHour:   types.Int32Value(dto.EndHour),
-		StartMin:  types.Int32Value(dto.StartMin),
-		EndMin:    types.Int32Value(dto.EndMin),
-	}
-}
-
-func WeekdayTimeRestrictionSettingsDtoToModel(dto dto.WeekdayTimeRestrictionSettings) dataModels.WeekdayTimeRestrictionSettingsModel {
-	return dataModels.WeekdayTimeRestrictionSettingsModel{
-		StartDay:  types.StringValue(string(dto.StartDay)),
-		EndDay:    types.StringValue(string(dto.EndDay)),
-		StartHour: types.Int32Value(dto.StartHour),
-		EndHour:   types.Int32Value(dto.EndHour),
-		StartMin:  types.Int32Value(dto.StartMin),
-		EndMin:    types.Int32Value(dto.EndMin),
 	}
 }
