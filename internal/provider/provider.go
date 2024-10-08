@@ -175,5 +175,6 @@ func (p *jsmopsProvider) DataSources(_ context.Context) []func() datasource.Data
 func (p *jsmopsProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewScheduleRotationResource,
+		NewScheduleResource,
 	}
 }
