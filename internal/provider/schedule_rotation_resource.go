@@ -29,11 +29,11 @@ type ScheduleRotationResource struct {
 	client *httpClient.HttpClient
 }
 
-func (r *ScheduleRotationResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *ScheduleRotationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_schedule_rotation"
 }
 
-func (r *ScheduleRotationResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *ScheduleRotationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: schemaAttributes.RotationResourceAttributes,
 	}
