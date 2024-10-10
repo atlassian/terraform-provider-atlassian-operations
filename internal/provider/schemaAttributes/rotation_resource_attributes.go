@@ -1,11 +1,17 @@
 package schemaAttributes
 
 import (
+	"github.com/atlassian/terraform-provider-jsm-ops/internal/provider/schemaAttributes/customValidators"
+	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
 var RotationResourceAttributes = map[string]schema.Attribute{
@@ -28,15 +34,20 @@ var RotationResourceAttributes = map[string]schema.Attribute{
 	"start_date": schema.StringAttribute{
 		Description: "The start date of the rotation",
 		Required:    true,
+		CustomType:  timetypes.RFC3339Type{},
 	},
 	"end_date": schema.StringAttribute{
 		Description: "The end date of the rotation",
 		Computed:    true,
 		Optional:    true,
+		CustomType:  timetypes.RFC3339Type{},
 	},
 	"type": schema.StringAttribute{
 		Description: "The type of the rotation",
 		Required:    true,
+		Validators: []validator.String{
+			stringvalidator.OneOf([]string{"daily", "weekly", "hourly"}...),
+		},
 	},
 	"length": schema.Int32Attribute{
 		Description: "The length of the rotation",
@@ -46,6 +57,9 @@ var RotationResourceAttributes = map[string]schema.Attribute{
 		PlanModifiers: []planmodifier.Int32{
 			int32planmodifier.UseStateForUnknown(),
 		},
+		Validators: []validator.Int32{
+			int32validator.AtLeast(1),
+		},
 	},
 	"participants": schema.ListNestedAttribute{
 		Description: "The participants of the rotation",
@@ -53,6 +67,11 @@ var RotationResourceAttributes = map[string]schema.Attribute{
 		Optional:    true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: ResponderInfoResourceAttributes,
+			Validators: []validator.Object{
+				customValidators.StringFieldNotNullIfOtherField(path.MatchRelative().AtName("id"), path.MatchRelative().AtName("type"), "user"),
+				customValidators.StringFieldNotNullIfOtherField(path.MatchRelative().AtName("id"), path.MatchRelative().AtName("type"), "team"),
+				customValidators.StringFieldNotNullIfOtherField(path.MatchRelative().AtName("id"), path.MatchRelative().AtName("type"), "escalation"),
+			},
 		},
 	},
 	"time_restriction": schema.SingleNestedAttribute{
@@ -71,5 +90,8 @@ var ResponderInfoResourceAttributes = map[string]schema.Attribute{
 	"type": schema.StringAttribute{
 		Description: "The type of the participant",
 		Required:    true,
+		Validators: []validator.String{
+			stringvalidator.OneOf([]string{"user", "team", "escalation", "noone"}...),
+		},
 	},
 }
