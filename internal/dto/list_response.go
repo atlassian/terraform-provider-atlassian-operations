@@ -18,6 +18,6 @@ type (
 
 	TeamMemberListResponse struct {
 		PageInfo publicApiPageInfoAccountId `json:"pageInfo"`
-		Results  []UserDto                  `json:"results"`
+		Results  []TeamMember               `json:"results"`
 	}
 )

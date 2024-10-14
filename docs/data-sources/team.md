@@ -18,7 +18,7 @@ Team data source
 ### Required
 
 - `organization_id` (String) The organization ID of the team
-- `team_id` (String) The ID of the team
+- `id` (String) The ID of the team
 
 ### Read-Only
 

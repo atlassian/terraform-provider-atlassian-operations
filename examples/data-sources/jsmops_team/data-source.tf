@@ -15,7 +15,7 @@ provider "jsm-ops" {
 
 data "jsm-ops_team" "example" {
 	organization_id = "0j238a02-kja5-1jka-75j3-82a3dccj366j"
-	team_id = "ef72bc0a-6f28-43d3-87e3-783ae3ed0ffa"
+	id = "6848b028-db3d-4d1e-9a3c-d3513354ce61"
 }
 
 output "example" {
