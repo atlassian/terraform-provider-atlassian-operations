@@ -281,7 +281,7 @@ func TimeRestrictionModelToDto(ctx context.Context, model dataModels.TimeRestric
 
 		dtoObj.WeekAndTimeOfDayRestriction = &arr
 	}
-	if model.Restriction.IsNull() || model.Restriction.IsUnknown() {
+	if !(model.Restriction.IsNull() || model.Restriction.IsUnknown()) {
 		var restriction dataModels.TimeOfDayTimeRestrictionSettingsModel
 		model.Restriction.As(ctx, &restriction, basetypes.ObjectAsOptions{})
 		dtoObj.TimeOfDayRestriction = TimeOfDayTimeRestrictionSettingsModelToDto(restriction)
@@ -308,4 +308,24 @@ func WeekdayTimeRestrictionSettingsModelToDto(model dataModels.WeekdayTimeRestri
 		StartMin:  model.StartMin.ValueInt32(),
 		EndMin:    model.EndMin.ValueInt32(),
 	}
+}
+
+func ScheduleModelToDto(ctx context.Context, model dataModels.ScheduleModel) dto.Schedule {
+	dtoObj := dto.Schedule{
+		Id:          model.Id.ValueString(),
+		Name:        model.Name.ValueString(),
+		Description: model.Description.ValueString(),
+		Timezone:    model.Timezone.ValueString(),
+		Enabled:     model.Enabled.ValueBool(),
+		TeamId:      model.TeamId.ValueString(),
+		Rotations:   make([]dto.Rotation, len(model.Rotations.Elements())),
+	}
+	rotations := make([]dataModels.RotationModel, len(model.Rotations.Elements()))
+	model.Rotations.ElementsAs(ctx, &rotations, false)
+
+	for i, rotation := range rotations {
+		dtoObj.Rotations[i] = RotationModelToDto(ctx, rotation)
+	}
+
+	return dtoObj
 }
