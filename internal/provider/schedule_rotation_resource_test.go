@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"testing"
 
@@ -8,6 +9,9 @@ import (
 )
 
 func TestAccScheduleRotationResource_TimeOfDay(t *testing.T) {
+	rotationName := uuid.NewString()
+	rotationUpdateName := uuid.NewString()
+
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -16,7 +20,7 @@ func TestAccScheduleRotationResource_TimeOfDay(t *testing.T) {
 				Config: providerConfig + `
 resource "jsm-ops_schedule_rotation" "example" {
   schedule_id = "df47a95c-f9ae-4ca6-873b-375fcad3cd18"
-  name       = "rotation1"
+  name       = "` + rotationName + `"
   start_date = "2023-11-10T05:00:00Z"
   end_date = "2023-11-11T05:00:00Z"
   type       = "weekly"
@@ -39,7 +43,7 @@ resource "jsm-ops_schedule_rotation" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "name", "rotation1"),
+					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "name", rotationName),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "start_date", "2023-11-10T05:00:00Z"),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "end_date", "2023-11-11T05:00:00Z"),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "type", "weekly"),
@@ -71,7 +75,7 @@ resource "jsm-ops_schedule_rotation" "example" {
 				Config: providerConfig + `
 resource "jsm-ops_schedule_rotation" "example" {
   schedule_id = "df47a95c-f9ae-4ca6-873b-375fcad3cd18"
-  name       = "rotation2"
+  name       = "` + rotationUpdateName + `"
   start_date = "2023-11-10T05:00:00Z"
   end_date = "2023-11-11T05:00:00Z"
   type       = "daily"
@@ -88,7 +92,7 @@ resource "jsm-ops_schedule_rotation" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "name", "rotation2"),
+					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "name", rotationUpdateName),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "start_date", "2023-11-10T05:00:00Z"),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "end_date", "2023-11-11T05:00:00Z"),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "type", "daily"),
@@ -107,6 +111,9 @@ resource "jsm-ops_schedule_rotation" "example" {
 }
 
 func TestAccScheduleRotationResource_WeekdayAndTimeOfDay(t *testing.T) {
+	rotationName := uuid.NewString()
+	rotationUpdateName := uuid.NewString()
+
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -115,7 +122,7 @@ func TestAccScheduleRotationResource_WeekdayAndTimeOfDay(t *testing.T) {
 				Config: providerConfig + `
 resource "jsm-ops_schedule_rotation" "example" {
   schedule_id = "df47a95c-f9ae-4ca6-873b-375fcad3cd18"
-  name       = "rotation3"
+  name       = "` + rotationName + `"
   start_date = "2023-11-10T05:00:00Z"
   type       = "weekly"
   time_restriction = {
@@ -134,7 +141,7 @@ resource "jsm-ops_schedule_rotation" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "name", "rotation3"),
+					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "name", rotationName),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "start_date", "2023-11-10T05:00:00Z"),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "type", "weekly"),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "length", "1"),
@@ -166,7 +173,7 @@ resource "jsm-ops_schedule_rotation" "example" {
 				Config: providerConfig + `
 resource "jsm-ops_schedule_rotation" "example" {
   schedule_id = "df47a95c-f9ae-4ca6-873b-375fcad3cd18"
-  name       = "rotation3"
+  name       = "` + rotationUpdateName + `"
   start_date = "2023-11-10T05:00:00Z"
   type       = "weekly"
   participants = [
@@ -199,7 +206,7 @@ resource "jsm-ops_schedule_rotation" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "name", "rotation3"),
+					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "name", rotationUpdateName),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "start_date", "2023-11-10T05:00:00Z"),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "type", "weekly"),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "length", "1"),
@@ -228,6 +235,9 @@ resource "jsm-ops_schedule_rotation" "example" {
 }
 
 func TestAccScheduleRotationResource_NoRestriction(t *testing.T) {
+	rotationName := uuid.NewString()
+	rotationUpdateName := uuid.NewString()
+
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -236,13 +246,13 @@ func TestAccScheduleRotationResource_NoRestriction(t *testing.T) {
 				Config: providerConfig + `
 resource "jsm-ops_schedule_rotation" "example" {
   schedule_id = "df47a95c-f9ae-4ca6-873b-375fcad3cd18"
-  name       = "rotation3"
+  name       = "` + rotationName + `"
   start_date = "2023-11-10T05:00:00Z"
   type       = "weekly"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "name", "rotation3"),
+					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "name", rotationName),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "start_date", "2023-11-10T05:00:00Z"),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "type", "weekly"),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "length", "1"),
@@ -266,7 +276,7 @@ resource "jsm-ops_schedule_rotation" "example" {
 				Config: providerConfig + `
 resource "jsm-ops_schedule_rotation" "example" {
   schedule_id = "df47a95c-f9ae-4ca6-873b-375fcad3cd18"
-  name       = "rotation4"
+  name       = "` + rotationUpdateName + `"
   start_date = "2023-11-10T05:00:00Z"
   type       = "weekly"
   time_restriction = {
@@ -285,7 +295,7 @@ resource "jsm-ops_schedule_rotation" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "name", "rotation4"),
+					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "name", rotationUpdateName),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "start_date", "2023-11-10T05:00:00Z"),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "type", "weekly"),
 					resource.TestCheckResourceAttr("jsm-ops_schedule_rotation.example", "length", "1"),
