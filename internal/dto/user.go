@@ -1,14 +1,14 @@
 package dto
 
 const (
-	AccountTypeAtlassian = accountType("atlassian")
-	AccountTypeApp       = accountType("app")
-	AccountTypeCustomer  = accountType("customer")
-	Unknown              = accountType("unknown")
+	AccountTypeAtlassian = AccountType("atlassian")
+	AccountTypeApp       = AccountType("app")
+	AccountTypeCustomer  = AccountType("customer")
+	Unknown              = AccountType("unknown")
 )
 
 type (
-	accountType  string
+	AccountType  string
 	GroupNameDto struct {
 		GroupId string `json:"groupId"`
 		Name    string `json:"name"`
@@ -34,7 +34,7 @@ type (
 	}
 	UserDto struct {
 		AccountId        string      `json:"accountId"`
-		AccountType      accountType `json:"accountType"`
+		AccountType      AccountType `json:"AccountType"`
 		Active           bool        `json:"active"`
 		ApplicationRoles struct {
 			Items      []ApplicationRoleDto `json:"items"`

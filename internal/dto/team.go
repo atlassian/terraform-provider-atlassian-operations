@@ -1,16 +1,13 @@
 package dto
 
 const (
-	OPEN          teamType       = "OPEN"
-	MEMBER_INVITE teamType       = "MEMBER_INVITE"
-	EXTERNAL      teamType       = "EXTERNAL"
-	ADMIN         teamMemberRole = "ADMIN"
-	USER          teamMemberRole = "USER"
+	OPEN          TeamType = "OPEN"
+	MEMBER_INVITE TeamType = "MEMBER_INVITE"
+	EXTERNAL      TeamType = "EXTERNAL"
 )
 
 type (
-	teamType                 string
-	teamMemberRole           string
+	TeamType                 string
 	PublicApiUserPermissions struct {
 		AddMembers    bool `json:"ADD_MEMBERS"`
 		DeleteTeam    bool `json:"DELETE_TEAM"`
@@ -18,17 +15,18 @@ type (
 		UpdateTeam    bool `json:"UPDATE_TEAM"`
 	}
 	TeamDto struct {
-		Description     string                   `json:"description"`
-		DisplayName     string                   `json:"display_name"`
-		OrganizationId  string                   `json:"organizationId"`
-		TeamId          string                   `json:"teamId"`
-		TeamType        teamType                 `json:"teamType"`
-		UserPermissions PublicApiUserPermissions `json:"userPermissions"`
-		Member          []TeamMemberDto          `json:"member"`
+		Description     string                    `json:"description"`
+		DisplayName     string                    `json:"displayName"`
+		SiteId          *string                   `json:"siteId"`
+		OrganizationId  string                    `json:"organizationId"`
+		TeamId          string                    `json:"teamId"`
+		TeamType        TeamType                  `json:"teamType"`
+		UserPermissions *PublicApiUserPermissions `json:"userPermissions"`
 	}
-	TeamMemberDto struct {
-		Id       string         `json:"id"`
-		Username string         `json:"username"`
-		Role     teamMemberRole `json:"role"`
+	TeamMember struct {
+		AccountId string `json:"accountId"`
+	}
+	TeamMemberList struct {
+		Members []TeamMember `json:"members"`
 	}
 )

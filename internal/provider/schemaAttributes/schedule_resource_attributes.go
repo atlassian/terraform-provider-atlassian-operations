@@ -44,6 +44,7 @@ var ScheduleResourceAttributes = map[string]schema.Attribute{
 		Required:    true,
 	},
 	"rotations": schema.ListNestedAttribute{
+		Required:    true,
 		Description: "The rotations of the schedule",
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: RotationResourceAttributesOptionalScheduleId,

@@ -117,25 +117,41 @@ func ScheduleDtoToModel(dto dto.Schedule) dataModels.ScheduleModel {
 	return model
 }
 
-func TeamDtoToModel(dto dto.TeamDto, usersDto []dto.UserDto) dataModels.TeamModel {
+func TeamDtoToModel(dto dto.TeamDto, membersDto []dto.TeamMember) dataModels.TeamModel {
 	model := dataModels.TeamModel{
 		Description:     types.StringValue(dto.Description),
 		DisplayName:     types.StringValue(dto.DisplayName),
 		OrganizationId:  types.StringValue(dto.OrganizationId),
-		TeamId:          types.StringValue(dto.TeamId),
+		Id:              types.StringValue(dto.TeamId),
+		SiteId:          types.StringNull(),
 		TeamType:        types.StringValue(string(dto.TeamType)),
-		UserPermissions: PublicApiUserPermissionsDtoToModel(dto.UserPermissions).AsValue(),
+		UserPermissions: types.ObjectNull(dataModels.PublicApiUserPermissionsModelMap),
 		Member:          types.ListNull(types.ObjectType{AttrTypes: dataModels.TeamMemberModelMap}),
 	}
-	if len(usersDto) != 0 {
-		arr := make([]attr.Value, len(usersDto))
-		for i, member := range usersDto {
-			toModel := UserDtoToModel(member)
+
+	if dto.SiteId != nil {
+		model.SiteId = types.StringValue(*dto.SiteId)
+	}
+
+	if dto.UserPermissions != nil {
+		model.UserPermissions = PublicApiUserPermissionsDtoToModel(*dto.UserPermissions).AsValue()
+	}
+
+	if len(membersDto) != 0 {
+		arr := make([]attr.Value, len(membersDto))
+		for i, member := range membersDto {
+			toModel := TeamMemberDtoToModel(member)
 			arr[i] = toModel.AsValue()
 		}
-		model.Member = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.UserModelMap}, arr)
+		model.Member = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.TeamMemberModelMap}, arr)
 	}
 	return model
+}
+
+func TeamMemberDtoToModel(teamMember dto.TeamMember) dataModels.TeamMemberModel {
+	return dataModels.TeamMemberModel{
+		AccountId: types.StringValue(teamMember.AccountId),
+	}
 }
 
 func PublicApiUserPermissionsDtoToModel(dto dto.PublicApiUserPermissions) *dataModels.PublicApiUserPermissionsModel {
@@ -307,6 +323,55 @@ func WeekdayTimeRestrictionSettingsModelToDto(model dataModels.WeekdayTimeRestri
 		EndHour:   model.EndHour.ValueInt32(),
 		StartMin:  model.StartMin.ValueInt32(),
 		EndMin:    model.EndMin.ValueInt32(),
+	}
+}
+
+func TeamModelToDto(ctx context.Context, model dataModels.TeamModel) (dto.TeamDto, []dto.TeamMember) {
+	userPermissions := dataModels.PublicApiUserPermissionsModel{}
+	model.UserPermissions.As(ctx, &userPermissions, basetypes.ObjectAsOptions{})
+
+	teamDtoObj := dto.TeamDto{
+		Description:     model.Description.ValueString(),
+		DisplayName:     model.DisplayName.ValueString(),
+		OrganizationId:  model.OrganizationId.ValueString(),
+		TeamId:          model.Id.ValueString(),
+		SiteId:          nil,
+		TeamType:        dto.TeamType(model.TeamType.ValueString()),
+		UserPermissions: nil,
+	}
+
+	if !(model.SiteId.IsNull() || model.SiteId.IsUnknown()) {
+		teamDtoObj.SiteId = model.SiteId.ValueStringPointer()
+	}
+
+	if !(model.UserPermissions.IsNull() || model.UserPermissions.IsUnknown()) {
+		model := PublicApiUserPermissionsModelToDto(userPermissions)
+		teamDtoObj.UserPermissions = &model
+	}
+
+	membersModel := make([]dataModels.TeamMemberModel, len(model.Member.Elements()))
+	model.Member.ElementsAs(ctx, &membersModel, false)
+
+	membersDto := make([]dto.TeamMember, len(model.Member.Elements()))
+	for i, member := range membersModel {
+		membersDto[i] = TeamMemberModelToDto(member)
+	}
+
+	return teamDtoObj, membersDto
+}
+
+func TeamMemberModelToDto(memberModel dataModels.TeamMemberModel) dto.TeamMember {
+	return dto.TeamMember{
+		AccountId: memberModel.AccountId.ValueString(),
+	}
+}
+
+func PublicApiUserPermissionsModelToDto(userPermissions dataModels.PublicApiUserPermissionsModel) dto.PublicApiUserPermissions {
+	return dto.PublicApiUserPermissions{
+		AddMembers:    userPermissions.AddMembers.ValueBool(),
+		DeleteTeam:    userPermissions.DeleteTeam.ValueBool(),
+		RemoveMembers: userPermissions.RemoveMembers.ValueBool(),
+		UpdateTeam:    userPermissions.UpdateTeam.ValueBool(),
 	}
 }
 

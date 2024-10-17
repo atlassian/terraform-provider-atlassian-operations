@@ -10,15 +10,11 @@ type (
 		Description     types.String `tfsdk:"description"`
 		DisplayName     types.String `tfsdk:"display_name"`
 		OrganizationId  types.String `tfsdk:"organization_id"`
-		TeamId          types.String `tfsdk:"team_id"`
+		Id              types.String `tfsdk:"id"`
+		SiteId          types.String `tfsdk:"site_id"`
 		TeamType        types.String `tfsdk:"team_type"`
 		UserPermissions types.Object `tfsdk:"user_permissions"`
 		Member          types.List   `tfsdk:"member"`
-	}
-	TeamMemberModel struct {
-		Id       types.String `tfsdk:"id"`
-		Username types.String `tfsdk:"username"`
-		Role     types.String `tfsdk:"role"`
 	}
 	PublicApiUserPermissionsModel struct {
 		AddMembers    types.Bool `tfsdk:"add_members"`
@@ -26,13 +22,16 @@ type (
 		RemoveMembers types.Bool `tfsdk:"remove_members"`
 		UpdateTeam    types.Bool `tfsdk:"update_team"`
 	}
+	TeamMemberModel struct {
+		AccountId types.String `tfsdk:"account_id"`
+	}
 )
 
 var TeamModelMap = map[string]attr.Type{
 	"description":     types.StringType,
 	"display_name":    types.StringType,
 	"organization_id": types.StringType,
-	"team_id":         types.StringType,
+	"id":              types.StringType,
 	"team_type":       types.StringType,
 	"user_permissions": types.ObjectType{
 		AttrTypes: PublicApiUserPermissionsModelMap,
@@ -43,9 +42,7 @@ var TeamModelMap = map[string]attr.Type{
 }
 
 var TeamMemberModelMap = map[string]attr.Type{
-	"id":       types.StringType,
-	"username": types.StringType,
-	"role":     types.StringType,
+	"account_id": types.StringType,
 }
 
 var PublicApiUserPermissionsModelMap = map[string]attr.Type{
@@ -60,18 +57,10 @@ func (receiver *TeamModel) AsValue() types.Object {
 		"description":      receiver.Description,
 		"display_name":     receiver.DisplayName,
 		"organization_id":  receiver.OrganizationId,
-		"team_id":          receiver.TeamId,
+		"id":               receiver.Id,
 		"team_type":        receiver.TeamType,
 		"user_permissions": receiver.UserPermissions,
 		"member":           receiver.Member,
-	})
-}
-
-func (receiver *TeamMemberModel) AsValue() types.Object {
-	return types.ObjectValueMust(TeamMemberModelMap, map[string]attr.Value{
-		"id":       receiver.Id,
-		"username": receiver.Username,
-		"role":     receiver.Role,
 	})
 }
 
@@ -81,5 +70,11 @@ func (receiver *PublicApiUserPermissionsModel) AsValue() types.Object {
 		"delete_team":    receiver.DeleteTeam,
 		"remove_members": receiver.RemoveMembers,
 		"update_team":    receiver.UpdateTeam,
+	})
+}
+
+func (receiver *TeamMemberModel) AsValue() types.Object {
+	return types.ObjectValueMust(TeamMemberModelMap, map[string]attr.Value{
+		"account_id": receiver.AccountId,
 	})
 }
