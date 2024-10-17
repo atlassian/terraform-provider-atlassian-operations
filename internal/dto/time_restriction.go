@@ -22,17 +22,17 @@ type TimeRestriction struct {
 }
 
 type TimeOfDayTimeRestrictionSettings struct {
-	StartHour int32
-	EndHour   int32
-	StartMin  int32
-	EndMin    int32
+	StartHour int32 `json:"startHour"`
+	EndHour   int32 `json:"endHour"`
+	StartMin  int32 `json:"startMin"`
+	EndMin    int32 `json:"endMin"`
 }
 
 type WeekdayTimeRestrictionSettings struct {
-	StartDay  Weekday
-	EndDay    Weekday
-	StartHour int32
-	EndHour   int32
-	StartMin  int32
-	EndMin    int32
+	StartDay  Weekday `json:"startDay"`
+	EndDay    Weekday `json:"endDay"`
+	StartHour int32   `json:"startHour"`
+	EndHour   int32   `json:"endHour"`
+	StartMin  int32   `json:"startMin"`
+	EndMin    int32   `json:"endMin"`
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/atlassian/terraform-provider-jsm-ops/internal/dto"
 	"github.com/atlassian/terraform-provider-jsm-ops/internal/provider/dataModels"
+	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -25,8 +26,6 @@ func RotationDtoToModel(scheduleId string, dto dto.Rotation) dataModels.Rotation
 		Id:              types.StringValue(dto.Id),
 		ScheduleId:      types.StringValue(scheduleId),
 		Name:            types.StringValue(dto.Name),
-		StartDate:       types.StringValue(dto.StartDate),
-		EndDate:         types.StringValue(dto.EndDate),
 		Type:            types.StringValue(string(dto.Type)),
 		Length:          types.Int32Value(dto.Length),
 		TimeRestriction: types.ObjectNull(dataModels.TimeRestrictionModelMap),
@@ -34,6 +33,19 @@ func RotationDtoToModel(scheduleId string, dto dto.Rotation) dataModels.Rotation
 			AttrTypes: dataModels.ResponderInfoModelMap,
 		}),
 	}
+
+	if dto.StartDate == "" {
+		model.StartDate = timetypes.NewRFC3339Null()
+	} else {
+		model.StartDate = timetypes.NewRFC3339ValueMust(dto.StartDate)
+	}
+
+	if dto.EndDate == "" {
+		model.EndDate = timetypes.NewRFC3339Null()
+	} else {
+		model.EndDate = timetypes.NewRFC3339ValueMust(dto.EndDate)
+	}
+
 	if len(dto.Participants) != 0 {
 		participants := make([]attr.Value, len(dto.Participants))
 		for i, participant := range dto.Participants {

@@ -1,21 +1,22 @@
 package dataModels
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 type (
 	RotationModel struct {
-		Id              types.String `tfsdk:"id"`
-		ScheduleId      types.String `tfsdk:"schedule_id"`
-		Name            types.String `tfsdk:"name"`
-		StartDate       types.String `tfsdk:"start_date"`
-		EndDate         types.String `tfsdk:"end_date"`
-		Type            types.String `tfsdk:"type"`
-		Length          types.Int32  `tfsdk:"length"`
-		Participants    types.List   `tfsdk:"participants"`
-		TimeRestriction types.Object `tfsdk:"time_restriction"`
+		Id              types.String      `tfsdk:"id"`
+		ScheduleId      types.String      `tfsdk:"schedule_id"`
+		Name            types.String      `tfsdk:"name"`
+		StartDate       timetypes.RFC3339 `tfsdk:"start_date"`
+		EndDate         timetypes.RFC3339 `tfsdk:"end_date"`
+		Type            types.String      `tfsdk:"type"`
+		Length          types.Int32       `tfsdk:"length"`
+		Participants    types.List        `tfsdk:"participants"`
+		TimeRestriction types.Object      `tfsdk:"time_restriction"`
 	}
 	ResponderInfoModel struct {
 		Id   types.String `tfsdk:"id"`
@@ -27,8 +28,8 @@ var RotationModelMap = map[string]attr.Type{
 	"id":          types.StringType,
 	"schedule_id": types.StringType,
 	"name":        types.StringType,
-	"start_date":  types.StringType,
-	"end_date":    types.StringType,
+	"start_date":  timetypes.RFC3339Type{},
+	"end_date":    timetypes.RFC3339Type{},
 	"type":        types.StringType,
 	"length":      types.Int32Type,
 	"participants": types.ListType{ElemType: types.ObjectType{

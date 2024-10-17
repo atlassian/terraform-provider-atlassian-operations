@@ -14,13 +14,13 @@ const (
 )
 
 type ResponderInfo struct {
-	Id   *string
-	Type ResponderType
+	Id   *string       `json:"id"`
+	Type ResponderType `json:"type"`
 }
 
 type Rotation struct {
 	Id              string           `json:"id"`
-	Name            string           `json:"name"`
+	Name            string           `json:"name,omitempty"`
 	StartDate       string           `json:"startDate"`
 	EndDate         string           `json:"endDate"`
 	Type            RotationType     `json:"type"`

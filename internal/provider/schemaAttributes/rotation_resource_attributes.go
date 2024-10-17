@@ -85,9 +85,6 @@ var RotationResourceAttributesOptionalScheduleId = map[string]schema.Attribute{
 	"id": schema.StringAttribute{
 		Description: "The ID of the rotation",
 		Computed:    true,
-		PlanModifiers: []planmodifier.String{
-			stringplanmodifier.UseStateForUnknown(),
-		},
 	},
 	"schedule_id": schema.StringAttribute{
 		Description: "The ID of the schedule",
@@ -101,15 +98,20 @@ var RotationResourceAttributesOptionalScheduleId = map[string]schema.Attribute{
 	"start_date": schema.StringAttribute{
 		Description: "The start date of the rotation",
 		Required:    true,
+		CustomType:  timetypes.RFC3339Type{},
 	},
 	"end_date": schema.StringAttribute{
 		Description: "The end date of the rotation",
 		Computed:    true,
 		Optional:    true,
+		CustomType:  timetypes.RFC3339Type{},
 	},
 	"type": schema.StringAttribute{
 		Description: "The type of the rotation",
 		Required:    true,
+		Validators: []validator.String{
+			stringvalidator.OneOf([]string{"daily", "weekly", "hourly"}...),
+		},
 	},
 	"length": schema.Int32Attribute{
 		Description: "The length of the rotation",
@@ -119,6 +121,9 @@ var RotationResourceAttributesOptionalScheduleId = map[string]schema.Attribute{
 		PlanModifiers: []planmodifier.Int32{
 			int32planmodifier.UseStateForUnknown(),
 		},
+		Validators: []validator.Int32{
+			int32validator.AtLeast(1),
+		},
 	},
 	"participants": schema.ListNestedAttribute{
 		Description: "The participants of the rotation",
@@ -126,6 +131,11 @@ var RotationResourceAttributesOptionalScheduleId = map[string]schema.Attribute{
 		Optional:    true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: ResponderInfoResourceAttributes,
+			Validators: []validator.Object{
+				customValidators.StringFieldNotNullIfOtherField(path.MatchRelative().AtName("id"), path.MatchRelative().AtName("type"), "user"),
+				customValidators.StringFieldNotNullIfOtherField(path.MatchRelative().AtName("id"), path.MatchRelative().AtName("type"), "team"),
+				customValidators.StringFieldNotNullIfOtherField(path.MatchRelative().AtName("id"), path.MatchRelative().AtName("type"), "escalation"),
+			},
 		},
 	},
 	"time_restriction": schema.SingleNestedAttribute{

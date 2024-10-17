@@ -17,8 +17,7 @@ var hourValidator = []validator.Int32{
 }
 
 var minuteValidator = []validator.Int32{
-	int32validator.AtLeast(0),
-	int32validator.AtMost(59),
+	int32validator.OneOf([]int32{0, 30}...),
 }
 
 var TimeRestrictionResourceAttributes = map[string]schema.Attribute{
@@ -26,7 +25,7 @@ var TimeRestrictionResourceAttributes = map[string]schema.Attribute{
 		Description: "The type of the time restriction",
 		Required:    true,
 		Validators: []validator.String{
-			stringvalidator.OneOf([]string{"time-of-day", "weekday"}...),
+			stringvalidator.OneOf([]string{"time-of-day", "weekday-and-time-of-day"}...),
 		},
 	},
 	"restriction": schema.SingleNestedAttribute{
