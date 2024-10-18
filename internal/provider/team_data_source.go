@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/atlassian/terraform-provider-jsm-ops/internal/dto"
+	"github.com/atlassian/terraform-provider-jsm-ops/internal/httpClient"
 	"github.com/atlassian/terraform-provider-jsm-ops/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-jsm-ops/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -92,6 +93,7 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		model.Id.ValueString())
 
 	tflog.Trace(ctx, "Sending HTTP request to JSM Teams API")
+	errorMap := httpClient.NewTeamClientErrorMap()
 
 	clientResp, err := d.client.TeamClient.
 		NewRequest().
@@ -99,17 +101,26 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		JoinBaseUrl(teamFetchUrl).
 		SetQueryParam("siteId", model.SiteId.ValueString()).
 		SetBodyParseObject(&data).
+		SetErrorParseMap(&errorMap).
 		Send()
 
 	if err != nil {
 		tflog.Error(ctx, "Sending HTTP request to JSM Teams API Failed")
 		resp.Diagnostics.AddError("Client Error",
 			fmt.Sprintf("Unable to read team, got error: %s", err))
-		return
 	} else if clientResp.IsError() {
-		tflog.Error(ctx, "HTTP request to JSM Teams API Returned an Error Code")
-		resp.Diagnostics.AddError("Client Error",
-			fmt.Sprintf("Unable to read team, got status code: %d", clientResp.GetStatusCode()))
+		statusCode := clientResp.GetStatusCode()
+		errorResponse := errorMap[statusCode]
+		if errorResponse != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+		} else {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got http response: %d", statusCode))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, got http response: %d", statusCode))
+		}
+	}
+
+	if resp.Diagnostics.HasError() {
 		return
 	}
 

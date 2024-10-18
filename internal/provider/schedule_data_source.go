@@ -80,6 +80,8 @@ func (d *ScheduleDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 
 	tflog.Trace(ctx, "Sending HTTP request to JSM OPS API")
+
+	errorMap := httpClient.NewOpsClientErrorMap()
 	clientResp, err := d.client.NewRequest().
 		Method("GET").
 		JoinBaseUrl("/v1/schedules/").
@@ -89,19 +91,28 @@ func (d *ScheduleDataSource) Read(ctx context.Context, req datasource.ReadReques
 			"expand": "rotation",
 		}).
 		SetBodyParseObject(&data).
+		SetErrorParseMap(&errorMap).
 		Send()
 
 	if err != nil {
 		tflog.Error(ctx, "Sending HTTP request to JSM OPS API Failed")
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read schedule, got error: %s", err))
-		return
 	} else if clientResp.IsError() {
-		tflog.Error(ctx, "Sending HTTP request to JSM OPS API Returned an Error Code")
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read schedule, got status code: %d", clientResp.GetStatusCode()))
-		return
+		statusCode := clientResp.GetStatusCode()
+		errorResponse := errorMap[statusCode]
+		if errorResponse != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read schedule, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read schedule, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+		} else {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read schedule, got http response: %d", statusCode))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read schedule, got http response: %d", statusCode))
+		}
 	} else if len(data.Values) == 0 {
 		tflog.Error(ctx, "No schedules found")
 		resp.Diagnostics.AddError("Client Error", "No schedules found")
+	}
+
+	if resp.Diagnostics.HasError() {
 		return
 	}
 

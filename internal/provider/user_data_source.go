@@ -82,6 +82,7 @@ func (d *userDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	}
 
 	tflog.Trace(ctx, "Sending HTTP request to JSM User API")
+	errorMap := httpClient.NewUserClientErrorMap()
 
 	clientResp, err := d.client.NewRequest().
 		Method("GET").
@@ -91,24 +92,32 @@ func (d *userDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 			"maxResults": "1",
 		}).
 		SetBodyParseObject(&data).
+		SetErrorParseMap(&errorMap).
 		Send()
 
 	if err != nil {
 		tflog.Error(ctx, "Sending HTTP request to JSM User API Failed")
 		resp.Diagnostics.AddError("Client Error",
 			fmt.Sprintf("Unable to read user, got error: %s", err))
-		return
 	} else if clientResp.IsError() {
-		tflog.Error(ctx, "HTTP request to JSM User API Returned an Error Status Code")
-		resp.Diagnostics.AddError("Client Error",
-			fmt.Sprintf("Unable to read user, got status code: %d", clientResp.GetStatusCode()))
-		return
+		statusCode := clientResp.GetStatusCode()
+		errorResponse := errorMap[statusCode]
+		if errorResponse != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read user, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read user, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+		} else {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read user, got http response: %d", statusCode))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read user, got http response: %d", statusCode))
+		}
 	} else if len(data) == 0 {
 		tflog.Error(ctx, "HTTP request to JSM User API Returned an Empty Response."+
 			"Either no user is found, or the credentials are invalid")
 		resp.Diagnostics.AddError("Client Error",
 			"Unable to read user, got an empty response. "+
 				"This could be due to invalid credentials or no user being found for the given email address")
+	}
+
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
