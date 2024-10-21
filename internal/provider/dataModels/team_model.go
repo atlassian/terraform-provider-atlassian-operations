@@ -32,6 +32,7 @@ var TeamModelMap = map[string]attr.Type{
 	"display_name":    types.StringType,
 	"organization_id": types.StringType,
 	"id":              types.StringType,
+	"site_id":         types.StringType,
 	"team_type":       types.StringType,
 	"user_permissions": types.ObjectType{
 		AttrTypes: PublicApiUserPermissionsModelMap,
@@ -58,13 +59,14 @@ func (receiver *TeamModel) AsValue() types.Object {
 		"display_name":     receiver.DisplayName,
 		"organization_id":  receiver.OrganizationId,
 		"id":               receiver.Id,
+		"site_id":          receiver.SiteId,
 		"team_type":        receiver.TeamType,
 		"user_permissions": receiver.UserPermissions,
 		"member":           receiver.Member,
 	})
 }
 
-func (receiver *PublicApiUserPermissionsModel) AsValue() types.Object {
+func (receiver PublicApiUserPermissionsModel) AsValue() types.Object {
 	return types.ObjectValueMust(PublicApiUserPermissionsModelMap, map[string]attr.Value{
 		"add_members":    receiver.AddMembers,
 		"delete_team":    receiver.DeleteTeam,

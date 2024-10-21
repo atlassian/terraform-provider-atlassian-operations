@@ -166,8 +166,8 @@ func TeamMemberDtoToModel(teamMember dto.TeamMember) dataModels.TeamMemberModel 
 	}
 }
 
-func PublicApiUserPermissionsDtoToModel(dto dto.PublicApiUserPermissions) *dataModels.PublicApiUserPermissionsModel {
-	return &dataModels.PublicApiUserPermissionsModel{
+func PublicApiUserPermissionsDtoToModel(dto dto.PublicApiUserPermissions) dataModels.PublicApiUserPermissionsModel {
+	return dataModels.PublicApiUserPermissionsModel{
 		AddMembers:    types.BoolValue(dto.AddMembers),
 		DeleteTeam:    types.BoolValue(dto.DeleteTeam),
 		RemoveMembers: types.BoolValue(dto.RemoveMembers),
