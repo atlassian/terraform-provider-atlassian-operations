@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"github.com/atlassian/terraform-provider-jsm-ops/internal/httpClient"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"os"
 )
 
 // jsmopsProviderModel maps provider schema data to a Go type.
@@ -130,10 +132,65 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 
-	ctx = tflog.SetField(ctx, "jsm-ops_cloud_id", config.CloudId)
-	ctx = tflog.SetField(ctx, "jsm-ops_domain_name", config.DomainName)
-	ctx = tflog.SetField(ctx, "jsm-ops_username", config.Username)
-	ctx = tflog.SetField(ctx, "jsm-ops_password", config.Password)
+	isStaging := os.Getenv("JSM_OPS_STAGING") == "1"
+
+	cloudId := os.Getenv("JSM_OPS_CLOUD_ID")
+	domainName := os.Getenv("JSM_OPS_DOMAIN_NAME")
+	username := os.Getenv("JSM_OPS_API_USERNAME")
+	password := os.Getenv("JSM_OPS_API_TOKEN")
+
+	if cloudId == "" {
+		if config.CloudId.IsNull() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("cloud_id"),
+				"Invalid cloud instance ID",
+				"The provider cannot create the jsm-ops API client as there is a null / an empty configuration value for the cloudId.",
+			)
+		} else {
+			cloudId = config.CloudId.ValueString()
+		}
+	}
+
+	if domainName == "" {
+		if config.DomainName.IsNull() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("domain_name"),
+				"Unknown domain name",
+				"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the domain_name. ",
+			)
+		} else {
+			domainName = config.DomainName.ValueString()
+		}
+	}
+
+	if username == "" {
+		if config.Username.IsNull() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("username"),
+				"Unknown jsm-ops API Username",
+				"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the jsm-ops API username. ",
+			)
+		} else {
+			username = config.Username.ValueString()
+		}
+	}
+
+	if password == "" {
+		if config.Password.IsNull() {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("password"),
+				"Unknown jsm-ops API Password",
+				"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the jsm-ops API password. ",
+			)
+		} else {
+			password = config.Password.ValueString()
+		}
+	}
+
+	ctx = tflog.SetField(ctx, "jsm-ops_cloud_id", cloudId)
+	ctx = tflog.SetField(ctx, "jsm-ops_domain_name", domainName)
+	ctx = tflog.SetField(ctx, "jsm-ops_username", username)
+	ctx = tflog.SetField(ctx, "jsm-ops_password", password)
 	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "jsm-ops_password")
 
 	tflog.Debug(ctx, "Creating jsm-ops client")
@@ -142,16 +199,20 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	client := &JsmOpsClient{
 		OpsClient: httpClient.
 			NewHttpClient().
-			SetDefaultBasicAuth(config.Username.ValueString(), config.Password.ValueString()).
-			SetBaseUrl("https://api.stg.atlassian.com/jsm/ops/api/" + config.CloudId.ValueString()),
+			SetDefaultBasicAuth(username, password).
+			SetBaseUrl(fmt.Sprintf("https://api.atlassian.com/jsm/ops/api/%s", cloudId)),
 		TeamClient: httpClient.
 			NewHttpClient().
-			SetDefaultBasicAuth(config.Username.ValueString(), config.Password.ValueString()).
-			SetBaseUrl("https://" + config.DomainName.ValueString() + "/gateway/api/public/teams/v1/org/"),
+			SetDefaultBasicAuth(username, password).
+			SetBaseUrl(fmt.Sprintf("https://%s/gateway/api/public/teams/v1/org/", domainName)),
 		UserClient: httpClient.
 			NewHttpClient().
-			SetDefaultBasicAuth(config.Username.ValueString(), config.Password.ValueString()).
-			SetBaseUrl("https://" + config.DomainName.ValueString() + "/rest/api/3/user/"),
+			SetDefaultBasicAuth(username, password).
+			SetBaseUrl(fmt.Sprintf("https://%s/rest/api/3/user/", domainName)),
+	}
+
+	if isStaging {
+		client.OpsClient = client.OpsClient.SetBaseUrl(fmt.Sprintf("https://api.stg.atlassian.com/jsm/ops/api/%s", cloudId))
 	}
 
 	// Make the jsm-ops client available during DataSource and Resource

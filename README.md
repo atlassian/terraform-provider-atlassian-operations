@@ -116,6 +116,15 @@ provider_installation {
    }
    ```
 
+Instead of providing values in the _provider_ block directly, you can also set the following environment variables:
+
+```bash
+export JSM_OPS_CLOUD_ID=YOUR_CLOUD_ID
+export JSM_OPS_DOMAIN_NAME=YOUR_DOMAIN
+export JSM_OPS_USERNAME=YOUR_USERNAME
+export JSM_OPS_PASSWORD=YOUR_TOKEN
+```
+
 _If you do not want to debug the provider with a debugger, and would like to simply execute the Terraform file you 
 just created, you can skip the next part and jump directly to [Running Without Debugging](#53-running-without-debugging)_
 
