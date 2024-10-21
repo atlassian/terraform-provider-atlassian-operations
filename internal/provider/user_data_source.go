@@ -89,7 +89,6 @@ func (d *userDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		SetQueryParams(map[string]string{
 			"query":      model.EmailAddress.ValueString(),
 			"maxResults": "1",
-			"expand":     "groups,applicationRoles",
 		}).
 		SetBodyParseObject(&data).
 		Send()
@@ -110,6 +109,27 @@ func (d *userDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		resp.Diagnostics.AddError("Client Error",
 			"Unable to read user, got an empty response. "+
 				"This could be due to invalid credentials or no user being found for the given email address")
+		return
+	}
+
+	clientResp, err = d.client.NewRequest().
+		Method("GET").
+		SetQueryParams(map[string]string{
+			"accountId": data[0].AccountId,
+			"expand":    "groups,applicationRoles",
+		}).
+		SetBodyParseObject(&data[0]).
+		Send()
+
+	if err != nil {
+		tflog.Error(ctx, "Sending HTTP request to JSM User API Failed")
+		resp.Diagnostics.AddError("Client Error",
+			fmt.Sprintf("Unable to read user, got error: %s", err))
+		return
+	} else if clientResp.IsError() {
+		tflog.Error(ctx, "HTTP request to JSM User API Returned an Error Status Code")
+		resp.Diagnostics.AddError("Client Error",
+			fmt.Sprintf("Unable to read user, got status code: %d", clientResp.GetStatusCode()))
 		return
 	}
 
