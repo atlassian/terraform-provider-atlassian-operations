@@ -1,13 +1,11 @@
 package schemaAttributes
 
 import (
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
 var ScheduleResourceAttributes = map[string]schema.Attribute{
@@ -26,6 +24,7 @@ var ScheduleResourceAttributes = map[string]schema.Attribute{
 		Description: "The description of the schedule",
 		Computed:    true,
 		Optional:    true,
+		Default:     stringdefault.StaticString(""),
 	},
 	"timezone": schema.StringAttribute{
 		Description: "The timezone of the schedule",
@@ -42,16 +41,5 @@ var ScheduleResourceAttributes = map[string]schema.Attribute{
 	"team_id": schema.StringAttribute{
 		Description: "The ID of the team that owns the schedule",
 		Required:    true,
-	},
-	"rotations": schema.ListNestedAttribute{
-		Required:    true,
-		Description: "The rotations of the schedule",
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: RotationResourceAttributesOptionalScheduleId,
-		},
-		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
-			listvalidator.SizeAtMost(500),
-		},
 	},
 }

@@ -42,7 +42,7 @@ func (s stringFieldNotNullIfOtherFieldValidator) ValidateObject(ctx context.Cont
 				continue
 			}
 
-			if matchedPathValue.IsNull() || matchedPathValue.IsUnknown() {
+			if matchedPathValue.IsNull() {
 				continue
 			}
 
@@ -85,7 +85,7 @@ func (s stringFieldNotNullIfOtherFieldValidator) ValidateObject(ctx context.Cont
 		}
 	}
 
-	if (targetFieldValue.IsNull() || targetFieldValue.IsUnknown()) &&
+	if (targetFieldValue.IsNull()) &&
 		(!fieldToCheckValue.IsNull() && !fieldToCheckValue.IsUnknown()) &&
 		fieldToCheckValue.ValueString() == s.checkValue {
 		response.Diagnostics.AddError("Invalid Attribute", fmt.Sprintf("The field '%s' must not be null or unknown if the field '%s' is set to '%s'", s.targetField, s.fieldToCheck, s.checkValue))
@@ -93,7 +93,7 @@ func (s stringFieldNotNullIfOtherFieldValidator) ValidateObject(ctx context.Cont
 }
 
 func (s stringFieldNotNullIfOtherFieldValidator) Description(_ context.Context) string {
-	return fmt.Sprintf("The field '%s' must not be null or unknown if the field '%s' is set to '%s'", s.targetField, s.fieldToCheck, s.checkValue)
+	return fmt.Sprintf("The field '%s' must not be null if the field '%s' is set to '%s'", s.targetField, s.fieldToCheck, s.checkValue)
 }
 
 func (s stringFieldNotNullIfOtherFieldValidator) MarkdownDescription(ctx context.Context) string {

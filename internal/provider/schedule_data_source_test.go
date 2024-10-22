@@ -1,42 +1,69 @@
 package provider
 
 import (
+	"github.com/google/uuid"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccScheduleDataSource(t *testing.T) {
+	teamName := uuid.NewString()
+	scheduleName := uuid.NewString()
+
+	organizationId := os.Getenv("JSM_ACCTEST_ORGANIZATION_ID")
+	emailPrimary := os.Getenv("JSM_ACCTEST_EMAIL_PRIMARY")
+
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		PreCheck: func() {
+			if organizationId == "" {
+				t.Fatal("JSM_ACCTEST_ORGANIZATION_ID must be set for acceptance tests")
+			}
+			if emailPrimary == "" {
+				t.Fatal("JSM_ACCTEST_EMAIL_PRIMARY must be set for acceptance tests")
+			}
+		},
 		Steps: []resource.TestStep{
 			// Read testing
 			{
-				Config: providerConfig + `data "jsm-ops_schedule" "test" {name = "Test_schedule"}`,
+				Config: providerConfig + `
+data "jsm-ops_user" "test1" {
+	email_address = "` + emailPrimary + `"
+}
+
+resource "jsm-ops_team" "example" {
+  organization_id = "` + organizationId + `"
+  description = "This is a team created by Terraform"
+  display_name = "` + teamName + `"
+  team_type = "MEMBER_INVITE"
+  member = [
+    {
+      account_id = data.jsm-ops_user.test1.account_id
+    }
+  ]
+}
+
+resource "jsm-ops_schedule" "example" {
+  name    = "` + scheduleName + `"
+  team_id = jsm-ops_team.example.id
+}
+
+data "jsm-ops_schedule" "test" {
+	depends_on = ["jsm-ops_schedule.example"]
+	name = "` + scheduleName + `"
+}
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Verify the data source
 					// Verify all attributes are set
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "id", "df47a95c-f9ae-4ca6-873b-375fcad3cd18"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "name", "Test_schedule"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "description", "Test Description"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "timezone", "Europe/Istanbul"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "enabled", "true"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "team_id", "ef72bc0a-6f28-43d3-87e3-783ae3ed0ffa"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.#", "1"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.id", "6174e943-e234-4e6a-8260-68c644553836"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.name", "Rotation 2"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.start_date", "2024-09-17T05:00:00Z"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.end_date", ""),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.type", "weekly"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.length", "1"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.participants.#", "2"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.participants.0.id", "712020:ce8310ee-7509-41b5-baa5-0c4f74dae467"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.participants.0.type", "user"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.time_restriction.type", "time-of-day"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.time_restriction.restriction.start_hour", "8"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.time_restriction.restriction.end_hour", "17"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.time_restriction.restriction.start_min", "0"),
-					resource.TestCheckResourceAttr("data.jsm-ops_schedule.test", "rotations.0.time_restriction.restriction.end_min", "0"),
+					resource.TestCheckResourceAttrPair("data.jsm-ops_schedule.test", "id", "jsm-ops_schedule.example", "id"),
+					resource.TestCheckResourceAttrPair("data.jsm-ops_schedule.test", "name", "jsm-ops_schedule.example", "name"),
+					resource.TestCheckResourceAttrPair("data.jsm-ops_schedule.test", "description", "jsm-ops_schedule.example", "description"),
+					resource.TestCheckResourceAttrPair("data.jsm-ops_schedule.test", "timezone", "jsm-ops_schedule.example", "timezone"),
+					resource.TestCheckResourceAttrPair("data.jsm-ops_schedule.test", "enabled", "jsm-ops_schedule.example", "enabled"),
+					resource.TestCheckResourceAttrPair("data.jsm-ops_schedule.test", "team_id", "jsm-ops_team.example", "id"),
 				),
 			},
 		},

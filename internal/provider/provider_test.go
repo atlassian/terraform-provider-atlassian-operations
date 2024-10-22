@@ -8,12 +8,13 @@ import (
 const (
 	// providerConfig is a shared configuration to combine with the actual
 	// test configuration so the client is properly configured.
+	// Use environment variables to configure the client.
 	providerConfig = `
 provider "jsm-ops" {
-	cloud_id = "3a015c30-bac7-4abc-97a1-50c1feea188a"
-	domain_name="iozkaya-us.jira-dev.com"
-	username = "iozkaya@atlassian.com"
-	password = "<YOUR_TOKEN_HERE>"
+	cloud_id = ""
+	domain_name = ""
+	username = ""
+	password = ""
 }
 `
 )

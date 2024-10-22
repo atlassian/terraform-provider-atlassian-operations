@@ -87,7 +87,7 @@ provider_installation {
 }
 ```
 
-### 5. Testing & Debugging
+### 5. Debugging
 
 #### 5.1 Create a simple `main.tf` file:
 
@@ -128,7 +128,7 @@ export JSM_OPS_PASSWORD=YOUR_TOKEN
 _If you do not want to debug the provider with a debugger, and would like to simply execute the Terraform file you 
 just created, you can skip the next part and jump directly to [Running Without Debugging](#53-running-without-debugging)_
 
-#### 5.2. Debugging
+#### 5.2. Enable Debugging
 
 To enable debugging for the provider and make it connect to Delve before carrying on with the execution of the 
 instructions in the .tf file, you need to set the `debug` flag to `true`, via altering the `flag.BoolVar` statement in 
@@ -190,12 +190,23 @@ TF_REATTACH_PROVIDERS=<_PROMPTED_STRING_AT_THE_DEBUG_CONSOLE_> terraform apply
 More information on how to use Delve with Terraform can be found in the 
 [Terraform documentation](https://developer.hashicorp.com/terraform/plugin/debugging).
 
-#### 5.3. Running Without Debugging
+### 6. Running Acceptance Tests
+To run the acceptance tests, additional to the ones specified in the [Debugging](#51-create-a-simple-maintf-file) section, you need to set
+the following environment variables as well:
 
-Run the following commands to test the provider:
+```bash
+export JSM_ACCTEST_EMAIL_PRIMARY=USER_EMAIL
+export JSM_ACCTEST_EMAIL_SECONDARY=ANOTHER_USER_EMAIL
+export JSM_ACCTEST_ORGANIZATION_ID=ORGANIZATION_ID
+export TF_ACC=1
+```
 
-   ```bash
-   terraform plan
-   terraform apply
-   ```
-  _`terraform init` is **not** necessary_
+Acceptance tests do not require a main.tf file to be present, as they are run directly from the test files. To run the acceptance tests,
+simply run the following commands:
+
+```bash
+cd internal/provider
+go test -count=1 -v
+```
+
+**Keep in mind that running acceptance tests will work on your existing JSM instance, which can result in notification emails being sent and extra usage fees.**

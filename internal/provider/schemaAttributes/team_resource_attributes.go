@@ -32,7 +32,6 @@ var TeamResourceAttributes = map[string]schema.Attribute{
 	"site_id": schema.StringAttribute{
 		Description: "The site ID of the team",
 		Optional:    true,
-		Computed:    true,
 		Validators: []validator.String{
 			stringvalidator.LengthBetween(1, 255),
 		},

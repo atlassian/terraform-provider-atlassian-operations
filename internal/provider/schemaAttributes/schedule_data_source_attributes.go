@@ -27,11 +27,4 @@ var ScheduleDataSourceAttributes = map[string]schema.Attribute{
 		Description: "The ID of the team that owns the schedule",
 		Computed:    true,
 	},
-	"rotations": schema.ListNestedAttribute{
-		Description: "The rotations of the schedule",
-		Computed:    true,
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: RotationDataSourceAttributes,
-		},
-	},
 }

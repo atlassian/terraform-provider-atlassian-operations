@@ -3,6 +3,7 @@ package provider
 import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -12,20 +13,39 @@ func TestAccTeamResource(t *testing.T) {
 	teamName := uuid.NewString()
 	teamUpdateName := uuid.NewString()
 
+	organizationId := os.Getenv("JSM_ACCTEST_ORGANIZATION_ID")
+	emailPrimary := os.Getenv("JSM_ACCTEST_EMAIL_PRIMARY")
+	emailSecondary := os.Getenv("JSM_ACCTEST_EMAIL_SECONDARY")
+
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		PreCheck: func() {
+			if organizationId == "" {
+				t.Fatal("JSM_ACCTEST_ORGANIZATION_ID must be set for acceptance tests")
+			}
+			if emailPrimary == "" {
+				t.Fatal("JSM_ACCTEST_EMAIL_PRIMARY must be set for acceptance tests")
+			}
+			if emailSecondary == "" {
+				t.Fatal("JSM_ACCTEST_EMAIL_SECONDARY must be set for acceptance tests")
+			}
+		},
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
 				Config: providerConfig + `
+data "jsm-ops_user" "test1" {
+	email_address = "` + emailPrimary + `"
+}
+
 resource "jsm-ops_team" "example" {
   display_name = "` + teamName + `"
   description = "team description"
-  organization_id = "0j238a02-kja5-1jka-75j3-82a3dccj366j"
+  organization_id = "` + organizationId + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-       account_id = "712020:a933b550-3862-441c-ac99-e78ae6dacbcb"
+       account_id = data.jsm-ops_user.test1.account_id
     }
   ]
 }
@@ -33,14 +53,14 @@ resource "jsm-ops_team" "example" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "display_name", teamName),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "description", "team description"),
-					resource.TestCheckResourceAttr("jsm-ops_team.example", "organization_id", "0j238a02-kja5-1jka-75j3-82a3dccj366j"),
+					resource.TestCheckResourceAttr("jsm-ops_team.example", "organization_id", organizationId),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "team_type", "MEMBER_INVITE"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.add_members", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.remove_members", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.update_team", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.delete_team", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "member.#", "1"),
-					resource.TestCheckResourceAttr("jsm-ops_team.example", "member.0.account_id", "712020:a933b550-3862-441c-ac99-e78ae6dacbcb"),
+					resource.TestCheckResourceAttrPair("jsm-ops_team.example", "member.0.account_id", "data.jsm-ops_user.test1", "account_id"),
 				),
 			},
 			// ImportState testing
@@ -58,17 +78,25 @@ resource "jsm-ops_team" "example" {
 			// Update and Read testing
 			{
 				Config: providerConfig + `
+data "jsm-ops_user" "test1" {
+	email_address = "` + emailPrimary + `"
+}
+
+data "jsm-ops_user" "test2" {
+	email_address = "` + emailSecondary + `"
+}
+
 resource "jsm-ops_team" "example" {
   display_name = "` + teamUpdateName + `"
   description = "team description_edited"
-  organization_id = "0j238a02-kja5-1jka-75j3-82a3dccj366j"
+  organization_id = "` + organizationId + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-       account_id = "712020:a933b550-3862-441c-ac99-e78ae6dacbcb"
+       account_id = data.jsm-ops_user.test1.account_id
     },
 	{
-       account_id = "712020:ce8310ee-7509-41b5-baa5-0c4f74dae467"
+       account_id = data.jsm-ops_user.test2.account_id
 	}
   ]
 }
@@ -76,27 +104,31 @@ resource "jsm-ops_team" "example" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "display_name", teamUpdateName),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "description", "team description_edited"),
-					resource.TestCheckResourceAttr("jsm-ops_team.example", "organization_id", "0j238a02-kja5-1jka-75j3-82a3dccj366j"),
+					resource.TestCheckResourceAttr("jsm-ops_team.example", "organization_id", organizationId),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "team_type", "MEMBER_INVITE"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.add_members", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.remove_members", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.update_team", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.delete_team", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "member.#", "2"),
-					resource.TestCheckResourceAttr("jsm-ops_team.example", "member.0.account_id", "712020:a933b550-3862-441c-ac99-e78ae6dacbcb"),
-					resource.TestCheckResourceAttr("jsm-ops_team.example", "member.1.account_id", "712020:ce8310ee-7509-41b5-baa5-0c4f74dae467"),
+					resource.TestCheckResourceAttrPair("jsm-ops_team.example", "member.0.account_id", "data.jsm-ops_user.test1", "account_id"),
+					resource.TestCheckResourceAttrPair("jsm-ops_team.example", "member.1.account_id", "data.jsm-ops_user.test2", "account_id"),
 				),
 			},
 			{
 				Config: providerConfig + `
+data "jsm-ops_user" "test1" {
+	email_address = "` + emailPrimary + `"
+}
+
 resource "jsm-ops_team" "example" {
   display_name = "` + teamUpdateName + `"
   description = "team description_edited"
-  organization_id = "0j238a02-kja5-1jka-75j3-82a3dccj366j"
+  organization_id = "` + organizationId + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-       account_id = "712020:a933b550-3862-441c-ac99-e78ae6dacbcb"
+       account_id = data.jsm-ops_user.test1.account_id
     }
   ]
 }
@@ -104,14 +136,14 @@ resource "jsm-ops_team" "example" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "display_name", teamUpdateName),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "description", "team description_edited"),
-					resource.TestCheckResourceAttr("jsm-ops_team.example", "organization_id", "0j238a02-kja5-1jka-75j3-82a3dccj366j"),
+					resource.TestCheckResourceAttr("jsm-ops_team.example", "organization_id", organizationId),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "team_type", "MEMBER_INVITE"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.add_members", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.remove_members", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.update_team", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.delete_team", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "member.#", "1"),
-					resource.TestCheckResourceAttr("jsm-ops_team.example", "member.0.account_id", "712020:a933b550-3862-441c-ac99-e78ae6dacbcb"),
+					resource.TestCheckResourceAttrPair("jsm-ops_team.example", "member.0.account_id", "data.jsm-ops_user.test1", "account_id"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase

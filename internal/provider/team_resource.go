@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strings"
+	"time"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -27,7 +28,8 @@ func NewTeamResource() resource.Resource {
 
 // TeamResource defines the resource implementation.
 type TeamResource struct {
-	client *httpClient.HttpClient
+	client          *httpClient.HttpClient
+	enableOpsClient *httpClient.HttpClient
 }
 
 func (r *TeamResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -60,6 +62,7 @@ func (r *TeamResource) Configure(ctx context.Context, req resource.ConfigureRequ
 	}
 
 	r.client = client.TeamClient
+	r.enableOpsClient = client.TeamEnableOpsClient
 
 	tflog.Trace(ctx, "Configured TeamResource")
 }
@@ -98,7 +101,69 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
+	time.Sleep(2 * time.Second)
+
 	tflog.Trace(ctx, "Team created")
+	tflog.Trace(ctx, "Fetch auto created members")
+
+	autoCreatedMembers := dto.TeamMemberListResponse{}
+	httpResp, err = r.client.NewRequest().
+		JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members", teamDto.OrganizationId, teamDto.TeamId)).
+		Method(httpClient.POST).
+		SetBodyParseObject(&autoCreatedMembers).
+		Send()
+
+	if httpResp == nil {
+		tflog.Error(ctx, "Client Error. Unable to fetch auto created members, got nil response")
+		resp.Diagnostics.AddError("Client Error", "Unable to fetch auto created members, got nil response")
+	} else if httpResp.IsError() {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch auto created members, got http response: %d", httpResp.GetStatusCode()))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch auto created members, got http response: %d", httpResp.GetStatusCode()))
+	}
+	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch auto created members, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch auto created members, got error: %s", err))
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	time.Sleep(2 * time.Second)
+
+	tflog.Trace(ctx, "Auto created members fetched")
+
+	enableOpsBody := dto.TeamEnableOps{
+		TeamId:          teamDto.TeamId,
+		AdminAccountIds: []string{autoCreatedMembers.Results[0].AccountId},
+		InviteUsernames: make([]string, 0),
+	}
+
+	tflog.Trace(ctx, "Enabling Operations for the Team")
+
+	// Enable OPS for the Team
+	httpResp, err = r.enableOpsClient.NewRequest().
+		Method(httpClient.POST).
+		SetBody(enableOpsBody).
+		Send()
+
+	if httpResp == nil {
+		tflog.Error(ctx, "Client Error. Unable to enable Operations for the created team")
+		resp.Diagnostics.AddError("Client Error", "Unable to enable Operations for the created team")
+	} else if httpResp.IsError() {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, got http response: %d", httpResp.GetStatusCode()))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to enable Operations for the created team, got http response: %d", httpResp.GetStatusCode()))
+	}
+	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to enable Operations for the created team, got error: %s", err))
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Trace(ctx, "Enabled Operations for the Team")
 
 	if len(membersDto) > 0 {
 		tflog.Trace(ctx, "Adding users to the team")
