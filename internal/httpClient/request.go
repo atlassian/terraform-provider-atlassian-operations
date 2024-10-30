@@ -11,11 +11,12 @@ import (
 
 type (
 	RequestMethod        string
-	ErrorCodeToObjectMap map[int]interface{}
+	ErrorCodeToObjectMap map[int]HttpErrorResponse
 	Request              struct {
-		innerRequest  *retryablehttp.Request
-		errorParseMap *ErrorCodeToObjectMap
-		Client        *HttpClient
+		innerRequest    *retryablehttp.Request
+		errorParseMap   *ErrorCodeToObjectMap
+		parseBodyObject any
+		Client          *HttpClient
 	}
 )
 
@@ -122,9 +123,7 @@ func (r *Request) GetInnerRequest() *retryablehttp.Request {
 }
 
 func (r *Request) SetBodyParseObject(t interface{}) *Request {
-	r.innerRequest.SetResponseHandler(func(resp *http.Response) error {
-		return r.parseBody(t, &Response{nativeResponse: resp})
-	})
+	r.parseBodyObject = t
 	return r
 }
 
@@ -148,19 +147,31 @@ func (r *Request) parseBody(t interface{}, resp *Response) error {
 }
 
 func (r *Request) mapToErrorObj(resp *Response) error {
-	body, err2 := resp.Body()
-	if err2 != nil {
-		return err2
+	body, err := resp.Body()
+	if err != nil {
+		return err
 	}
 	for statusCode, object := range *r.errorParseMap {
 		if statusCode == resp.GetNativeResponse().StatusCode {
-			return json.Unmarshal(body, object)
+			return json.Unmarshal(body, &object)
 		}
 	}
 	return nil
 }
 
 func (r *Request) Send() (*Response, error) {
+	r.innerRequest.SetResponseHandler(func(resp *http.Response) error {
+		clientResp := Response{nativeResponse: resp}
+		if clientResp.IsError() && r.errorParseMap != nil {
+			err := r.mapToErrorObj(&clientResp)
+			if err != nil {
+				return err
+			}
+		} else if r.parseBodyObject != nil {
+			return r.parseBody(r.parseBodyObject, &clientResp)
+		}
+		return nil
+	})
 	client := r.Client.GetInnerClient()
 	nativeResp, err := client.Do(r.innerRequest)
 	resp := &Response{
