@@ -117,15 +117,6 @@ func ScheduleDtoToModel(dto dto.Schedule) dataModels.ScheduleModel {
 		Enabled:     types.BoolValue(dto.Enabled),
 		TeamId:      types.StringValue(dto.TeamId),
 	}
-	rotations := make([]attr.Value, len(dto.Rotations))
-	for i, rotation := range dto.Rotations {
-		toModel := RotationDtoToModel(dto.Id, rotation)
-		rotations[i] = toModel.AsValue()
-	}
-	model.Rotations = types.ListValueMust(
-		types.ObjectType{AttrTypes: dataModels.RotationModelMap},
-		rotations,
-	)
 	return model
 }
 
@@ -387,7 +378,7 @@ func PublicApiUserPermissionsModelToDto(userPermissions dataModels.PublicApiUser
 	}
 }
 
-func ScheduleModelToDto(ctx context.Context, model dataModels.ScheduleModel) dto.Schedule {
+func ScheduleModelToDto(model dataModels.ScheduleModel) dto.Schedule {
 	dtoObj := dto.Schedule{
 		Id:          model.Id.ValueString(),
 		Name:        model.Name.ValueString(),
@@ -395,13 +386,6 @@ func ScheduleModelToDto(ctx context.Context, model dataModels.ScheduleModel) dto
 		Timezone:    model.Timezone.ValueString(),
 		Enabled:     model.Enabled.ValueBool(),
 		TeamId:      model.TeamId.ValueString(),
-		Rotations:   make([]dto.Rotation, len(model.Rotations.Elements())),
-	}
-	rotations := make([]dataModels.RotationModel, len(model.Rotations.Elements()))
-	model.Rotations.ElementsAs(ctx, &rotations, false)
-
-	for i, rotation := range rotations {
-		dtoObj.Rotations[i] = RotationModelToDto(ctx, rotation)
 	}
 
 	return dtoObj

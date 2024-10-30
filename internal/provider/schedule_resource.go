@@ -70,7 +70,7 @@ func (r *ScheduleResource) Create(ctx context.Context, req resource.CreateReques
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
-	scheduleDto := ScheduleModelToDto(ctx, data)
+	scheduleDto := ScheduleModelToDto(data)
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl("v1/schedules").
@@ -151,7 +151,7 @@ func (r *ScheduleResource) Update(ctx context.Context, req resource.UpdateReques
 
 	tflog.Trace(ctx, "Updating the ScheduleResource")
 
-	scheduleDto := ScheduleModelToDto(ctx, data)
+	scheduleDto := ScheduleModelToDto(data)
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s", data.Id.ValueString())).

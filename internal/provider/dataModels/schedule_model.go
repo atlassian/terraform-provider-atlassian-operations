@@ -12,7 +12,6 @@ type ScheduleModel struct {
 	Timezone    types.String `tfsdk:"timezone"`
 	Enabled     types.Bool   `tfsdk:"enabled"`
 	TeamId      types.String `tfsdk:"team_id"`
-	Rotations   types.List   `tfsdk:"rotations"`
 }
 
 var ScheduleModelMap = map[string]attr.Type{
@@ -22,9 +21,6 @@ var ScheduleModelMap = map[string]attr.Type{
 	"timezone":    types.StringType,
 	"enabled":     types.BoolType,
 	"team_id":     types.StringType,
-	"rotations": types.ListType{ElemType: types.ObjectType{
-		AttrTypes: RotationModelMap,
-	}},
 }
 
 func (receiver *ScheduleModel) AsValue() types.Object {
@@ -35,6 +31,5 @@ func (receiver *ScheduleModel) AsValue() types.Object {
 		"timezone":    receiver.Timezone,
 		"enabled":     receiver.Enabled,
 		"team_id":     receiver.TeamId,
-		"rotations":   receiver.Rotations,
 	})
 }

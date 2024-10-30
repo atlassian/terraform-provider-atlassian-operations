@@ -29,4 +29,9 @@ type (
 	TeamMemberList struct {
 		Members []TeamMember `json:"members"`
 	}
+	TeamEnableOps struct {
+		TeamId          string   `json:"platformTeamId"`
+		AdminAccountIds []string `json:"adminAccountIds"`
+		InviteUsernames []string `json:"inviteUsernames"`
+	}
 )

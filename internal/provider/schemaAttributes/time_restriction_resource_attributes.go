@@ -29,13 +29,11 @@ var TimeRestrictionResourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"restriction": schema.SingleNestedAttribute{
-		Computed:   true,
 		Optional:   true,
 		Attributes: TimeOfDayTimeRestrictionResourceAttributes,
 	},
 	"restrictions": schema.ListNestedAttribute{
 		Description: "The restrictions of the time restriction",
-		Computed:    true,
 		Optional:    true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: WeekdayTimeRestrictionResourceAttributes,

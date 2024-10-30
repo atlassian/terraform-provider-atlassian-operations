@@ -23,9 +23,10 @@ type jsmopsProviderModel struct {
 }
 
 type JsmOpsClient struct {
-	OpsClient  *httpClient.HttpClient
-	TeamClient *httpClient.HttpClient
-	UserClient *httpClient.HttpClient
+	OpsClient           *httpClient.HttpClient
+	TeamClient          *httpClient.HttpClient
+	TeamEnableOpsClient *httpClient.HttpClient
+	UserClient          *httpClient.HttpClient
 }
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -205,6 +206,11 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			NewHttpClient().
 			SetDefaultBasicAuth(username, password).
 			SetBaseUrl(fmt.Sprintf("https://%s/gateway/api/public/teams/v1/org/", domainName)),
+		// Undocumented API for enabling Operations for teams
+		TeamEnableOpsClient: httpClient.
+			NewHttpClient().
+			SetDefaultBasicAuth(username, password).
+			SetBaseUrl(fmt.Sprintf("https://%s/gateway/api/jsm/ops/web/%s/v1/teams/enable-ops", domainName, cloudId)),
 		UserClient: httpClient.
 			NewHttpClient().
 			SetDefaultBasicAuth(username, password).
