@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strings"
-	"time"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -110,8 +109,6 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	time.Sleep(2 * time.Second)
-
 	tflog.Trace(ctx, "Team created")
 	tflog.Trace(ctx, "Fetch auto created members")
 
@@ -126,8 +123,15 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		tflog.Error(ctx, "Client Error. Unable to fetch auto created members, got nil response")
 		resp.Diagnostics.AddError("Client Error", "Unable to fetch auto created members, got nil response")
 	} else if httpResp.IsError() {
-		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch auto created members, got http response: %d", httpResp.GetStatusCode()))
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch auto created members, got http response: %d", httpResp.GetStatusCode()))
+		statusCode := httpResp.GetStatusCode()
+		errorResponse := errorMap[statusCode]
+		if errorResponse != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch auto created members, status: %d. Got response: %s", statusCode, errorResponse.Error()))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch auto created members, status: %d. Got response: %s", statusCode, errorResponse.Error()))
+		} else {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch auto created members,got http response: %d", statusCode))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch auto created members, got http response: %d", statusCode))
+		}
 	}
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch auto created members, got error: %s", err))
@@ -137,8 +141,6 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	time.Sleep(2 * time.Second)
 
 	tflog.Trace(ctx, "Auto created members fetched")
 
@@ -160,8 +162,15 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		tflog.Error(ctx, "Client Error. Unable to enable Operations for the created team")
 		resp.Diagnostics.AddError("Client Error", "Unable to enable Operations for the created team")
 	} else if httpResp.IsError() {
-		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, got http response: %d", httpResp.GetStatusCode()))
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to enable Operations for the created team, got http response: %d", httpResp.GetStatusCode()))
+		statusCode := httpResp.GetStatusCode()
+		errorResponse := errorMap[statusCode]
+		if errorResponse != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to enable Operations for the created team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+		} else {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, got http response: %d", statusCode))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to enable Operations for the created team, got http response: %d", statusCode))
+		}
 	}
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, got error: %s", err))

@@ -209,6 +209,10 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		// Undocumented API for enabling Operations for teams
 		TeamEnableOpsClient: httpClient.
 			NewHttpClient().
+			// When called too fast, the API returns 404, so we need to retry
+			AddRetryCondition(func(response *httpClient.Response, err error) bool {
+				return response.GetStatusCode() == 404
+			}).
 			SetDefaultBasicAuth(username, password).
 			SetBaseUrl(fmt.Sprintf("https://%s/gateway/api/jsm/ops/web/%s/v1/teams/enable-ops", domainName, cloudId)),
 		UserClient: httpClient.
