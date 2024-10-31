@@ -121,8 +121,8 @@ Instead of providing values in the _provider_ block directly, you can also set t
 ```bash
 export JSM_OPS_CLOUD_ID=YOUR_CLOUD_ID
 export JSM_OPS_DOMAIN_NAME=YOUR_DOMAIN
-export JSM_OPS_USERNAME=YOUR_USERNAME
-export JSM_OPS_PASSWORD=YOUR_TOKEN
+export JSM_OPS_API_USERNAME=YOUR_USERNAME
+export JSM_OPS_API_TOKEN=YOUR_TOKEN
 ```
 
 _If you do not want to debug the provider with a debugger, and would like to simply execute the Terraform file you 

@@ -5,19 +5,32 @@
 
 image: golang:1.22
 
+definitions:
+  steps:
+    - step: &build
+        name: Build
+        script:
+          - go build .
+    - step: &test
+        name: Test
+        script:
+          - mkdir test-reports
+          - go install github.com/jstemmer/go-junit-report/v2@latest
+          - go test -v 2>&1 ./... | go-junit-report -set-exit-code > test-reports/report.xml
+        artifacts: # defining the artifacts to be passed to each future step.
+          - test-reports/**
+          - reports/*.txt
+    - step: &lint
+        name: Lint code
+        image: golangci/golangci-lint:v1.31.0
+        script:
+          - golangci-lint run -v
+
 pipelines:
   default:
     - parallel:
-      - step:
-          name: Test and Build
-          script:
-            - mkdir test-reports
-            - go get -u github.com/jstemmer/go-junit-report
-            - go test tests/* -v 2>&1 ./... | go-junit-report > test-reports/report.xml
-            # Build compiles the packages
-            - go build src/*
-      - step:
-          name: Lint code
-          image: golangci/golangci-lint:v1.31.0
-          script:
-            - golangci-lint run -v
+        - step: *build
+  pull-requests:
+    '**':
+      - step: *test
+#      - step: *lint
