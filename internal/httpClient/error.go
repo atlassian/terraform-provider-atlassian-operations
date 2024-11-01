@@ -129,7 +129,7 @@ func (e *userClientDefaultErrorResponse) UnmarshalJSON(data []byte) error {
 		e.ErrorMessages = v["errorMessages"].([]string)
 	}
 	if v["errors"] != nil {
-		e.Errors = v["errors"].(any)
+		e.Errors = v["errors"]
 	}
 
 	return nil
