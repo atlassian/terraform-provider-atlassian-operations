@@ -50,7 +50,7 @@ var TeamResourceAttributes = map[string]schema.Attribute{
 		Required:    false,
 		Attributes:  PublicApiUserPermissionsResourceAttributes,
 	},
-	"member": schema.ListNestedAttribute{
+	"member": schema.SetNestedAttribute{
 		Description: "The members of the team",
 		Computed:    true,
 		Optional:    true,

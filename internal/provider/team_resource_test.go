@@ -60,7 +60,7 @@ resource "jsm-ops_team" "example" {
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.update_team", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.delete_team", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "member.#", "1"),
-					resource.TestCheckResourceAttrPair("jsm-ops_team.example", "member.0.account_id", "data.jsm-ops_user.test1", "account_id"),
+					resource.TestCheckTypeSetElemAttrPair("jsm-ops_team.example", "member.*.account_id", "data.jsm-ops_user.test1", "account_id"),
 				),
 			},
 			// ImportState testing
@@ -111,8 +111,8 @@ resource "jsm-ops_team" "example" {
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.update_team", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.delete_team", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "member.#", "2"),
-					resource.TestCheckResourceAttrPair("jsm-ops_team.example", "member.0.account_id", "data.jsm-ops_user.test1", "account_id"),
-					resource.TestCheckResourceAttrPair("jsm-ops_team.example", "member.1.account_id", "data.jsm-ops_user.test2", "account_id"),
+					resource.TestCheckTypeSetElemAttrPair("jsm-ops_team.example", "member.*.account_id", "data.jsm-ops_user.test1", "account_id"),
+					resource.TestCheckTypeSetElemAttrPair("jsm-ops_team.example", "member.*.account_id", "data.jsm-ops_user.test2", "account_id"),
 				),
 			},
 			{
@@ -143,7 +143,7 @@ resource "jsm-ops_team" "example" {
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.update_team", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "user_permissions.delete_team", "true"),
 					resource.TestCheckResourceAttr("jsm-ops_team.example", "member.#", "1"),
-					resource.TestCheckResourceAttrPair("jsm-ops_team.example", "member.0.account_id", "data.jsm-ops_user.test1", "account_id"),
+					resource.TestCheckTypeSetElemAttrPair("jsm-ops_team.example", "member.*.account_id", "data.jsm-ops_user.test1", "account_id"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
