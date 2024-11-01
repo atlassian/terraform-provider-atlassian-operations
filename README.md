@@ -34,7 +34,7 @@ The process to run the provider in a local environment requires the following st
 This project requires the following programs to be installed on your computer, and their main executables to be 
 available in your PATH:
 
--	[Go](https://golang.org/doc/install) 1.22.7 (or higher, to build the provider plugin)
+-	[Go](https://golang.org/doc/install) 1.22 (or higher, to build the provider plugin)
 -	[Terraform](https://www.terraform.io/downloads.html) 1.9.5 (To test the plugin)
 
 
