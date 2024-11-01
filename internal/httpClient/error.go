@@ -12,10 +12,12 @@ type (
 	}
 
 	opsClientDefaultErrorResponse struct {
-		Errors []struct {
-			Title string `json:"title"`
-			Code  string `json:"code"`
-		} `json:"errors"`
+		Errors []opsClientDefaultError `json:"errors"`
+	}
+
+	opsClientDefaultError struct {
+		Title string `json:"title"`
+		Code  int32  `json:"code"`
 	}
 
 	opsClientUnauthorizedErrorResponse struct {
@@ -42,7 +44,7 @@ type (
 func (e *opsClientDefaultErrorResponse) Error() string {
 	errMsg := ""
 	for _, err := range e.Errors {
-		errMsg += fmt.Sprintf("Error: %s, Code: %s\n", err.Title, err.Code)
+		errMsg += fmt.Sprintf("Error: %s, Code: %d\n", err.Title, err.Code)
 	}
 	return errMsg
 }
@@ -81,10 +83,15 @@ func (e *opsClientDefaultErrorResponse) UnmarshalJSON(data []byte) error {
 	}
 
 	if v["errors"] != nil {
-		e.Errors = v["errors"].([]struct {
-			Title string `json:"title"`
-			Code  string `json:"code"`
-		})
+		rawErrors := v["errors"].([]interface{})
+		e.Errors = make([]opsClientDefaultError, len(rawErrors))
+		for i, item := range rawErrors {
+			itemMap := item.(map[string]interface{})
+			e.Errors[i] = opsClientDefaultError{
+				Title: itemMap["title"].(string),
+				Code:  int32(itemMap["code"].(float64)),
+			}
+		}
 	}
 	return nil
 }
@@ -148,7 +155,11 @@ func (e *userClientDefaultErrorResponse) UnmarshalJSON(data []byte) error {
 		e.Status = v["status"].(int32)
 	}
 	if v["errorMessages"] != nil {
-		e.ErrorMessages = v["errorMessages"].([]string)
+		rawErrors := v["errorMessages"].([]interface{})
+		e.ErrorMessages = make([]string, len(rawErrors))
+		for i, item := range rawErrors {
+			e.ErrorMessages[i] = item.(string)
+		}
 	}
 	if v["errors"] != nil {
 		e.Errors = v["errors"]
