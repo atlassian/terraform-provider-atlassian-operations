@@ -129,7 +129,7 @@ func TeamDtoToModel(dto dto.TeamDto, membersDto []dto.TeamMember) dataModels.Tea
 		SiteId:          types.StringNull(),
 		TeamType:        types.StringValue(string(dto.TeamType)),
 		UserPermissions: types.ObjectNull(dataModels.PublicApiUserPermissionsModelMap),
-		Member:          types.ListNull(types.ObjectType{AttrTypes: dataModels.TeamMemberModelMap}),
+		Member:          types.SetNull(types.ObjectType{AttrTypes: dataModels.TeamMemberModelMap}),
 	}
 
 	if dto.SiteId != nil {
@@ -146,7 +146,7 @@ func TeamDtoToModel(dto dto.TeamDto, membersDto []dto.TeamMember) dataModels.Tea
 			toModel := TeamMemberDtoToModel(member)
 			arr[i] = toModel.AsValue()
 		}
-		model.Member = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.TeamMemberModelMap}, arr)
+		model.Member = types.SetValueMust(types.ObjectType{AttrTypes: dataModels.TeamMemberModelMap}, arr)
 	}
 	return model
 }

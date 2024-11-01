@@ -40,7 +40,7 @@ var TeamDataSourceAttributes = map[string]schema.Attribute{
 		Computed:    true,
 		Attributes:  PublicApiUserPermissionsDataSourceAttributes,
 	},
-	"member": schema.ListNestedAttribute{
+	"member": schema.SetNestedAttribute{
 		Description: "The members of the team",
 		Computed:    true,
 		NestedObject: schema.NestedAttributeObject{

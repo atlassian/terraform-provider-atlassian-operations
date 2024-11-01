@@ -14,7 +14,7 @@ type (
 		SiteId          types.String `tfsdk:"site_id"`
 		TeamType        types.String `tfsdk:"team_type"`
 		UserPermissions types.Object `tfsdk:"user_permissions"`
-		Member          types.List   `tfsdk:"member"`
+		Member          types.Set    `tfsdk:"member"`
 	}
 	PublicApiUserPermissionsModel struct {
 		AddMembers    types.Bool `tfsdk:"add_members"`
@@ -37,7 +37,7 @@ var TeamModelMap = map[string]attr.Type{
 	"user_permissions": types.ObjectType{
 		AttrTypes: PublicApiUserPermissionsModelMap,
 	},
-	"member": types.ListType{ElemType: types.ObjectType{
+	"member": types.SetType{ElemType: types.ObjectType{
 		AttrTypes: TeamMemberModelMap,
 	}},
 }
