@@ -211,7 +211,7 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			NewHttpClient().
 			// When called too fast, the API returns 404, so we need to retry
 			AddRetryCondition(func(response *httpClient.Response, err error) bool {
-				return response.GetStatusCode() == 404
+				return response.GetStatusCode() == 404 || response.GetStatusCode() == 403
 			}).
 			SetDefaultBasicAuth(username, password).
 			SetBaseUrl(fmt.Sprintf("https://%s/gateway/api/jsm/ops/web/%s/v1/teams/enable-ops", domainName, cloudId)),

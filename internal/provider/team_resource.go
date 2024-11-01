@@ -113,10 +113,12 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	tflog.Trace(ctx, "Fetch auto created members")
 
 	autoCreatedMembers := dto.TeamMemberListResponse{}
+	errorMap = httpClient.NewTeamClientErrorMap()
 	httpResp, err = r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members", teamDto.OrganizationId, teamDto.TeamId)).
 		Method(httpClient.POST).
 		SetBodyParseObject(&autoCreatedMembers).
+		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -151,11 +153,13 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	tflog.Trace(ctx, "Enabling Operations for the Team")
+	errorMap = httpClient.NewTeamEnableOpsClientErrorMap()
 
 	// Enable OPS for the Team
 	httpResp, err = r.enableOpsClient.NewRequest().
 		Method(httpClient.POST).
 		SetBody(enableOpsBody).
+		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
