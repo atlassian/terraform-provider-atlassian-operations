@@ -390,3 +390,112 @@ func ScheduleModelToDto(model dataModels.ScheduleModel) dto.Schedule {
 
 	return dtoObj
 }
+
+func EscalationRepeatModelToDto(model dataModels.EscalationRepeatModel) dto.EscalationRepeatDto {
+	return dto.EscalationRepeatDto{
+		WaitInterval:         model.WaitInterval.ValueInt32(),
+		Count:                model.Count.ValueInt32(),
+		ResetRecipientStates: model.ResetRecipientStates.ValueBool(),
+		CloseAlertAfterAll:   model.CloseAlertAfterAll.ValueBool(),
+	}
+}
+
+func EscalationRuleResponseRecipientModelToDto(model dataModels.EscalationRuleResponseRecipientModel) dto.EscalationRuleRecipientDto {
+	return dto.EscalationRuleRecipientDto{
+		Id:   model.Id.ValueString(),
+		Type: model.Type.ValueString(),
+	}
+}
+
+func EscalationRuleResponseModelToDto(ctx context.Context, model dataModels.EscalationRuleResponseModel) dto.EscalationRuleDto {
+	var recipient dataModels.EscalationRuleResponseRecipientModel
+	model.Recipient.As(ctx, &recipient, basetypes.ObjectAsOptions{})
+
+	return dto.EscalationRuleDto{
+		Condition:  model.Condition.ValueString(),
+		NotifyType: model.NotifyType.ValueString(),
+		Delay:      model.Delay.ValueInt64(),
+		Recipient:  EscalationRuleResponseRecipientModelToDto(recipient),
+	}
+}
+
+func EscalationModelToDto(ctx context.Context, model dataModels.EscalationModel) dto.EscalationDto {
+	dtoObj := dto.EscalationDto{
+		Id:          model.Id.ValueString(),
+		Name:        model.Name.ValueString(),
+		Description: model.Description.ValueString(),
+		Enabled:     model.Enabled.ValueBool(),
+		Rules:       make([]dto.EscalationRuleDto, len(model.Rules.Elements())),
+		Repeat:      nil,
+	}
+
+	if !(model.Repeat.IsNull() || model.Repeat.IsUnknown()) {
+		var repeat dataModels.EscalationRepeatModel
+		model.Repeat.As(ctx, &repeat, basetypes.ObjectAsOptions{})
+
+		var dtoRepeat = EscalationRepeatModelToDto(repeat)
+		dtoObj.Repeat = &dtoRepeat
+	}
+
+	rules := make([]dataModels.EscalationRuleResponseModel, len(model.Rules.Elements()))
+	model.Rules.ElementsAs(ctx, &rules, false)
+
+	for i, rule := range rules {
+		dtoObj.Rules[i] = EscalationRuleResponseModelToDto(ctx, rule)
+	}
+
+	return dtoObj
+}
+
+func EscalationRepeatDtoToModel(dto dto.EscalationRepeatDto) dataModels.EscalationRepeatModel {
+	return dataModels.EscalationRepeatModel{
+		WaitInterval:         types.Int32Value(dto.WaitInterval),
+		Count:                types.Int32Value(dto.Count),
+		ResetRecipientStates: types.BoolValue(dto.ResetRecipientStates),
+		CloseAlertAfterAll:   types.BoolValue(dto.CloseAlertAfterAll),
+	}
+}
+
+func EscalationRuleResponseDtoToModel(dto dto.EscalationRuleDto) dataModels.EscalationRuleResponseModel {
+	model := dataModels.EscalationRuleResponseModel{
+		Condition:  types.StringValue(dto.Condition),
+		NotifyType: types.StringValue(dto.NotifyType),
+		Delay:      types.Int64Value(dto.Delay),
+	}
+	responseRecipientModel := EscalationRuleResponseRecipientDtoToModel(dto.Recipient)
+	model.Recipient = responseRecipientModel.AsValue()
+
+	return model
+}
+
+func EscalationRuleResponseRecipientDtoToModel(dto dto.EscalationRuleRecipientDto) dataModels.EscalationRuleResponseRecipientModel {
+	return dataModels.EscalationRuleResponseRecipientModel{
+		Id:   types.StringValue(dto.Id),
+		Type: types.StringValue(dto.Type),
+	}
+}
+
+func EscalationDtoToModel(teamId string, dto dto.EscalationDto) dataModels.EscalationModel {
+	model := dataModels.EscalationModel{
+		Id:          types.StringValue(dto.Id),
+		TeamId:      types.StringValue(teamId),
+		Name:        types.StringValue(dto.Name),
+		Description: types.StringValue(dto.Description),
+		Enabled:     types.BoolValue(dto.Enabled),
+		Repeat:      types.ObjectNull(dataModels.EscalationRepeatModelMap),
+	}
+
+	if dto.Repeat != nil {
+		toModel := EscalationRepeatDtoToModel(*dto.Repeat)
+		model.Repeat = toModel.AsValue()
+	}
+
+	rules := make([]attr.Value, len(dto.Rules))
+	for i, rule := range dto.Rules {
+		toModel := EscalationRuleResponseDtoToModel(rule)
+		rules[i] = toModel.AsValue()
+	}
+	model.Rules = types.SetValueMust(types.ObjectType{AttrTypes: dataModels.EscalationRuleResponseModelMap}, rules)
+
+	return model
+}
