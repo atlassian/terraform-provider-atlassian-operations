@@ -12,21 +12,24 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"os"
+	"time"
 )
 
 // jsmopsProviderModel maps provider schema data to a Go type.
 type jsmopsProviderModel struct {
-	CloudId    types.String `tfsdk:"cloud_id"`
-	DomainName types.String `tfsdk:"domain_name"`
-	Username   types.String `tfsdk:"username"`
-	Password   types.String `tfsdk:"password"`
+	CloudId         types.String `tfsdk:"cloud_id"`
+	DomainName      types.String `tfsdk:"domain_name"`
+	Username        types.String `tfsdk:"username"`
+	Password        types.String `tfsdk:"password"`
+	ApiRetryCount   types.Int32  `tfsdk:"api_retry_count"`
+	ApiRetryWait    types.Int32  `tfsdk:"api_retry_wait"`
+	ApiRetryWaitMax types.Int32  `tfsdk:"api_retry_wait_max"`
 }
 
 type JsmOpsClient struct {
-	OpsClient           *httpClient.HttpClient
-	TeamClient          *httpClient.HttpClient
-	TeamEnableOpsClient *httpClient.HttpClient
-	UserClient          *httpClient.HttpClient
+	OpsClient  *httpClient.HttpClient
+	TeamClient *httpClient.HttpClient
+	UserClient *httpClient.HttpClient
 }
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -73,6 +76,15 @@ func (p *jsmopsProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 			"password": schema.StringAttribute{
 				Required:  true,
 				Sensitive: true,
+			},
+			"api_retry_count": schema.Int32Attribute{
+				Optional: true,
+			},
+			"api_retry_wait": schema.Int32Attribute{
+				Optional: true,
+			},
+			"api_retry_wait_max": schema.Int32Attribute{
+				Optional: true,
 			},
 		},
 	}
@@ -127,6 +139,18 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the jsm-ops API password. "+
 				"Either target apply the source of the value first, set the value statically in the configuration.",
 		)
+	}
+
+	if config.ApiRetryCount.IsUnknown() {
+		config.ApiRetryCount = types.Int32Value(3)
+	}
+
+	if config.ApiRetryWait.IsUnknown() {
+		config.ApiRetryWait = types.Int32Value(5)
+	}
+
+	if config.ApiRetryWaitMax.IsUnknown() {
+		config.ApiRetryWaitMax = types.Int32Value(20)
 	}
 
 	if resp.Diagnostics.HasError() {
@@ -200,23 +224,23 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	client := &JsmOpsClient{
 		OpsClient: httpClient.
 			NewHttpClient().
+			SetRetryCount(int(config.ApiRetryCount.ValueInt32())).
+			SetRetryWaitTime(time.Duration(config.ApiRetryWait.ValueInt32())*time.Second).
+			SetRetryMaxWaitTime(time.Duration(config.ApiRetryWaitMax.ValueInt32())*time.Second).
 			SetDefaultBasicAuth(username, password).
 			SetBaseUrl(fmt.Sprintf("https://api.atlassian.com/jsm/ops/api/%s", cloudId)),
 		TeamClient: httpClient.
 			NewHttpClient().
+			SetRetryCount(int(config.ApiRetryCount.ValueInt32())).
+			SetRetryWaitTime(time.Duration(config.ApiRetryWait.ValueInt32())*time.Second).
+			SetRetryMaxWaitTime(time.Duration(config.ApiRetryWaitMax.ValueInt32())*time.Second).
 			SetDefaultBasicAuth(username, password).
 			SetBaseUrl(fmt.Sprintf("https://%s/gateway/api/public/teams/v1/org/", domainName)),
-		// Undocumented API for enabling Operations for teams
-		TeamEnableOpsClient: httpClient.
-			NewHttpClient().
-			// When called too fast, the API returns 404, so we need to retry
-			AddRetryCondition(func(response *httpClient.Response, err error) bool {
-				return response.GetStatusCode() == 404 || response.GetStatusCode() == 403
-			}).
-			SetDefaultBasicAuth(username, password).
-			SetBaseUrl(fmt.Sprintf("https://%s/gateway/api/jsm/ops/web/%s/v1/teams/enable-ops", domainName, cloudId)),
 		UserClient: httpClient.
 			NewHttpClient().
+			SetRetryCount(int(config.ApiRetryCount.ValueInt32())).
+			SetRetryWaitTime(time.Duration(config.ApiRetryWait.ValueInt32())*time.Second).
+			SetRetryMaxWaitTime(time.Duration(config.ApiRetryWaitMax.ValueInt32())*time.Second).
 			SetDefaultBasicAuth(username, password).
 			SetBaseUrl(fmt.Sprintf("https://%s/rest/api/3/user/", domainName)),
 	}

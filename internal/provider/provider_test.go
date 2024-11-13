@@ -15,6 +15,9 @@ provider "jsm-ops" {
 	domain_name = ""
 	username = ""
 	password = ""
+	api_retry_count = 5
+	api_retry_wait = 15
+	api_retry_wait_max = 100
 }
 `
 )
