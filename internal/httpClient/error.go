@@ -30,10 +30,6 @@ type (
 		Message string `json:"message"`
 	}
 
-	teamEnableOpsClientDefaultErrorResponse struct {
-		Message string `json:"message"`
-	}
-
 	userClientDefaultErrorResponse struct {
 		ErrorMessages []string `json:"errorMessages"`
 		Errors        any      `json:"errors"`
@@ -55,10 +51,6 @@ func (e *opsClientUnauthorizedErrorResponse) Error() string {
 
 func (e *teamClientDefaultErrorResponse) Error() string {
 	return fmt.Sprintf("Code: %s, Message: %s", e.Code, e.Message)
-}
-
-func (e *teamEnableOpsClientDefaultErrorResponse) Error() string {
-	return fmt.Sprintf("Message: %s", e.Message)
 }
 
 func (e *userClientDefaultErrorResponse) Error() string {
@@ -145,20 +137,6 @@ func (e *teamClientDefaultErrorResponse) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (e *teamEnableOpsClientDefaultErrorResponse) UnmarshalJSON(data []byte) error {
-	var v map[string]interface{}
-	err := json.Unmarshal(data, &v)
-	if err != nil {
-		return err
-	}
-
-	if v["message"] != nil {
-		e.Message = v["message"].(string)
-	}
-
-	return nil
-}
-
 func (e *userClientDefaultErrorResponse) UnmarshalJSON(data []byte) error {
 	var v map[string]interface{}
 	err := json.Unmarshal(data, &v)
@@ -205,18 +183,6 @@ func NewTeamClientErrorMap() ErrorCodeToObjectMap {
 		413: &teamClientDefaultErrorResponse{},
 		415: &teamClientDefaultErrorResponse{},
 		422: &teamClientDefaultErrorResponse{},
-	}
-}
-
-func NewTeamEnableOpsClientErrorMap() ErrorCodeToObjectMap {
-	return ErrorCodeToObjectMap{
-		400: &teamEnableOpsClientDefaultErrorResponse{},
-		403: &teamEnableOpsClientDefaultErrorResponse{},
-		404: &teamEnableOpsClientDefaultErrorResponse{},
-		410: &teamEnableOpsClientDefaultErrorResponse{},
-		413: &teamEnableOpsClientDefaultErrorResponse{},
-		415: &teamEnableOpsClientDefaultErrorResponse{},
-		422: &teamEnableOpsClientDefaultErrorResponse{},
 	}
 }
 
