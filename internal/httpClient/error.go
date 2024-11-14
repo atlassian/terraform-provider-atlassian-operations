@@ -17,7 +17,7 @@ type (
 
 	opsClientDefaultError struct {
 		Title string `json:"title"`
-		Code  string  `json:"code"`
+		Code  string `json:"code"`
 	}
 
 	opsClientUnauthorizedErrorResponse struct {
@@ -27,10 +27,6 @@ type (
 
 	teamClientDefaultErrorResponse struct {
 		Code    string `json:"code"`
-		Message string `json:"message"`
-	}
-
-	teamEnableOpsClientDefaultErrorResponse struct {
 		Message string `json:"message"`
 	}
 
@@ -57,10 +53,6 @@ func (e *teamClientDefaultErrorResponse) Error() string {
 	return fmt.Sprintf("Code: %s, Message: %s", e.Code, e.Message)
 }
 
-func (e *teamEnableOpsClientDefaultErrorResponse) Error() string {
-	return fmt.Sprintf("Message: %s", e.Message)
-}
-
 func (e *userClientDefaultErrorResponse) Error() string {
 	errMsg := ""
 	for _, err := range e.ErrorMessages {
@@ -83,23 +75,27 @@ func (e *opsClientDefaultErrorResponse) UnmarshalJSON(data []byte) error {
 	}
 
 	if v["errors"] != nil {
-		for err2Key, err2RawVal := range v["errors"].(map[string]interface{}) {
-			errParsed, ok := err2RawVal.(map[string]interface{})
-			if !ok {
-				e.Errors = append(e.Errors, struct {
-					Title string `json:"title"`
-					Code  string `json:"code"`
-				}{
-					Title: err2Key,
-					Code:  err2RawVal.(string),
-				})
-			} else {
+		rawErrMap, ok := v["errors"].(map[string]interface{})
+		if !ok {
+			rawErrArr := v["errors"].([]interface{})
+			for _, err2RawVal := range rawErrArr {
+				errParsed := err2RawVal.(map[string]interface{})
 				e.Errors = append(e.Errors, struct {
 					Title string `json:"title"`
 					Code  string `json:"code"`
 				}{
 					Title: errParsed["title"].(string),
 					Code:  errParsed["code"].(string),
+				})
+			}
+		} else {
+			for err2Key, err2RawVal := range rawErrMap {
+				e.Errors = append(e.Errors, struct {
+					Title string `json:"title"`
+					Code  string `json:"code"`
+				}{
+					Title: err2Key,
+					Code:  err2RawVal.(string),
 				})
 			}
 		}
@@ -134,20 +130,6 @@ func (e *teamClientDefaultErrorResponse) UnmarshalJSON(data []byte) error {
 	if v["code"] != nil {
 		e.Code = v["code"].(string)
 	}
-	if v["message"] != nil {
-		e.Message = v["message"].(string)
-	}
-
-	return nil
-}
-
-func (e *teamEnableOpsClientDefaultErrorResponse) UnmarshalJSON(data []byte) error {
-	var v map[string]interface{}
-	err := json.Unmarshal(data, &v)
-	if err != nil {
-		return err
-	}
-
 	if v["message"] != nil {
 		e.Message = v["message"].(string)
 	}
@@ -201,18 +183,6 @@ func NewTeamClientErrorMap() ErrorCodeToObjectMap {
 		413: &teamClientDefaultErrorResponse{},
 		415: &teamClientDefaultErrorResponse{},
 		422: &teamClientDefaultErrorResponse{},
-	}
-}
-
-func NewTeamEnableOpsClientErrorMap() ErrorCodeToObjectMap {
-	return ErrorCodeToObjectMap{
-		400: &teamEnableOpsClientDefaultErrorResponse{},
-		403: &teamEnableOpsClientDefaultErrorResponse{},
-		404: &teamEnableOpsClientDefaultErrorResponse{},
-		410: &teamEnableOpsClientDefaultErrorResponse{},
-		413: &teamEnableOpsClientDefaultErrorResponse{},
-		415: &teamEnableOpsClientDefaultErrorResponse{},
-		422: &teamEnableOpsClientDefaultErrorResponse{},
 	}
 }
 
