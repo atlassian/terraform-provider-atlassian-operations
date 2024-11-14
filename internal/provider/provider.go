@@ -273,5 +273,6 @@ func (p *jsmopsProvider) Resources(_ context.Context) []func() resource.Resource
 		NewScheduleResource,
 		NewTeamResource,
 		NewEscalationResource,
+		NewEmailIntegrationResource,
 	}
 }

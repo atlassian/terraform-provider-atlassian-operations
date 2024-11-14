@@ -120,6 +120,53 @@ func ScheduleDtoToModel(dto dto.Schedule) dataModels.ScheduleModel {
 	return model
 }
 
+func EmailIntegrationTypeSpecificPropertiesModelToDto(model dataModels.TypeSpecificPropertiesModel) dto.TypeSpecificPropertiesDto {
+	return dto.TypeSpecificPropertiesDto{
+		EmailUsername:         model.EmailUsername.ValueString(),
+		SuppressNotifications: model.SuppressNotifications.ValueBool(),
+	}
+}
+
+func EmailIntegrationModelToDto(ctx context.Context, model dataModels.EmailIntegrationModel) dto.EmailIntegration {
+	dtoObj := dto.EmailIntegration{
+		Id:      model.Id.ValueString(),
+		Name:    model.Name.ValueString(),
+		Enabled: model.Enabled.ValueBool(),
+		TeamId:  model.TeamId.ValueString(),
+		Type:    "Email",
+	}
+
+	if !(model.TypeSpecificPropertiesModel.IsNull() || model.TypeSpecificPropertiesModel.IsUnknown()) {
+		var typeSpecificProperties dataModels.TypeSpecificPropertiesModel
+		model.TypeSpecificPropertiesModel.As(ctx, &typeSpecificProperties, basetypes.ObjectAsOptions{})
+
+		dtoObj.TypeSpecificProperties = EmailIntegrationTypeSpecificPropertiesModelToDto(typeSpecificProperties)
+	}
+
+	return dtoObj
+}
+
+func EmailIntegrationTypeSpecificPropertiesDtoToModel(dto dto.TypeSpecificPropertiesDto) dataModels.TypeSpecificPropertiesModel {
+	return dataModels.TypeSpecificPropertiesModel{
+		EmailUsername:         types.StringValue(dto.EmailUsername),
+		SuppressNotifications: types.BoolValue(dto.SuppressNotifications),
+	}
+}
+
+func EmailIntegrationDtoToModel(dto dto.EmailIntegration) dataModels.EmailIntegrationModel {
+	model := dataModels.EmailIntegrationModel{
+		Id:      types.StringValue(dto.Id),
+		Name:    types.StringValue(dto.Name),
+		Enabled: types.BoolValue(dto.Enabled),
+		TeamId:  types.StringValue(dto.TeamId),
+	}
+
+	toModel := EmailIntegrationTypeSpecificPropertiesDtoToModel(dto.TypeSpecificProperties)
+	model.TypeSpecificPropertiesModel = toModel.AsValue()
+
+	return model
+}
+
 func TeamDtoToModel(dto dto.TeamDto, membersDto []dto.TeamMember) dataModels.TeamModel {
 	model := dataModels.TeamModel{
 		Description:     types.StringValue(dto.Description),

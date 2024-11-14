@@ -17,7 +17,7 @@ type (
 
 	opsClientDefaultError struct {
 		Title string `json:"title"`
-		Code  string  `json:"code"`
+		Code  string `json:"code"`
 	}
 
 	opsClientUnauthorizedErrorResponse struct {
@@ -83,23 +83,27 @@ func (e *opsClientDefaultErrorResponse) UnmarshalJSON(data []byte) error {
 	}
 
 	if v["errors"] != nil {
-		for err2Key, err2RawVal := range v["errors"].(map[string]interface{}) {
-			errParsed, ok := err2RawVal.(map[string]interface{})
-			if !ok {
-				e.Errors = append(e.Errors, struct {
-					Title string `json:"title"`
-					Code  string `json:"code"`
-				}{
-					Title: err2Key,
-					Code:  err2RawVal.(string),
-				})
-			} else {
+		rawErrMap, ok := v["errors"].(map[string]interface{})
+		if !ok {
+			rawErrArr := v["errors"].([]interface{})
+			for _, err2RawVal := range rawErrArr {
+				errParsed := err2RawVal.(map[string]interface{})
 				e.Errors = append(e.Errors, struct {
 					Title string `json:"title"`
 					Code  string `json:"code"`
 				}{
 					Title: errParsed["title"].(string),
 					Code:  errParsed["code"].(string),
+				})
+			}
+		} else {
+			for err2Key, err2RawVal := range rawErrMap {
+				e.Errors = append(e.Errors, struct {
+					Title string `json:"title"`
+					Code  string `json:"code"`
+				}{
+					Title: err2Key,
+					Code:  err2RawVal.(string),
 				})
 			}
 		}
