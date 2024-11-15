@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var EmailIntegrationResourceAttributes = map[string]schema.Attribute{
@@ -32,6 +33,30 @@ var EmailIntegrationResourceAttributes = map[string]schema.Attribute{
 		Optional: true,
 		Computed: true,
 	},
+	"advanced": schema.BoolAttribute{
+		Optional: true,
+		Computed: true,
+		Default:  booldefault.StaticBool(false),
+	},
+	"maintenance_sources": schema.ListNestedAttribute{
+		Optional: true,
+		Computed: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: EmailIntegrationMaintenanceSourceResourceAttributes,
+		},
+	},
+	"directions": schema.ListAttribute{
+		ElementType: types.StringType,
+		Optional:    true,
+		Computed:    true,
+		Description: "Direction of the action. It can be incoming or outgoing",
+	},
+	"domains": schema.ListAttribute{
+		ElementType: types.StringType,
+		Optional:    true,
+		Computed:    true,
+		Description: "Domain of the action. It can be alert",
+	},
 	"type_specific_properties": schema.SingleNestedAttribute{
 		Attributes:  EmailIntegrationTypeSpecificAttributesResourceAttributes,
 		Required:    true,
@@ -47,5 +72,33 @@ var EmailIntegrationTypeSpecificAttributesResourceAttributes = map[string]schema
 		Optional: true,
 		Computed: true,
 		Default:  booldefault.StaticBool(false),
+	},
+}
+
+var EmailIntegrationMaintenanceSourceResourceAttributes = map[string]schema.Attribute{
+	"maintenance_id": schema.StringAttribute{
+		Optional: false,
+		Required: false,
+		Computed: true,
+	}, "enabled": schema.BoolAttribute{
+		Optional: false,
+		Required: false,
+		Computed: true,
+	}, "interval": schema.SingleNestedAttribute{
+		Attributes: EmailIntegrationMaintenanceSourceMaintenanceIntervalResourceAttributes,
+		Optional:   false,
+		Required:   false,
+		Computed:   true,
+	},
+}
+
+var EmailIntegrationMaintenanceSourceMaintenanceIntervalResourceAttributes = map[string]schema.Attribute{
+	"start_time_millis": schema.Int64Attribute{
+		Optional: false,
+		Computed: true,
+	},
+	"end_time_millis": schema.Int64Attribute{
+		Optional: false,
+		Computed: true,
 	},
 }
