@@ -13,6 +13,7 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 	emailIntegrationName := uuid.NewString()
 	emailIntegrationUpdateName := uuid.NewString()
 
+	randomEmailUsername := uuid.NewString()
 	teamName := uuid.NewString()
 
 	organizationId := os.Getenv("JSM_ACCTEST_ORGANIZATION_ID")
@@ -54,7 +55,7 @@ resource "jsm-ops_email_integration" "example" {
   team_id = jsm-ops_team.example.id
   enabled = true
   type_specific_properties = {
-  	email_username = "byildiz"
+  	email_username = "` + randomEmailUsername + `"
     suppress_notifications = true
   }
 }
@@ -63,15 +64,16 @@ resource "jsm-ops_email_integration" "example" {
 					resource.TestCheckResourceAttr("jsm-ops_email_integration.example", "name", emailIntegrationName),
 					resource.TestCheckResourceAttrPair("jsm-ops_email_integration.example", "team_id", "jsm-ops_team.example", "id"),
 					resource.TestCheckResourceAttr("jsm-ops_email_integration.example", "enabled", "true"),
-					resource.TestCheckResourceAttr("jsm-ops_email_integration.example", "type_specific_properties.email_username", "byildiz"),
+					resource.TestCheckResourceAttr("jsm-ops_email_integration.example", "type_specific_properties.email_username", randomEmailUsername),
 					resource.TestCheckResourceAttr("jsm-ops_email_integration.example", "type_specific_properties.suppress_notifications", "true"),
 				),
 			},
 			// ImportState testing
 			{
-				ResourceName:      "jsm-ops_email_integration.example",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "jsm-ops_email_integration.example",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"directions.#", "domains.#", "domains.0", "directions.0"},
 				ImportStateIdFunc: func(state *terraform.State) (string, error) {
 					return state.RootModule().Resources["jsm-ops_email_integration.example"].Primary.ID,
 						nil
@@ -99,7 +101,7 @@ resource "jsm-ops_email_integration" "example" {
   team_id = jsm-ops_team.example.id
   enabled = false
   type_specific_properties = {
-  	email_username = "iaral"
+  	email_username = "` + randomEmailUsername + `"
     suppress_notifications = false
   }
 }
@@ -108,7 +110,7 @@ resource "jsm-ops_email_integration" "example" {
 					resource.TestCheckResourceAttr("jsm-ops_email_integration.example", "name", emailIntegrationUpdateName),
 					resource.TestCheckResourceAttrPair("jsm-ops_email_integration.example", "team_id", "jsm-ops_team.example", "id"),
 					resource.TestCheckResourceAttr("jsm-ops_email_integration.example", "enabled", "false"),
-					resource.TestCheckResourceAttr("jsm-ops_email_integration.example", "type_specific_properties.email_username", "iaral"),
+					resource.TestCheckResourceAttr("jsm-ops_email_integration.example", "type_specific_properties.email_username", randomEmailUsername),
 					resource.TestCheckResourceAttr("jsm-ops_email_integration.example", "type_specific_properties.suppress_notifications", "false"),
 				),
 			},

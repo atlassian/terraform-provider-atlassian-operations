@@ -153,16 +153,55 @@ func EmailIntegrationTypeSpecificPropertiesDtoToModel(dto dto.TypeSpecificProper
 	}
 }
 
+func EmailIntegrationMaintenanceSourcesIntervalDtoToModel(dto dto.MaintenanceInterval) dataModels.MaintenanceIntervalModel {
+	return dataModels.MaintenanceIntervalModel{
+		StartTimeMillis: types.Int32Value(dto.StartTimeMillis),
+		EndTimeMillis:   types.Int32Value(dto.EndTimeMillis),
+	}
+}
+
+func EmailIntegrationMaintenanceSourcesDtoToModel(dto dto.MaintenanceSource) dataModels.MaintenanceSourceModel {
+	model := dataModels.MaintenanceSourceModel{
+		MaintenanceId: types.StringValue(dto.MaintenanceId),
+		Enabled:       types.BoolValue(dto.Enabled),
+	}
+
+	responseIntervalModel := EmailIntegrationMaintenanceSourcesIntervalDtoToModel(dto.Interval)
+	model.Interval = responseIntervalModel.AsValue()
+
+	return model
+}
+
 func EmailIntegrationDtoToModel(dto dto.EmailIntegration) dataModels.EmailIntegrationModel {
 	model := dataModels.EmailIntegrationModel{
-		Id:      types.StringValue(dto.Id),
-		Name:    types.StringValue(dto.Name),
-		Enabled: types.BoolValue(dto.Enabled),
-		TeamId:  types.StringValue(dto.TeamId),
+		Id:       types.StringValue(dto.Id),
+		Name:     types.StringValue(dto.Name),
+		Enabled:  types.BoolValue(dto.Enabled),
+		Advanced: types.BoolValue(dto.Advanced),
+		TeamId:   types.StringValue(dto.TeamId),
 	}
 
 	toModel := EmailIntegrationTypeSpecificPropertiesDtoToModel(dto.TypeSpecificProperties)
 	model.TypeSpecificPropertiesModel = toModel.AsValue()
+
+	directions := make([]attr.Value, len(dto.Directions))
+	for i, direction := range dto.Directions {
+		directions[i] = types.StringValue(direction)
+	}
+	model.Directions, _ = types.ListValue(types.StringType, directions)
+
+	domains := make([]attr.Value, len(dto.Domains))
+	for i, domain := range dto.Domains {
+		domains[i] = types.StringValue(domain)
+	}
+	model.Domains, _ = types.ListValue(types.StringType, domains)
+
+	maintenanceSources := make([]attr.Value, len(dto.MaintenanceSources))
+	for i, maintenanceSource := range dto.MaintenanceSources {
+		toModel := EmailIntegrationMaintenanceSourcesDtoToModel(maintenanceSource)
+		maintenanceSources[i] = toModel.AsValue()
+	}
+	model.MaintenanceSources, _ = types.ListValue(types.ObjectType{AttrTypes: dataModels.EmailIntegrationMaintenanceSourcesResponseModelMap}, maintenanceSources)
 
 	return model
 }
