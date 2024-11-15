@@ -155,8 +155,8 @@ func EmailIntegrationTypeSpecificPropertiesDtoToModel(dto dto.TypeSpecificProper
 
 func EmailIntegrationMaintenanceSourcesIntervalDtoToModel(dto dto.MaintenanceInterval) dataModels.MaintenanceIntervalModel {
 	return dataModels.MaintenanceIntervalModel{
-		StartTimeMillis: types.Int32Value(dto.StartTimeMillis),
-		EndTimeMillis:   types.Int32Value(dto.EndTimeMillis),
+		StartTimeMillis: types.Int64Value(dto.StartTimeMillis),
+		EndTimeMillis:   types.Int64Value(dto.EndTimeMillis),
 	}
 }
 

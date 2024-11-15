@@ -35,13 +35,11 @@ var EmailIntegrationResourceAttributes = map[string]schema.Attribute{
 	},
 	"advanced": schema.BoolAttribute{
 		Optional: true,
-		Required: false,
 		Computed: true,
 		Default:  booldefault.StaticBool(false),
 	},
 	"maintenance_sources": schema.ListNestedAttribute{
 		Optional: true,
-		Required: false,
 		Computed: true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: EmailIntegrationMaintenanceSourceResourceAttributes,
@@ -50,14 +48,12 @@ var EmailIntegrationResourceAttributes = map[string]schema.Attribute{
 	"directions": schema.ListAttribute{
 		ElementType: types.StringType,
 		Optional:    true,
-		Required:    false,
 		Computed:    true,
 		Description: "Direction of the action. It can be incoming or outgoing",
 	},
 	"domains": schema.ListAttribute{
 		ElementType: types.StringType,
 		Optional:    true,
-		Required:    false,
 		Computed:    true,
 		Description: "Domain of the action. It can be alert",
 	},
@@ -97,14 +93,12 @@ var EmailIntegrationMaintenanceSourceResourceAttributes = map[string]schema.Attr
 }
 
 var EmailIntegrationMaintenanceSourceMaintenanceIntervalResourceAttributes = map[string]schema.Attribute{
-	"start_time_millis": schema.Int32Attribute{
+	"start_time_millis": schema.Int64Attribute{
 		Optional: false,
-		Required: false,
 		Computed: true,
 	},
-	"end_time_millis": schema.Int32Attribute{
+	"end_time_millis": schema.Int64Attribute{
 		Optional: false,
-		Required: false,
 		Computed: true,
 	},
 }

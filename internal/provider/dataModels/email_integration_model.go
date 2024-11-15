@@ -19,8 +19,8 @@ type (
 	}
 
 	MaintenanceIntervalModel struct {
-		StartTimeMillis types.Int32 `tfsdk:"start_time_millis"`
-		EndTimeMillis   types.Int32 `tfsdk:"end_time_millis"`
+		StartTimeMillis types.Int64 `tfsdk:"start_time_millis"`
+		EndTimeMillis   types.Int64 `tfsdk:"end_time_millis"`
 	}
 
 	MaintenanceSourceModel struct {
@@ -41,8 +41,8 @@ var TypeSpecificPropertiesModelMap = map[string]attr.Type{
 }
 
 var EmailIntegrationMaintenanceSourcesIntervalResponseModelMap = map[string]attr.Type{
-	"start_time_millis": types.Int32Type,
-	"end_time_millis":   types.Int32Type,
+	"start_time_millis": types.Int64Type,
+	"end_time_millis":   types.Int64Type,
 }
 
 var EmailIntegrationMaintenanceSourcesResponseModelMap = map[string]attr.Type{
