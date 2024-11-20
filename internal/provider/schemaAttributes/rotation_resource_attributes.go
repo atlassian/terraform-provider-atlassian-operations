@@ -1,7 +1,7 @@
 package schemaAttributes
 
 import (
-	"github.com/atlassian/terraform-provider-jsm-ops/internal/provider/schemaAttributes/customValidators"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes/customValidators"
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"

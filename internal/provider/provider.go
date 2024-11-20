@@ -3,7 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/atlassian/terraform-provider-jsm-ops/internal/httpClient"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -56,7 +56,7 @@ type jsmopsProvider struct {
 
 // Metadata returns the provider type name.
 func (p *jsmopsProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "jsm-ops"
+	resp.TypeName = "atlassian-ops"
 	resp.Version = p.version
 }
 
@@ -90,9 +90,9 @@ func (p *jsmopsProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 	}
 }
 
-// Configure prepares a jsm-ops API client for data sources and resources.
+// Configure prepares a atlassian-ops API client for data sources and resources.
 func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	tflog.Info(ctx, "Configuring jsm-ops provider")
+	tflog.Info(ctx, "Configuring atlassian-ops provider")
 
 	// Retrieve provider data from configuration
 	var config jsmopsProviderModel
@@ -109,7 +109,7 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		resp.Diagnostics.AddAttributeError(
 			path.Root("cloud_id"),
 			"Unknown cloud instance ID",
-			"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the cloudId. "+
+			"The provider cannot create the atlassian-ops API client as there is an unknown configuration value for the cloudId. "+
 				"Either target apply the source of the value first, set the value statically in the configuration.",
 		)
 	}
@@ -118,7 +118,7 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		resp.Diagnostics.AddAttributeError(
 			path.Root("domain_name"),
 			"Unknown domain name",
-			"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the domain_name. "+
+			"The provider cannot create the atlassian-ops API client as there is an unknown configuration value for the domain_name. "+
 				"Either target apply the source of the value first, set the value statically in the configuration.",
 		)
 	}
@@ -126,8 +126,8 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	if config.Username.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("username"),
-			"Unknown jsm-ops API Username",
-			"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the jsm-ops API username. "+
+			"Unknown atlassian-ops API Username",
+			"The provider cannot create the atlassian-ops API client as there is an unknown configuration value for the atlassian-ops API username. "+
 				"Either target apply the source of the value first, set the value statically in the configuration.",
 		)
 	}
@@ -135,8 +135,8 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	if config.Password.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("password"),
-			"Unknown jsm-ops API Password",
-			"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the jsm-ops API password. "+
+			"Unknown atlassian-ops API Password",
+			"The provider cannot create the atlassian-ops API client as there is an unknown configuration value for the atlassian-ops API password. "+
 				"Either target apply the source of the value first, set the value statically in the configuration.",
 		)
 	}
@@ -157,19 +157,19 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		return
 	}
 
-	isStaging := os.Getenv("JSM_OPS_STAGING") == "1"
+	isStaging := os.Getenv("ATLASSIAN_OPS_STAGING") == "1"
 
-	cloudId := os.Getenv("JSM_OPS_CLOUD_ID")
-	domainName := os.Getenv("JSM_OPS_DOMAIN_NAME")
-	username := os.Getenv("JSM_OPS_API_USERNAME")
-	password := os.Getenv("JSM_OPS_API_TOKEN")
+	cloudId := os.Getenv("ATLASSIAN_OPS_CLOUD_ID")
+	domainName := os.Getenv("ATLASSIAN_OPS_DOMAIN_NAME")
+	username := os.Getenv("ATLASSIAN_OPS_API_USERNAME")
+	password := os.Getenv("ATLASSIAN_OPS_API_TOKEN")
 
 	if cloudId == "" {
 		if config.CloudId.IsNull() {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("cloud_id"),
 				"Invalid cloud instance ID",
-				"The provider cannot create the jsm-ops API client as there is a null / an empty configuration value for the cloudId.",
+				"The provider cannot create the atlassian-ops API client as there is a null / an empty configuration value for the cloudId.",
 			)
 		} else {
 			cloudId = config.CloudId.ValueString()
@@ -181,7 +181,7 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			resp.Diagnostics.AddAttributeError(
 				path.Root("domain_name"),
 				"Unknown domain name",
-				"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the domain_name. ",
+				"The provider cannot create the atlassian-ops API client as there is an unknown configuration value for the domain_name. ",
 			)
 		} else {
 			domainName = config.DomainName.ValueString()
@@ -192,8 +192,8 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		if config.Username.IsNull() {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("username"),
-				"Unknown jsm-ops API Username",
-				"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the jsm-ops API username. ",
+				"Unknown atlassian-ops API Username",
+				"The provider cannot create the atlassian-ops API client as there is an unknown configuration value for the atlassian-ops API username. ",
 			)
 		} else {
 			username = config.Username.ValueString()
@@ -204,23 +204,23 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		if config.Password.IsNull() {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("password"),
-				"Unknown jsm-ops API Password",
-				"The provider cannot create the jsm-ops API client as there is an unknown configuration value for the jsm-ops API password. ",
+				"Unknown atlassian-ops API Password",
+				"The provider cannot create the atlassian-ops API client as there is an unknown configuration value for the atlassian-ops API password. ",
 			)
 		} else {
 			password = config.Password.ValueString()
 		}
 	}
 
-	ctx = tflog.SetField(ctx, "jsm-ops_cloud_id", cloudId)
-	ctx = tflog.SetField(ctx, "jsm-ops_domain_name", domainName)
-	ctx = tflog.SetField(ctx, "jsm-ops_username", username)
-	ctx = tflog.SetField(ctx, "jsm-ops_password", password)
-	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "jsm-ops_password")
+	ctx = tflog.SetField(ctx, "atlassian-ops_cloud_id", cloudId)
+	ctx = tflog.SetField(ctx, "atlassian-ops_domain_name", domainName)
+	ctx = tflog.SetField(ctx, "atlassian-ops_username", username)
+	ctx = tflog.SetField(ctx, "atlassian-ops_password", password)
+	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "atlassian-ops_password")
 
-	tflog.Debug(ctx, "Creating jsm-ops client")
+	tflog.Debug(ctx, "Creating atlassian-ops client")
 
-	// Create a new jsm-ops client using the configuration values
+	// Create a new atlassian-ops client using the configuration values
 	client := &JsmOpsClient{
 		OpsClient: httpClient.
 			NewHttpClient().
@@ -249,12 +249,12 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		client.OpsClient = client.OpsClient.SetBaseUrl(fmt.Sprintf("https://api.stg.atlassian.com/jsm/ops/api/%s", cloudId))
 	}
 
-	// Make the jsm-ops client available during DataSource and Resource
+	// Make the atlassian-ops client available during DataSource and Resource
 	// type Configure methods.
 	resp.DataSourceData = client
 	resp.ResourceData = client
 
-	tflog.Info(ctx, "Configured jsm-ops client", map[string]any{"success": true})
+	tflog.Info(ctx, "Configured atlassian-ops client", map[string]any{"success": true})
 }
 
 // DataSources defines the data sources implemented in the provider.

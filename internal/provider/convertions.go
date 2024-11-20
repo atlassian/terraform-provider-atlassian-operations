@@ -3,8 +3,8 @@ package provider
 import (
 	"context"
 	"encoding/json"
-	"github.com/atlassian/terraform-provider-jsm-ops/internal/dto"
-	"github.com/atlassian/terraform-provider-jsm-ops/internal/provider/dataModels"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"

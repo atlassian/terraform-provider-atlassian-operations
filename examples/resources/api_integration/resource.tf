@@ -1,12 +1,12 @@
 terraform {
   required_providers {
-    jsm-ops = {
-      source = "registry.terraform.io/atlassian/jsm-ops"
+    atlassian-ops = {
+      source = "registry.terraform.io/atlassian/atlassian-operations"
     }
   }
 }
 
-resource "jsm-ops_api_integration" "example" {
+resource "atlassian-ops_api_integration" "example" {
   name    = "api integration"
   enabled = true
   type = "AmazonSecurityHub"
