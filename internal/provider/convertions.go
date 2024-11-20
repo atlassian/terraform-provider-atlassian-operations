@@ -2,8 +2,10 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/atlassian/terraform-provider-jsm-ops/internal/dto"
 	"github.com/atlassian/terraform-provider-jsm-ops/internal/provider/dataModels"
+	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -201,7 +203,7 @@ func EmailIntegrationDtoToModel(dto dto.EmailIntegration) dataModels.EmailIntegr
 		toModel := EmailIntegrationMaintenanceSourcesDtoToModel(maintenanceSource)
 		maintenanceSources[i] = toModel.AsValue()
 	}
-	model.MaintenanceSources, _ = types.ListValue(types.ObjectType{AttrTypes: dataModels.EmailIntegrationMaintenanceSourcesResponseModelMap}, maintenanceSources)
+	model.MaintenanceSources, _ = types.ListValue(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}, maintenanceSources)
 
 	return model
 }
@@ -582,6 +584,126 @@ func EscalationDtoToModel(teamId string, dto dto.EscalationDto) dataModels.Escal
 		rules[i] = toModel.AsValue()
 	}
 	model.Rules = types.SetValueMust(types.ObjectType{AttrTypes: dataModels.EscalationRuleResponseModelMap}, rules)
+
+	return model
+}
+
+func ApiIntegrationMaintenanceSourceIntervalModelToDto(model dataModels.MaintenanceIntervalModel) dto.MaintenanceInterval {
+	return dto.MaintenanceInterval{
+		StartTimeMillis: model.StartTimeMillis.ValueInt64(),
+		EndTimeMillis:   model.EndTimeMillis.ValueInt64(),
+	}
+}
+
+func ApiIntegrationMaintenanceSourceModelToDto(ctx context.Context, model dataModels.MaintenanceSourceModel) dto.MaintenanceSource {
+	intervalModel := dataModels.MaintenanceIntervalModel{}
+	model.Interval.As(ctx, &intervalModel, basetypes.ObjectAsOptions{})
+
+	return dto.MaintenanceSource{
+		MaintenanceId: model.MaintenanceId.ValueString(),
+		Enabled:       model.Enabled.ValueBool(),
+		Interval:      ApiIntegrationMaintenanceSourceIntervalModelToDto(intervalModel),
+	}
+}
+
+func ApiIntegrationModelToDto(ctx context.Context, model dataModels.ApiIntegrationModel) dto.ApiIntegration {
+	maintenanceSources := make([]dataModels.MaintenanceSourceModel, len(model.MaintenanceSources.Elements()))
+	model.MaintenanceSources.ElementsAs(ctx, &maintenanceSources, false)
+
+	directions := make([]types.String, len(model.Directions.Elements()))
+	model.Directions.ElementsAs(ctx, &directions, false)
+
+	domains := make([]types.String, len(model.Domains.Elements()))
+	model.Domains.ElementsAs(ctx, &domains, false)
+
+	typeSpecificProperties := make(map[string]interface{})
+	if !(model.TypeSpecificProperties.IsNull() || model.TypeSpecificProperties.IsUnknown()) {
+		model.TypeSpecificProperties.Unmarshal(&typeSpecificProperties)
+	}
+
+	dtoObj := dto.ApiIntegration{
+		Id:                     model.Id.ValueString(),
+		Name:                   model.Name.ValueString(),
+		Type:                   model.Type.ValueString(),
+		Enabled:                model.Enabled.ValueBool(),
+		TeamId:                 model.TeamId.ValueString(),
+		Advanced:               model.Advanced.ValueBool(),
+		MaintenanceSources:     make([]dto.MaintenanceSource, len(maintenanceSources)),
+		Directions:             make([]string, len(directions)),
+		Domains:                make([]string, len(domains)),
+		TypeSpecificProperties: typeSpecificProperties,
+	}
+
+	for i, maintenanceSource := range maintenanceSources {
+		dtoObj.MaintenanceSources[i] = ApiIntegrationMaintenanceSourceModelToDto(ctx, maintenanceSource)
+	}
+
+	for i, direction := range directions {
+		dtoObj.Directions[i] = direction.ValueString()
+	}
+
+	for i, domain := range domains {
+		dtoObj.Domains[i] = domain.ValueString()
+	}
+
+	return dtoObj
+}
+
+func ApiIntegrationMaintenanceSourceIntervalDtoToModel(dto dto.MaintenanceInterval) dataModels.MaintenanceIntervalModel {
+	return dataModels.MaintenanceIntervalModel{
+		StartTimeMillis: types.Int64Value(dto.StartTimeMillis),
+		EndTimeMillis:   types.Int64Value(dto.EndTimeMillis),
+	}
+}
+
+func ApiIntegrationMaintenanceSourceDtoToModel(dto dto.MaintenanceSource) dataModels.MaintenanceSourceModel {
+	interval := ApiIntegrationMaintenanceSourceIntervalDtoToModel(dto.Interval)
+	return dataModels.MaintenanceSourceModel{
+		MaintenanceId: types.StringValue(dto.MaintenanceId),
+		Enabled:       types.BoolValue(dto.Enabled),
+		Interval:      interval.AsValue(),
+	}
+}
+
+func ApiIntegrationDtoToModel(dtoObj dto.ApiIntegration) dataModels.ApiIntegrationModel {
+	typeSpecificProperties, _ := json.Marshal(dtoObj.TypeSpecificProperties)
+	model := dataModels.ApiIntegrationModel{
+		Id:                     types.StringValue(dtoObj.Id),
+		Name:                   types.StringValue(dtoObj.Name),
+		Type:                   types.StringValue(dtoObj.Type),
+		Enabled:                types.BoolValue(dtoObj.Enabled),
+		TeamId:                 types.StringValue(dtoObj.TeamId),
+		Advanced:               types.BoolValue(dtoObj.Advanced),
+		MaintenanceSources:     types.ListNull(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}),
+		Directions:             types.ListNull(types.StringType),
+		Domains:                types.ListNull(types.StringType),
+		TypeSpecificProperties: jsontypes.NewExactValue(string(typeSpecificProperties)),
+	}
+
+	if len(dtoObj.MaintenanceSources) != 0 {
+		maintenanceSources := make([]attr.Value, len(dtoObj.MaintenanceSources))
+		for i, maintenanceSource := range dtoObj.MaintenanceSources {
+			maintenanceSourceModel := ApiIntegrationMaintenanceSourceDtoToModel(maintenanceSource)
+			maintenanceSources[i] = maintenanceSourceModel.AsValue()
+		}
+		model.MaintenanceSources = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}, maintenanceSources)
+	}
+
+	if len(dtoObj.Directions) != 0 {
+		directions := make([]attr.Value, len(dtoObj.Directions))
+		for i, direction := range dtoObj.Directions {
+			directions[i] = types.StringValue(direction)
+		}
+		model.Directions = types.ListValueMust(types.StringType, directions)
+	}
+
+	if len(dtoObj.Domains) != 0 {
+		domains := make([]attr.Value, len(dtoObj.Domains))
+		for i, domain := range dtoObj.Domains {
+			domains[i] = types.StringValue(domain)
+		}
+		model.Domains = types.ListValueMust(types.StringType, domains)
+	}
 
 	return model
 }
