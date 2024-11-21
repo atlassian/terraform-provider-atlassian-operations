@@ -1,7 +1,7 @@
 package schemaAttributes
 
 import (
-	"github.com/atlassian/terraform-provider-jsm-ops/internal/dto"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"

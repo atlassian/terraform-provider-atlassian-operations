@@ -10,7 +10,7 @@ const (
 	// test configuration so the client is properly configured.
 	// Use environment variables to configure the client.
 	providerConfig = `
-provider "jsm-ops" {
+provider "atlassian-ops" {
 	cloud_id = ""
 	domain_name = ""
 	username = ""
@@ -28,6 +28,6 @@ var (
 	// CLI command executed to create a provider server to which the CLI can
 	// reattach.
 	testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-		"jsm-ops": providerserver.NewProtocol6WithError(New("test")()),
+		"atlassian-ops": providerserver.NewProtocol6WithError(New("test")()),
 	}
 )

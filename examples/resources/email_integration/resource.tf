@@ -1,12 +1,12 @@
 terraform {
   required_providers {
-    jsm-ops = {
-      source = "registry.terraform.io/atlassian/jsm-ops"
+    atlassian-ops = {
+      source = "registry.terraform.io/atlassian/atlassian-operations"
     }
   }
 }
 
-resource "jsm-ops_email_integration" "example" {
+resource "atlassian-ops_email_integration" "example" {
   name    = "email integration"
   enabled = true
   team_id = "002af28e-bfff-4aeb-80fb-78f0debfd5df"

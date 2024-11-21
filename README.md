@@ -41,7 +41,7 @@ available in your PATH:
 ### 2. Cloning the repository
 
 ```bash
-git clone git@bitbucket.org:jira-service-management/terraform-provider-jsm-ops.git
+git clone git@bitbucket.org:jira-service-management/terraform-provider-atlassian-operations.git
 ```
 
 ### 3. Compiling & Installing
@@ -77,7 +77,7 @@ provider_installation {
   # Change it accordingly if your configuration is different.
    dev_overrides {
       # Replace <YOUR_USERNAME> with your username
-      "registry.terraform.io/atlassian/jsm-ops" = "/Users/<YOUR_USERNAME>/go/bin"
+      "registry.terraform.io/atlassian/atlassian-operations" = "/Users/<YOUR_USERNAME>/go/bin"
    }
 
    # For all other providers, install them directly from their origin provider
@@ -94,35 +94,35 @@ provider_installation {
    ```hcl
    terraform {
       required_providers {
-         jsm-ops = {
-            source = "registry.terraform.io/atlassian/jsm-ops"
+         atlassian-ops = {
+            source = "registry.terraform.io/atlassian/atlassian-operations"
          }
       }
    }
    
-   provider "jsm-ops" {
+   provider "atlassian-ops" {
       cloud_id = "<YOUR_CLOUD_ID>"
       domain_name="<YOUR_DOMAIN>"      // e.g. domain.atlassian.net
       username = "<YOUR_USERNAME>"     // e.g. user@example.com
       password = "<YOUR_TOKEN_HERE>"   // e.g. API token created in Atlassian account settings
    }
    
-   data "jsm-ops_user" "example" {
+   data "atlassian-ops_user" "example" {
       email_address = "user1@example.com"
    }
    
    output "example" {
-      value = "data.jsm-ops_user.example"
+      value = "data.atlassian-ops_user.example"
    }
    ```
 
 Instead of providing values in the _provider_ block directly, you can also set the following environment variables:
 
 ```bash
-export JSM_OPS_CLOUD_ID=YOUR_CLOUD_ID
-export JSM_OPS_DOMAIN_NAME=YOUR_DOMAIN
-export JSM_OPS_API_USERNAME=YOUR_USERNAME
-export JSM_OPS_API_TOKEN=YOUR_TOKEN
+export ATLASSIAN_OPS_CLOUD_ID=YOUR_CLOUD_ID
+export ATLASSIAN_OPS_DOMAIN_NAME=YOUR_DOMAIN
+export ATLASSIAN_OPS_API_USERNAME=YOUR_USERNAME
+export ATLASSIAN_OPS_API_TOKEN=YOUR_TOKEN
 ```
 
 _If you do not want to debug the provider with a debugger, and would like to simply execute the Terraform file you 
@@ -170,7 +170,7 @@ Got a connection, launched process /Users/username/Library/Caches/JetBrains/GoLa
 {"@level":"debug","@message":"plugin address","@timestamp":"2024-10-02T00:03:48.057576+03:00","address":"/var/folders/5n/wcvl0l8d4nx15qz3jy9jn7wh0000gn/T/plugin3023012805","network":"unix"}
 Provider started. To attach Terraform CLI, set the TF_REATTACH_PROVIDERS environment variable with the following:
 
-        TF_REATTACH_PROVIDERS='{"registry.terraform.io/atlassian/jsm-ops":{"Protocol":"grpc","ProtocolVersion":6,"Pid":47822,"Test":true,"Addr":{"Network":"unix","String":"/var/folders/5n/wcvl0l8d4nx15qz3jy9jn7wh0000gn/T/plugin3023012805"}}}'
+        TF_REATTACH_PROVIDERS='{"registry.terraform.io/atlassian/atlassian-operations":{"Protocol":"grpc","ProtocolVersion":6,"Pid":47822,"Test":true,"Addr":{"Network":"unix","String":"/var/folders/5n/wcvl0l8d4nx15qz3jy9jn7wh0000gn/T/plugin3023012805"}}}'
 ```
 
 Simply follow the instructions as they are prompted. Either set the `TF_REATTACH_PROVIDERS` environment variable in 
@@ -195,9 +195,9 @@ To run the acceptance tests, additional to the ones specified in the [Debugging]
 the following environment variables as well:
 
 ```bash
-export JSM_ACCTEST_EMAIL_PRIMARY=USER_EMAIL
-export JSM_ACCTEST_EMAIL_SECONDARY=ANOTHER_USER_EMAIL
-export JSM_ACCTEST_ORGANIZATION_ID=ORGANIZATION_ID
+export ATLASSIAN_ACCTEST_EMAIL_PRIMARY=USER_EMAIL
+export ATLASSIAN_ACCTEST_EMAIL_SECONDARY=ANOTHER_USER_EMAIL
+export ATLASSIAN_ACCTEST_ORGANIZATION_ID=ORGANIZATION_ID
 export TF_ACC=1
 ```
 
