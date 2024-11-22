@@ -48,16 +48,15 @@ func RotationDtoToModel(scheduleId string, dto dto.Rotation) dataModels.Rotation
 		model.EndDate = timetypes.NewRFC3339ValueMust(dto.EndDate)
 	}
 
+	participants := make([]attr.Value, len(dto.Participants))
 	if len(dto.Participants) != 0 {
-		participants := make([]attr.Value, len(dto.Participants))
 		for i, participant := range dto.Participants {
 			toModel := ResponderInfoDtoToModel(participant)
 			participants[i] = toModel.AsValue()
 		}
-		model.Participants = types.ListValueMust(types.ObjectType{
-			AttrTypes: dataModels.ResponderInfoModelMap,
-		}, participants)
 	}
+	model.Participants = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.ResponderInfoModelMap}, participants)
+
 	if dto.TimeRestriction != nil {
 		attributes := map[string]attr.Value{
 			"type":        types.StringValue(string(dto.TimeRestriction.Type)),
@@ -681,30 +680,30 @@ func ApiIntegrationDtoToModel(dtoObj dto.ApiIntegration) dataModels.ApiIntegrati
 		TypeSpecificProperties: jsontypes.NewExactValue(string(typeSpecificProperties)),
 	}
 
+	maintenanceSources := make([]attr.Value, len(dtoObj.MaintenanceSources))
 	if len(dtoObj.MaintenanceSources) != 0 {
-		maintenanceSources := make([]attr.Value, len(dtoObj.MaintenanceSources))
 		for i, maintenanceSource := range dtoObj.MaintenanceSources {
 			maintenanceSourceModel := ApiIntegrationMaintenanceSourceDtoToModel(maintenanceSource)
 			maintenanceSources[i] = maintenanceSourceModel.AsValue()
 		}
-		model.MaintenanceSources = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}, maintenanceSources)
 	}
+	model.MaintenanceSources = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}, maintenanceSources)
 
+	directions := make([]attr.Value, len(dtoObj.Directions))
 	if len(dtoObj.Directions) != 0 {
-		directions := make([]attr.Value, len(dtoObj.Directions))
 		for i, direction := range dtoObj.Directions {
 			directions[i] = types.StringValue(direction)
 		}
-		model.Directions = types.ListValueMust(types.StringType, directions)
 	}
+	model.Directions = types.ListValueMust(types.StringType, directions)
 
+	domains := make([]attr.Value, len(dtoObj.Domains))
 	if len(dtoObj.Domains) != 0 {
-		domains := make([]attr.Value, len(dtoObj.Domains))
 		for i, domain := range dtoObj.Domains {
 			domains[i] = types.StringValue(domain)
 		}
-		model.Domains = types.ListValueMust(types.StringType, domains)
 	}
+	model.Domains = types.ListValueMust(types.StringType, domains)
 
 	return model
 }
