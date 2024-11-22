@@ -34,25 +34,25 @@ func TestAccApiIntegrationResource_Api(t *testing.T) {
 			{
 				ExpectNonEmptyPlan: true,
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
 }
 
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   display_name = "` + teamName + `"
   description = "team description"
   organization_id = "` + organizationId + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-       account_id = data.atlassian-ops_user.test1.account_id
+       account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
 
-resource "atlassian-ops_api_integration" "example" {
+resource "atlassian-operations_api_integration" "example" {
   name    = "` + apiIntegrationName + `"
-  team_id = atlassian-ops_team.example.id
+  team_id = atlassian-operations_team.example.id
   type = "API"
   enabled = true
   type_specific_properties = jsonencode({
@@ -61,11 +61,11 @@ resource "atlassian-ops_api_integration" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_api_integration.example", "name", apiIntegrationName),
-					resource.TestCheckResourceAttr("atlassian-ops_api_integration.example", "type", "API"),
-					resource.TestCheckResourceAttrPair("atlassian-ops_api_integration.example", "team_id", "atlassian-ops_team.example", "id"),
-					resource.TestCheckResourceAttr("atlassian-ops_api_integration.example", "enabled", "true"),
-					resource.TestCheckResourceAttrWith("atlassian-ops_api_integration.example", "type_specific_properties", func(value string) error {
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "name", apiIntegrationName),
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "type", "API"),
+					resource.TestCheckResourceAttrPair("atlassian-operations_api_integration.example", "team_id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "enabled", "true"),
+					resource.TestCheckResourceAttrWith("atlassian-operations_api_integration.example", "type_specific_properties", func(value string) error {
 						var dataObj map[string]interface{}
 						err := json.Unmarshal([]byte(value), &dataObj)
 						if err != nil {
@@ -80,7 +80,7 @@ resource "atlassian-ops_api_integration" "example" {
 			},
 			// ImportState testing
 			{
-				ResourceName:            "atlassian-ops_api_integration.example",
+				ResourceName:            "atlassian-operations_api_integration.example",
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"type_specific_properties", "directions", "domains"},
@@ -89,23 +89,23 @@ resource "atlassian-ops_api_integration" "example" {
 			{
 				ExpectNonEmptyPlan: true,
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
 }
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   organization_id = "` + organizationId + `"
   description = "This is a team created by Terraform"
   display_name = "` + teamName + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-      account_id = data.atlassian-ops_user.test1.account_id
+      account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
-resource "atlassian-ops_api_integration" "example" {
+resource "atlassian-operations_api_integration" "example" {
   name    = "` + apiIntegrationUpdateName + `"
-  team_id = atlassian-ops_team.example.id
+  team_id = atlassian-operations_team.example.id
   type = "API"
   enabled = false
   type_specific_properties = jsonencode({
@@ -114,11 +114,11 @@ resource "atlassian-ops_api_integration" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_api_integration.example", "name", apiIntegrationUpdateName),
-					resource.TestCheckResourceAttr("atlassian-ops_api_integration.example", "type", "API"),
-					resource.TestCheckResourceAttrPair("atlassian-ops_api_integration.example", "team_id", "atlassian-ops_team.example", "id"),
-					resource.TestCheckResourceAttr("atlassian-ops_api_integration.example", "enabled", "false"),
-					resource.TestCheckResourceAttrWith("atlassian-ops_api_integration.example", "type_specific_properties", func(value string) error {
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "name", apiIntegrationUpdateName),
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "type", "API"),
+					resource.TestCheckResourceAttrPair("atlassian-operations_api_integration.example", "team_id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "enabled", "false"),
+					resource.TestCheckResourceAttrWith("atlassian-operations_api_integration.example", "type_specific_properties", func(value string) error {
 						var dataObj map[string]interface{}
 						err := json.Unmarshal([]byte(value), &dataObj)
 						if err != nil {
@@ -160,27 +160,27 @@ func TestAccApiIntegrationResource_SecurityHub(t *testing.T) {
 			{
 				ExpectNonEmptyPlan: true,
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
 }
 
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   display_name = "` + teamName + `"
   description = "team description"
   organization_id = "` + organizationId + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-       account_id = data.atlassian-ops_user.test1.account_id
+       account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
 
-resource "atlassian-ops_api_integration" "example" {
+resource "atlassian-operations_api_integration" "example" {
   name    = "` + apiIntegrationName + `"
   enabled = true
   type = "AmazonSecurityHub"
-  team_id = atlassian-ops_team.example.id
+  team_id = atlassian-operations_team.example.id
   type_specific_properties = jsonencode({
       suppressNotifications: false
       region: "US_WEST_2"
@@ -188,11 +188,11 @@ resource "atlassian-ops_api_integration" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_api_integration.example", "name", apiIntegrationName),
-					resource.TestCheckResourceAttr("atlassian-ops_api_integration.example", "type", "AmazonSecurityHub"),
-					resource.TestCheckResourceAttrPair("atlassian-ops_api_integration.example", "team_id", "atlassian-ops_team.example", "id"),
-					resource.TestCheckResourceAttr("atlassian-ops_api_integration.example", "enabled", "true"),
-					resource.TestCheckResourceAttrWith("atlassian-ops_api_integration.example", "type_specific_properties", func(value string) error {
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "name", apiIntegrationName),
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "type", "AmazonSecurityHub"),
+					resource.TestCheckResourceAttrPair("atlassian-operations_api_integration.example", "team_id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "enabled", "true"),
+					resource.TestCheckResourceAttrWith("atlassian-operations_api_integration.example", "type_specific_properties", func(value string) error {
 						var dataObj map[string]interface{}
 						err := json.Unmarshal([]byte(value), &dataObj)
 						if err != nil {
@@ -203,7 +203,7 @@ resource "atlassian-ops_api_integration" "example" {
 						}
 						return nil
 					}),
-					resource.TestCheckResourceAttrWith("atlassian-ops_api_integration.example", "type_specific_properties", func(value string) error {
+					resource.TestCheckResourceAttrWith("atlassian-operations_api_integration.example", "type_specific_properties", func(value string) error {
 						var dataObj map[string]interface{}
 						err := json.Unmarshal([]byte(value), &dataObj)
 						if err != nil {
@@ -218,7 +218,7 @@ resource "atlassian-ops_api_integration" "example" {
 			},
 			// ImportState testing
 			{
-				ResourceName:            "atlassian-ops_api_integration.example",
+				ResourceName:            "atlassian-operations_api_integration.example",
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"type_specific_properties", "directions", "domains"},
@@ -227,25 +227,25 @@ resource "atlassian-ops_api_integration" "example" {
 			{
 				ExpectNonEmptyPlan: true,
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
 }
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   organization_id = "` + organizationId + `"
   description = "This is a team created by Terraform"
   display_name = "` + teamName + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-      account_id = data.atlassian-ops_user.test1.account_id
+      account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
-resource "atlassian-ops_api_integration" "example" {
+resource "atlassian-operations_api_integration" "example" {
   name    = "` + apiIntegrationUpdateName + `"
   enabled = false
   type = "AmazonSecurityHub"
-  team_id = atlassian-ops_team.example.id
+  team_id = atlassian-operations_team.example.id
   type_specific_properties = jsonencode({
       suppressNotifications: true
       region: "US_WEST_2"
@@ -253,11 +253,11 @@ resource "atlassian-ops_api_integration" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_api_integration.example", "name", apiIntegrationUpdateName),
-					resource.TestCheckResourceAttr("atlassian-ops_api_integration.example", "type", "AmazonSecurityHub"),
-					resource.TestCheckResourceAttrPair("atlassian-ops_api_integration.example", "team_id", "atlassian-ops_team.example", "id"),
-					resource.TestCheckResourceAttr("atlassian-ops_api_integration.example", "enabled", "false"),
-					resource.TestCheckResourceAttrWith("atlassian-ops_api_integration.example", "type_specific_properties", func(value string) error {
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "name", apiIntegrationUpdateName),
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "type", "AmazonSecurityHub"),
+					resource.TestCheckResourceAttrPair("atlassian-operations_api_integration.example", "team_id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "enabled", "false"),
+					resource.TestCheckResourceAttrWith("atlassian-operations_api_integration.example", "type_specific_properties", func(value string) error {
 						var dataObj map[string]interface{}
 						err := json.Unmarshal([]byte(value), &dataObj)
 						if err != nil {
@@ -268,7 +268,7 @@ resource "atlassian-ops_api_integration" "example" {
 						}
 						return nil
 					}),
-					resource.TestCheckResourceAttrWith("atlassian-ops_api_integration.example", "type_specific_properties", func(value string) error {
+					resource.TestCheckResourceAttrWith("atlassian-operations_api_integration.example", "type_specific_properties", func(value string) error {
 						var dataObj map[string]interface{}
 						err := json.Unmarshal([]byte(value), &dataObj)
 						if err != nil {

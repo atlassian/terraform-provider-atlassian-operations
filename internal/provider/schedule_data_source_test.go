@@ -29,41 +29,41 @@ func TestAccScheduleDataSource(t *testing.T) {
 			// Read testing
 			{
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
 }
 
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   organization_id = "` + organizationId + `"
   description = "This is a team created by Terraform"
   display_name = "` + teamName + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-      account_id = data.atlassian-ops_user.test1.account_id
+      account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
 
-resource "atlassian-ops_schedule" "example" {
+resource "atlassian-operations_schedule" "example" {
   name    = "` + scheduleName + `"
-  team_id = atlassian-ops_team.example.id
+  team_id = atlassian-operations_team.example.id
 }
 
-data "atlassian-ops_schedule" "test" {
-	depends_on = ["atlassian-ops_schedule.example"]
+data "atlassian-operations_schedule" "test" {
+	depends_on = ["atlassian-operations_schedule.example"]
 	name = "` + scheduleName + `"
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Verify the data source
 					// Verify all attributes are set
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_schedule.test", "id", "atlassian-ops_schedule.example", "id"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_schedule.test", "name", "atlassian-ops_schedule.example", "name"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_schedule.test", "description", "atlassian-ops_schedule.example", "description"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_schedule.test", "timezone", "atlassian-ops_schedule.example", "timezone"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_schedule.test", "enabled", "atlassian-ops_schedule.example", "enabled"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_schedule.test", "team_id", "atlassian-ops_team.example", "id"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_schedule.test", "id", "atlassian-operations_schedule.example", "id"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_schedule.test", "name", "atlassian-operations_schedule.example", "name"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_schedule.test", "description", "atlassian-operations_schedule.example", "description"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_schedule.test", "timezone", "atlassian-operations_schedule.example", "timezone"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_schedule.test", "enabled", "atlassian-operations_schedule.example", "enabled"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_schedule.test", "team_id", "atlassian-operations_team.example", "id"),
 				),
 			},
 		},

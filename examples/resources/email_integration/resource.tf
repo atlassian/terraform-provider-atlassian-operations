@@ -1,12 +1,12 @@
 terraform {
   required_providers {
-    atlassian-ops = {
+    atlassian-operations = {
       source = "registry.terraform.io/atlassian/atlassian-operations"
     }
   }
 }
 
-resource "atlassian-ops_email_integration" "example" {
+resource "atlassian-operations_email_integration" "example" {
   name    = "email integration"
   enabled = true
   team_id = "002af28e-bfff-4aeb-80fb-78f0debfd5df"

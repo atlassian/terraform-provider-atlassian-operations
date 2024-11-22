@@ -25,9 +25,10 @@ The process to run the provider in a local environment requires the following st
 2. [Clone this repository](#2-cloning-the-repository)
 3. [Compile & install the provider binary](#3-compiling--installing)
 4. [Set local overrides, so terraform uses your local version of the provider](#4-setting-local-overrides)
-5. [Testing & Debugging](#5-testing--debugging)
+5. [Debugging](#5-debugging)
    1. [Create a simple .tf file](#51-create-a-simple-maintf-file)
-   2. [Configure Delve and the development environment for debugging](#52-debugging)
+   2. [Enable debugging](#52-enable-debugging)
+6. [Running Acceptance Tests](#6-running-acceptance-tests)
 
 ### 1. Requirements
 
@@ -94,25 +95,25 @@ provider_installation {
    ```hcl
    terraform {
       required_providers {
-         atlassian-ops = {
+         atlassian-operations = {
             source = "registry.terraform.io/atlassian/atlassian-operations"
          }
       }
    }
    
-   provider "atlassian-ops" {
+   provider "atlassian-operations" {
       cloud_id = "<YOUR_CLOUD_ID>"
       domain_name="<YOUR_DOMAIN>"      // e.g. domain.atlassian.net
       username = "<YOUR_USERNAME>"     // e.g. user@example.com
       password = "<YOUR_TOKEN_HERE>"   // e.g. API token created in Atlassian account settings
    }
    
-   data "atlassian-ops_user" "example" {
+   data "atlassian-operations_user" "example" {
       email_address = "user1@example.com"
    }
    
    output "example" {
-      value = "data.atlassian-ops_user.example"
+      value = "data.atlassian-operations_user.example"
    }
    ```
 

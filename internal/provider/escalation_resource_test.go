@@ -31,32 +31,32 @@ func TestAccEscalationResource_Full(t *testing.T) {
 			// Create and Read testing
 			{
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
 }
 
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   organization_id = "` + organizationId + `"
   description = "This is a team created by Terraform"
   display_name = "` + teamName + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-      account_id = data.atlassian-ops_user.test1.account_id
+      account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
 
-resource "atlassian-ops_escalation" "example" {
+resource "atlassian-operations_escalation" "example" {
   name    = "` + escalationName + `"
-  team_id = atlassian-ops_team.example.id
+  team_id = atlassian-operations_team.example.id
   description = "escalation description"
   rules = [{
 	condition = "if-not-acked"
 	notify_type = "default"
     delay = 5
     recipient = {
-    	id = data.atlassian-ops_user.test1.account_id
+    	id = data.atlassian-operations_user.test1.account_id
 		type = "user"
     }
   },
@@ -65,7 +65,7 @@ resource "atlassian-ops_escalation" "example" {
 	notify_type = "all"
 	delay = 1
 	recipient = {
-		id = atlassian-ops_team.example.id
+		id = atlassian-operations_team.example.id
 		type = "team"
     }
   }]
@@ -79,40 +79,40 @@ resource "atlassian-ops_escalation" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "name", escalationName),
-					resource.TestCheckResourceAttrPair("atlassian-ops_escalation.example", "team_id", "atlassian-ops_team.example", "id"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "description", "escalation description"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "rules.#", "2"),
-					resource.TestCheckTypeSetElemNestedAttrs("atlassian-ops_escalation.example", "rules.*", map[string]string{
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "name", escalationName),
+					resource.TestCheckResourceAttrPair("atlassian-operations_escalation.example", "team_id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "description", "escalation description"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "rules.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs("atlassian-operations_escalation.example", "rules.*", map[string]string{
 						"condition":   "if-not-acked",
 						"notify_type": "default",
 						"delay":       "5",
 					}),
-					resource.TestCheckResourceAttrSet("atlassian-ops_escalation.example", "rules.0.recipient.id"),
-					resource.TestCheckResourceAttrSet("atlassian-ops_escalation.example", "rules.0.recipient.type"),
-					resource.TestCheckTypeSetElemNestedAttrs("atlassian-ops_escalation.example", "rules.*", map[string]string{
+					resource.TestCheckResourceAttrSet("atlassian-operations_escalation.example", "rules.0.recipient.id"),
+					resource.TestCheckResourceAttrSet("atlassian-operations_escalation.example", "rules.0.recipient.type"),
+					resource.TestCheckTypeSetElemNestedAttrs("atlassian-operations_escalation.example", "rules.*", map[string]string{
 						"condition":   "if-not-closed",
 						"notify_type": "all",
 						"delay":       "1",
 					}),
-					resource.TestCheckResourceAttrSet("atlassian-ops_escalation.example", "rules.1.recipient.id"),
-					resource.TestCheckResourceAttrSet("atlassian-ops_escalation.example", "rules.1.recipient.type"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "enabled", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "repeat.wait_interval", "5"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "repeat.count", "10"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "repeat.reset_recipient_states", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "repeat.close_alert_after_all", "true"),
+					resource.TestCheckResourceAttrSet("atlassian-operations_escalation.example", "rules.1.recipient.id"),
+					resource.TestCheckResourceAttrSet("atlassian-operations_escalation.example", "rules.1.recipient.type"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "enabled", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "repeat.wait_interval", "5"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "repeat.count", "10"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "repeat.reset_recipient_states", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "repeat.close_alert_after_all", "true"),
 				),
 			},
 			// ImportState testing
 			{
-				ResourceName:      "atlassian-ops_escalation.example",
+				ResourceName:      "atlassian-operations_escalation.example",
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(state *terraform.State) (string, error) {
-					return state.RootModule().Resources["atlassian-ops_escalation.example"].Primary.ID +
+					return state.RootModule().Resources["atlassian-operations_escalation.example"].Primary.ID +
 							"," +
-							state.RootModule().Resources["atlassian-ops_escalation.example"].Primary.Attributes["team_id"],
+							state.RootModule().Resources["atlassian-operations_escalation.example"].Primary.Attributes["team_id"],
 						nil
 				},
 			},
@@ -120,31 +120,31 @@ resource "atlassian-ops_escalation" "example" {
 			{
 				ExpectNonEmptyPlan: true,
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
 }
 
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   organization_id = "` + organizationId + `"
   description = "This is a team created by Terraform"
   display_name = "` + teamName + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-      account_id = data.atlassian-ops_user.test1.account_id
+      account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
 
-resource "atlassian-ops_escalation" "example" {
+resource "atlassian-operations_escalation" "example" {
   name    = "` + escalationUpdateName + `"
-  team_id = atlassian-ops_team.example.id
+  team_id = atlassian-operations_team.example.id
   rules = [{
 	condition = "if-not-closed"
 	notify_type = "default"
     delay = 1
     recipient = {
-    	id = data.atlassian-ops_user.test1.account_id
+    	id = data.atlassian-operations_user.test1.account_id
 		type = "user"
     }
   }]
@@ -153,22 +153,22 @@ resource "atlassian-ops_escalation" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "name", escalationUpdateName),
-					resource.TestCheckResourceAttrPair("atlassian-ops_escalation.example", "team_id", "atlassian-ops_team.example", "id"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "description", ""),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "rules.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs("atlassian-ops_escalation.example", "rules.*", map[string]string{
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "name", escalationUpdateName),
+					resource.TestCheckResourceAttrPair("atlassian-operations_escalation.example", "team_id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "description", ""),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs("atlassian-operations_escalation.example", "rules.*", map[string]string{
 						"condition":   "if-not-closed",
 						"notify_type": "default",
 						"delay":       "1",
 					}),
-					resource.TestCheckTypeSetElemAttrPair("atlassian-ops_escalation.example", "rules.0.recipient.id", "data.atlassian-ops_user.test1", "account_id"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "rules.0.recipient.type", "user"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "enabled", "false"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "repeat.wait_interval", "0"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "repeat.count", "1"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "repeat.reset_recipient_states", "false"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "repeat.close_alert_after_all", "false"),
+					resource.TestCheckTypeSetElemAttrPair("atlassian-operations_escalation.example", "rules.0.recipient.id", "data.atlassian-operations_user.test1", "account_id"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "rules.0.recipient.type", "user"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "enabled", "false"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "repeat.wait_interval", "0"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "repeat.count", "1"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "repeat.reset_recipient_states", "false"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "repeat.close_alert_after_all", "false"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -200,109 +200,109 @@ func TestAccEscalationResource_Minimal(t *testing.T) {
 			// Create and Read testing
 			{
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
 }
 
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   organization_id = "` + organizationId + `"
   description = "This is a team created by Terraform"
   display_name = "` + teamName + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-      account_id = data.atlassian-ops_user.test1.account_id
+      account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
 
-resource "atlassian-ops_escalation" "example" {
+resource "atlassian-operations_escalation" "example" {
   name    = "` + escalationName + `"
-  team_id = atlassian-ops_team.example.id
+  team_id = atlassian-operations_team.example.id
   rules = [{
 	condition = "if-not-acked"
 	notify_type = "default"
     delay = 5
     recipient = {
-    	id = data.atlassian-ops_user.test1.account_id
+    	id = data.atlassian-operations_user.test1.account_id
 		type = "user"
     }
   }]
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "name", escalationName),
-					resource.TestCheckResourceAttrPair("atlassian-ops_escalation.example", "team_id", "atlassian-ops_team.example", "id"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "description", ""),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "rules.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs("atlassian-ops_escalation.example", "rules.*", map[string]string{
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "name", escalationName),
+					resource.TestCheckResourceAttrPair("atlassian-operations_escalation.example", "team_id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "description", ""),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs("atlassian-operations_escalation.example", "rules.*", map[string]string{
 						"condition":   "if-not-acked",
 						"notify_type": "default",
 						"delay":       "5",
 					}),
-					resource.TestCheckTypeSetElemAttrPair("atlassian-ops_escalation.example", "rules.0.recipient.id", "data.atlassian-ops_user.test1", "account_id"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "rules.0.recipient.type", "user"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "enabled", "true"),
+					resource.TestCheckTypeSetElemAttrPair("atlassian-operations_escalation.example", "rules.0.recipient.id", "data.atlassian-operations_user.test1", "account_id"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "rules.0.recipient.type", "user"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "enabled", "true"),
 				),
 			},
 			// ImportState testing
 			{
-				ResourceName:      "atlassian-ops_escalation.example",
+				ResourceName:      "atlassian-operations_escalation.example",
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(state *terraform.State) (string, error) {
-					return state.RootModule().Resources["atlassian-ops_escalation.example"].Primary.ID +
+					return state.RootModule().Resources["atlassian-operations_escalation.example"].Primary.ID +
 							"," +
-							state.RootModule().Resources["atlassian-ops_escalation.example"].Primary.Attributes["team_id"],
+							state.RootModule().Resources["atlassian-operations_escalation.example"].Primary.Attributes["team_id"],
 						nil
 				},
 			},
 			// Update and Read testing
 			{
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
 }
 
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   organization_id = "` + organizationId + `"
   description = "This is a team created by Terraform"
   display_name = "` + teamName + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-      account_id = data.atlassian-ops_user.test1.account_id
+      account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
 
-resource "atlassian-ops_escalation" "example" {
+resource "atlassian-operations_escalation" "example" {
   name    = "` + escalationUpdateName + `"
-  team_id = atlassian-ops_team.example.id
+  team_id = atlassian-operations_team.example.id
   rules = [{
 	condition = "if-not-closed"
 	notify_type = "random"
     delay = 1
     recipient = {
-    	id = atlassian-ops_team.example.id
+    	id = atlassian-operations_team.example.id
 		type = "team"
     }
   }]
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "name", escalationUpdateName),
-					resource.TestCheckResourceAttrPair("atlassian-ops_escalation.example", "team_id", "atlassian-ops_team.example", "id"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "description", ""),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "rules.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs("atlassian-ops_escalation.example", "rules.*", map[string]string{
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "name", escalationUpdateName),
+					resource.TestCheckResourceAttrPair("atlassian-operations_escalation.example", "team_id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "description", ""),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs("atlassian-operations_escalation.example", "rules.*", map[string]string{
 						"condition":   "if-not-closed",
 						"notify_type": "random",
 						"delay":       "1",
 					}),
-					resource.TestCheckTypeSetElemAttrPair("atlassian-ops_escalation.example", "rules.0.recipient.id", "atlassian-ops_team.example", "id"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "rules.0.recipient.type", "team"),
-					resource.TestCheckResourceAttr("atlassian-ops_escalation.example", "enabled", "true"),
+					resource.TestCheckTypeSetElemAttrPair("atlassian-operations_escalation.example", "rules.0.recipient.id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "rules.0.recipient.type", "team"),
+					resource.TestCheckResourceAttr("atlassian-operations_escalation.example", "enabled", "true"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase

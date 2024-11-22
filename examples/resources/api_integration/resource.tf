@@ -1,12 +1,12 @@
 terraform {
   required_providers {
-    atlassian-ops = {
+    atlassian-operations = {
       source = "registry.terraform.io/atlassian/atlassian-operations"
     }
   }
 }
 
-resource "atlassian-ops_api_integration" "example" {
+resource "atlassian-operations_api_integration" "example" {
   name    = "api integration"
   enabled = true
   type = "AmazonSecurityHub"
