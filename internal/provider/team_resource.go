@@ -137,6 +137,10 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	if resp.Diagnostics.HasError() {
+		// If there is an error while fetching created members, the creation fails on Terraform's side, even though there is still a team on JSM side.
+		// So, we need to delete the team on JSM side if the fetching created members fails.
+		tflog.Trace(ctx, "Deleting dangling team resource")
+		cleanupTeamSilent(r, teamDto)
 		return
 	}
 
@@ -184,6 +188,10 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	if resp.Diagnostics.HasError() {
+		// If there is an error while enabling ops, the creation fails on Terraform's side, even though there is still a team on JSM side.
+		// So, we need to delete the team on JSM side if the enabling ops fails.
+		tflog.Trace(ctx, "Deleting dangling team resource")
+		cleanupTeamSilent(r, teamDto)
 		return
 	}
 
@@ -218,6 +226,10 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		}
 
 		if resp.Diagnostics.HasError() {
+			// If there is an error while adding users, the creation fails on Terraform's side, even though there is still a team on JSM side.
+			// So, we need to delete the team on JSM side if the adding users fails.
+			tflog.Trace(ctx, "Deleting dangling team resource")
+			cleanupTeamSilent(r, teamDto)
 			return
 		}
 
@@ -498,6 +510,13 @@ func (r *TeamResource) ImportState(ctx context.Context, req resource.ImportState
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("organization_id"), idParts[1])...)
+}
+
+func cleanupTeamSilent(r *TeamResource, teamDto dto.TeamDto) {
+	_, _ = r.teamClient.NewRequest().
+		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", teamDto.OrganizationId, teamDto.TeamId)).
+		Method(httpClient.DELETE).
+		Send()
 }
 
 func diffUsers(newDto []dto.TeamMember, oldDto []dto.TeamMember) ([]dto.TeamMember, []dto.TeamMember) {
