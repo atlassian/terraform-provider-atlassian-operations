@@ -10,12 +10,11 @@ import (
 )
 
 type (
-	RequestMethod        string
-	ErrorCodeToObjectMap map[int]HttpErrorResponse
-	Request              struct {
+	RequestMethod string
+	Request       struct {
 		innerRequest    *retryablehttp.Request
-		errorParseMap   *ErrorCodeToObjectMap
 		parseBodyObject any
+		response        *Response
 		Client          *HttpClient
 	}
 )
@@ -127,12 +126,7 @@ func (r *Request) SetBodyParseObject(t interface{}) *Request {
 	return r
 }
 
-func (r *Request) SetErrorParseMap(errMap *ErrorCodeToObjectMap) *Request {
-	r.errorParseMap = errMap
-	return r
-}
-
-func (r *Request) parseBody(t interface{}, resp *Response) error {
+func parseBody(t interface{}, resp *Response) error {
 	if t != nil {
 		body, err := resp.Body()
 		if err != nil {
@@ -146,36 +140,33 @@ func (r *Request) parseBody(t interface{}, resp *Response) error {
 	return nil
 }
 
-func (r *Request) mapToErrorObj(resp *Response) error {
+func parseErrorBody(resp *Response) (*string, error) {
 	body, err := resp.Body()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for statusCode, object := range *r.errorParseMap {
-		if statusCode == resp.GetNativeResponse().StatusCode {
-			return json.Unmarshal(body, &object)
-		}
-	}
-	return nil
+	bodyString := string(body)
+	return &bodyString, nil
 }
 
 func (r *Request) Send() (*Response, error) {
 	r.innerRequest.SetResponseHandler(func(resp *http.Response) error {
+		var retErr error = nil
 		clientResp := Response{nativeResponse: resp}
-		if clientResp.IsError() && r.errorParseMap != nil {
-			err := r.mapToErrorObj(&clientResp)
+		if clientResp.IsError() {
+			errorBody, err := parseErrorBody(&clientResp)
 			if err != nil {
-				return err
+				retErr = err
+			} else {
+				clientResp.errorBody = errorBody
 			}
 		} else if r.parseBodyObject != nil {
-			return r.parseBody(r.parseBodyObject, &clientResp)
+			retErr = parseBody(r.parseBodyObject, &clientResp)
 		}
-		return nil
+		r.response = &clientResp
+		return retErr
 	})
 	client := r.Client.GetInnerClient()
-	nativeResp, err := client.Do(r.innerRequest)
-	resp := &Response{
-		nativeResponse: nativeResp,
-	}
-	return resp, err
+	_, err := client.Do(r.innerRequest)
+	return r.response, err
 }

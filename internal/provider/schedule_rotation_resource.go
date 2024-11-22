@@ -72,14 +72,12 @@ func (r *ScheduleRotationResource) Create(ctx context.Context, req resource.Crea
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
 	rotationDto := RotationModelToDto(ctx, data)
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations", data.ScheduleId.ValueString())).
 		Method(httpClient.POST).
 		SetBody(rotationDto).
 		SetBodyParseObject(&rotationDto).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -87,10 +85,10 @@ func (r *ScheduleRotationResource) Create(ctx context.Context, req resource.Crea
 		resp.Diagnostics.AddError("Client Error", "Unable to create rotation, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create rotation, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to rotation schedule, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create rotation, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to rotation schedule, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create rotation, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to rotation schedule, got http response: %d", statusCode))
@@ -122,13 +120,11 @@ func (r *ScheduleRotationResource) Read(ctx context.Context, req resource.ReadRe
 	tflog.Trace(ctx, "Reading the ScheduleRotationResource")
 
 	rotationDto := dto.Rotation{}
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations/%s", data.ScheduleId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.GET).
 		SetBodyParseObject(&rotationDto).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -136,10 +132,10 @@ func (r *ScheduleRotationResource) Read(ctx context.Context, req resource.ReadRe
 		resp.Diagnostics.AddError("Client Error", "Unable to read rotation, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read rotation, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read rotation, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read rotation, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read rotation, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read rotation, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read rotation, got http response: %d", statusCode))
@@ -171,14 +167,12 @@ func (r *ScheduleRotationResource) Update(ctx context.Context, req resource.Upda
 	tflog.Trace(ctx, "Updating the ScheduleRotationResource")
 
 	rotationDto := RotationModelToDto(ctx, data)
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations/%s", data.ScheduleId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.PATCH).
 		SetBody(rotationDto).
 		SetBodyParseObject(&rotationDto).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -186,10 +180,10 @@ func (r *ScheduleRotationResource) Update(ctx context.Context, req resource.Upda
 		resp.Diagnostics.AddError("Client Error", "Unable to update rotation, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update rotation, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update rotation, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update rotation, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update rotation, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update rotation, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update rotation, got http response: %d", statusCode))
@@ -223,12 +217,10 @@ func (r *ScheduleRotationResource) Delete(ctx context.Context, req resource.Dele
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	tflog.Trace(ctx, "Deleting the ScheduleRotationResource")
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations/%s", data.ScheduleId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.DELETE).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -236,10 +228,10 @@ func (r *ScheduleRotationResource) Delete(ctx context.Context, req resource.Dele
 		resp.Diagnostics.AddError("Client Error", "Unable to delete rotation, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete rotation, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete rotation, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete rotation, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete rotation, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete rotation, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete rotation, got http response: %d", statusCode))

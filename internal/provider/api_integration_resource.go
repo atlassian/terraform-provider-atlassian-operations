@@ -72,13 +72,11 @@ func (r *ApiIntegrationResource) Create(ctx context.Context, req resource.Create
 
 	dtoObj := ApiIntegrationModelToDto(ctx, data)
 
-	errorMap := httpClient.NewOpsClientErrorMap()
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl("v1/integrations").
 		Method(httpClient.POST).
 		SetBody(dtoObj).
 		SetBodyParseObject(&dtoObj).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -86,10 +84,10 @@ func (r *ApiIntegrationResource) Create(ctx context.Context, req resource.Create
 		resp.Diagnostics.AddError("Client Error", "Unable to create api integration, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create api integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create api integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create api integration, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create api integration, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create api integration, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create api integration, got http response: %d", statusCode))
@@ -121,13 +119,11 @@ func (r *ApiIntegrationResource) Read(ctx context.Context, req resource.ReadRequ
 	tflog.Trace(ctx, "Reading the ApiIntegrationResource")
 
 	ApiIntegration := dto.ApiIntegration{}
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s", data.Id.ValueString())).
 		Method(httpClient.GET).
 		SetBodyParseObject(&ApiIntegration).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -135,10 +131,10 @@ func (r *ApiIntegrationResource) Read(ctx context.Context, req resource.ReadRequ
 		resp.Diagnostics.AddError("Client Error", "Unable to read api integration, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read api integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read api integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read api integration, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read api integration, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read api integration, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read api integration, got http response: %d", statusCode))
@@ -170,14 +166,12 @@ func (r *ApiIntegrationResource) Update(ctx context.Context, req resource.Update
 	tflog.Trace(ctx, "Updating the ApiIntegrationResource")
 
 	dtoObj := ApiIntegrationModelToDto(ctx, data)
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s", data.Id.ValueString())).
 		Method(httpClient.PATCH).
 		SetBody(dtoObj).
 		SetBodyParseObject(&dtoObj).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -185,10 +179,10 @@ func (r *ApiIntegrationResource) Update(ctx context.Context, req resource.Update
 		resp.Diagnostics.AddError("Client Error", "Unable to update api integration, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update api integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update api integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update api integration, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update api integration, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update api integration, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update api integration, got http response: %d", statusCode))
@@ -218,12 +212,10 @@ func (r *ApiIntegrationResource) Delete(ctx context.Context, req resource.Delete
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	tflog.Trace(ctx, "Deleting the ApiIntegrationResource")
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s", data.Id.ValueString())).
 		Method(httpClient.DELETE).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -231,10 +223,10 @@ func (r *ApiIntegrationResource) Delete(ctx context.Context, req resource.Delete
 		resp.Diagnostics.AddError("Client Error", "Unable to delete api integration, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete api integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete api integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete api integration, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete api integration, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete api integration, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete api integration, got http response: %d", statusCode))

@@ -74,7 +74,6 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
 	teamDto, membersDto := TeamModelToDto(ctx, data)
-	errorMap := httpClient.NewTeamClientErrorMap()
 
 	tflog.Trace(ctx, "Creating the Team")
 
@@ -83,7 +82,6 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		Method(httpClient.POST).
 		SetBody(teamDto).
 		SetBodyParseObject(&teamDto).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -91,10 +89,10 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		resp.Diagnostics.AddError("Client Error", "Unable to create team, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, got http response: %d", statusCode))
@@ -113,12 +111,10 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	tflog.Trace(ctx, "Fetch auto created members")
 
 	autoCreatedMembers := dto.TeamMemberListResponse{}
-	errorMap = httpClient.NewTeamClientErrorMap()
 	httpResp, err = r.teamClient.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members", teamDto.OrganizationId, teamDto.TeamId)).
 		Method(httpClient.POST).
 		SetBodyParseObject(&autoCreatedMembers).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -126,10 +122,10 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		resp.Diagnostics.AddError("Client Error", "Unable to fetch auto created members, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch auto created members, status: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch auto created members, status: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch auto created members, status: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch auto created members, status: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch auto created members,got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch auto created members, got http response: %d", statusCode))
@@ -153,7 +149,6 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	tflog.Trace(ctx, "Enabling Operations for the Team")
-	errorMap = httpClient.NewOpsClientErrorMap()
 
 	// Enable OPS for the Team
 	httpResp, err = r.opsClient.
@@ -167,7 +162,6 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/enable-ops", teamDto.TeamId)).
 		Method(httpClient.POST).
 		SetBody(enableOpsBody).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -175,10 +169,10 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		resp.Diagnostics.AddError("Client Error", "Unable to enable Operations for the created team")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to enable Operations for the created team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to enable Operations for the created team, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to enable Operations for the created team, got http response: %d", statusCode))
@@ -198,7 +192,6 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	if len(membersDto) > 0 {
 		tflog.Trace(ctx, "Adding users to the team")
 
-		errorMap = httpClient.NewTeamClientErrorMap()
 		httpResp, err = r.teamClient.NewRequest().
 			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/add", teamDto.OrganizationId, teamDto.TeamId)).
 			Method(httpClient.POST).
@@ -210,10 +203,10 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 			resp.Diagnostics.AddError("Client Error", "Unable to add users to the team, got nil response")
 		} else if httpResp.IsError() {
 			statusCode := httpResp.GetStatusCode()
-			errorResponse := errorMap[statusCode]
+			errorResponse := httpResp.GetErrorBody()
 			if errorResponse != nil {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, status code: %d. Got response: %s", statusCode, *errorResponse))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, status code: %d. Got response: %s", statusCode, *errorResponse))
 			} else {
 				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got http response: %d", statusCode))
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got http response: %d", statusCode))
@@ -248,13 +241,11 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	tflog.Trace(ctx, "Reading the TeamResource")
 
 	teamDto := dto.TeamDto{}
-	errorMap := httpClient.NewTeamClientErrorMap()
 
 	httpResp, err := r.teamClient.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.GET).
 		SetBodyParseObject(&teamDto).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -262,10 +253,10 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		resp.Diagnostics.AddError("Client Error", "Unable to read team, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, got http response: %d", statusCode))
@@ -283,13 +274,11 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	tflog.Trace(ctx, "Fetching team members")
 
 	memberData := dto.TeamMemberListResponse{}
-	errorMap = httpClient.NewTeamClientErrorMap()
 
 	httpResp, err = r.teamClient.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("/%s/teams/%s/members", data.OrganizationId.ValueString(), data.Id.ValueString())).
 		Method("POST").
 		SetBodyParseObject(&memberData).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if err != nil {
@@ -299,10 +288,10 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team members, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team members, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team members, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team members, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to team members, got http response: %d", statusCode))
@@ -349,14 +338,12 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	newTeamDto, newUsersDto := TeamModelToDto(ctx, newData)
 	_, currentUsersDto := TeamModelToDto(ctx, currentData)
-	errorMap := httpClient.NewTeamClientErrorMap()
 
 	httpResp, err := r.teamClient.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", newData.OrganizationId.ValueString(), newData.Id.ValueString())).
 		Method(httpClient.PATCH).
 		SetBody(newTeamDto).
 		SetBodyParseObject(&newTeamDto).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -364,10 +351,10 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		resp.Diagnostics.AddError("Client Error", "Unable to update team, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, got http response: %d", statusCode))
@@ -387,12 +374,10 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	if len(addedUsers) > 0 {
 		tflog.Trace(ctx, "Adding new team members")
-		errorMap = httpClient.NewTeamClientErrorMap()
 		httpResp, err = r.teamClient.NewRequest().
 			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/add", newData.OrganizationId.ValueString(), newData.Id.ValueString())).
 			Method(httpClient.POST).
 			SetBody(dto.TeamMemberList{Members: addedUsers}).
-			SetErrorParseMap(&errorMap).
 			Send()
 
 		if httpResp == nil {
@@ -400,10 +385,10 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			resp.Diagnostics.AddError("Client Error", "Unable to add new team members, got nil response")
 		} else if httpResp.IsError() {
 			statusCode := httpResp.GetStatusCode()
-			errorResponse := errorMap[statusCode]
+			errorResponse := httpResp.GetErrorBody()
 			if errorResponse != nil {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, status code: %d. Got response: %s", statusCode, *errorResponse))
 			} else {
 				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, got http response: %d", statusCode))
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, got http response: %d", statusCode))
@@ -421,12 +406,10 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	if len(removedUsers) > 0 {
 		tflog.Trace(ctx, "Removing old team members")
-		errorMap = httpClient.NewTeamClientErrorMap()
 		httpResp, err = r.teamClient.NewRequest().
 			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/remove", currentData.OrganizationId.ValueString(), currentData.Id.ValueString())).
 			Method(httpClient.POST).
 			SetBody(dto.TeamMemberList{Members: removedUsers}).
-			SetErrorParseMap(&errorMap).
 			Send()
 
 		if httpResp == nil {
@@ -434,10 +417,10 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			resp.Diagnostics.AddError("Client Error", "Unable to remove old team members, got nil response")
 		} else if httpResp.IsError() {
 			statusCode := httpResp.GetStatusCode()
-			errorResponse := errorMap[statusCode]
+			errorResponse := httpResp.GetErrorBody()
 			if errorResponse != nil {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, status code: %d. Got response: %s", statusCode, *errorResponse))
 			} else {
 				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, got http response: %d", statusCode))
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, got http response: %d", statusCode))
@@ -472,12 +455,10 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	tflog.Trace(ctx, "Deleting the TeamResource")
-	errorMap := httpClient.NewTeamClientErrorMap()
 
 	httpResp, err := r.teamClient.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.DELETE).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -485,10 +466,10 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		resp.Diagnostics.AddError("Client Error", "Unable to delete team, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, got http response: %d", statusCode))

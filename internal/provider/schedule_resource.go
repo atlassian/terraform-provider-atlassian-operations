@@ -72,13 +72,11 @@ func (r *ScheduleResource) Create(ctx context.Context, req resource.CreateReques
 
 	scheduleDto := ScheduleModelToDto(data)
 
-	errorMap := httpClient.NewOpsClientErrorMap()
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl("v1/schedules").
 		Method(httpClient.POST).
 		SetBody(scheduleDto).
 		SetBodyParseObject(&scheduleDto).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -86,10 +84,10 @@ func (r *ScheduleResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.AddError("Client Error", "Unable to create schedule, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create schedule, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create schedule, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create schedule, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create schedule, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create schedule, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create schedule, got http response: %d", statusCode))
@@ -121,13 +119,11 @@ func (r *ScheduleResource) Read(ctx context.Context, req resource.ReadRequest, r
 	tflog.Trace(ctx, "Reading the ScheduleResource")
 
 	scheduleDto := dto.Schedule{}
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s", data.Id.ValueString())).
 		Method(httpClient.GET).
 		SetBodyParseObject(&scheduleDto).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -135,10 +131,10 @@ func (r *ScheduleResource) Read(ctx context.Context, req resource.ReadRequest, r
 		resp.Diagnostics.AddError("Client Error", "Unable to read schedule, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read schedule, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read schedule, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read schedule, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read schedule, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read schedule, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read schedule, got http response: %d", statusCode))
@@ -170,14 +166,12 @@ func (r *ScheduleResource) Update(ctx context.Context, req resource.UpdateReques
 	tflog.Trace(ctx, "Updating the ScheduleResource")
 
 	scheduleDto := ScheduleModelToDto(data)
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s", data.Id.ValueString())).
 		Method(httpClient.PATCH).
 		SetBody(scheduleDto).
 		SetBodyParseObject(&scheduleDto).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -185,10 +179,10 @@ func (r *ScheduleResource) Update(ctx context.Context, req resource.UpdateReques
 		resp.Diagnostics.AddError("Client Error", "Unable to update schedule, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update schedule, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to updade schedule, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update schedule, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to updade schedule, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update schedule, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update schedule, got http response: %d", statusCode))
@@ -222,12 +216,10 @@ func (r *ScheduleResource) Delete(ctx context.Context, req resource.DeleteReques
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	tflog.Trace(ctx, "Deleting the ScheduleResource")
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s", data.Id.ValueString())).
 		Method(httpClient.DELETE).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -235,10 +227,10 @@ func (r *ScheduleResource) Delete(ctx context.Context, req resource.DeleteReques
 		resp.Diagnostics.AddError("Client Error", "Unable to delete schedule, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete schedule, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete schedule, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete schedule, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete schedule, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete schedule, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete schedule, got http response: %d", statusCode))
