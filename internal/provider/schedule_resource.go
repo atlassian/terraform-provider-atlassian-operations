@@ -98,6 +98,18 @@ func (r *ScheduleResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create schedule, got error: %s", err))
 	}
 
+	if !(data.Timezone.IsUnknown() || data.Timezone.IsNull()) && data.Timezone.ValueString() != scheduleDto.Timezone {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create schedule, got error: The provided timezone value does not match what the server returned back. Sent: %s, Received: %s", data.Timezone.ValueString(), scheduleDto.Timezone))
+		resp.Diagnostics.AddAttributeError(
+			path.Root("timezone"),
+			"Unable to create schedule, unable to set timezone",
+			fmt.Sprintf("The provided timezone value does not match what the server returned back. Sent: %s, Received: %s\nThis is likely caused by an invalid timezone value being sent, which the server replaced by a default one. Please check.", data.Timezone.ValueString(), scheduleDto.Timezone),
+		)
+
+		tflog.Trace(ctx, "Deleting dangling Schedule resource")
+		cleanupScheduleSilent(r, scheduleDto)
+	}
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -193,6 +205,15 @@ func (r *ScheduleResource) Update(ctx context.Context, req resource.UpdateReques
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update schedule, got error: %s", err))
 	}
 
+	if !(data.Timezone.IsUnknown() || data.Timezone.IsNull()) && data.Timezone.ValueString() != scheduleDto.Timezone {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update schedule, got error: The provided timezone value does not match what the server returned back. Sent: \"%s\", Received: \"%s\"", data.Timezone.ValueString(), scheduleDto.Timezone))
+		resp.Diagnostics.AddAttributeError(
+			path.Root("timezone"),
+			"Unable to update schedule, unable to set timezone",
+			fmt.Sprintf("The provided timezone value does not match what the server returned back. Sent: \"%s\", Received: \"%s\"\nThis is likely caused by an invalid timezone value being sent, which the server replaced by a default one. Please check.", data.Timezone.ValueString(), scheduleDto.Timezone),
+		)
+	}
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -200,10 +221,6 @@ func (r *ScheduleResource) Update(ctx context.Context, req resource.UpdateReques
 	data = ScheduleDtoToModel(scheduleDto)
 
 	tflog.Trace(ctx, "Updated the ScheduleResource")
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	tflog.Trace(ctx, "Saved the ScheduleResource into Terraform state")
@@ -249,4 +266,11 @@ func (r *ScheduleResource) Delete(ctx context.Context, req resource.DeleteReques
 
 func (r *ScheduleResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func cleanupScheduleSilent(r *ScheduleResource, data dto.Schedule) {
+	_, _ = r.client.NewRequest().
+		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s", data.Id)).
+		Method(httpClient.DELETE).
+		Send()
 }
