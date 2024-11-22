@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
-	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -93,7 +92,6 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		model.Id.ValueString())
 
 	tflog.Trace(ctx, "Sending HTTP request to JSM Teams API")
-	errorMap := httpClient.NewTeamClientErrorMap()
 
 	clientResp, err := d.client.TeamClient.
 		NewRequest().
@@ -101,7 +99,6 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		JoinBaseUrl(teamFetchUrl).
 		SetQueryParam("siteId", model.SiteId.ValueString()).
 		SetBodyParseObject(&data).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if err != nil {
@@ -110,10 +107,10 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 			fmt.Sprintf("Unable to read team, got error: %s", err))
 	} else if clientResp.IsError() {
 		statusCode := clientResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := clientResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, got http response: %d", statusCode))

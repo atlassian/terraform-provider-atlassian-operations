@@ -7,6 +7,7 @@ import (
 
 type Response struct {
 	nativeResponse *http.Response
+	errorBody      *string
 }
 
 func (receiver *Response) Discard() error {
@@ -26,6 +27,10 @@ func (receiver *Response) Body() ([]byte, error) {
 		return io.ReadAll(receiver.nativeResponse.Body)
 	}
 	return nil, nil
+}
+
+func (receiver *Response) GetErrorBody() *string {
+	return receiver.errorBody
 }
 
 func (receiver *Response) GetStatusCode() int {

@@ -72,13 +72,11 @@ func (r *EmailIntegrationResource) Create(ctx context.Context, req resource.Crea
 
 	emailIntegrationModelToDto := EmailIntegrationModelToDto(ctx, data)
 
-	errorMap := httpClient.NewOpsClientErrorMap()
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl("v1/integrations").
 		Method(httpClient.POST).
 		SetBody(emailIntegrationModelToDto).
 		SetBodyParseObject(&emailIntegrationModelToDto).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -86,10 +84,10 @@ func (r *EmailIntegrationResource) Create(ctx context.Context, req resource.Crea
 		resp.Diagnostics.AddError("Client Error", "Unable to create email integration, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create email integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create email integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create email integration, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create email integration, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create email integration, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create email integration, got http response: %d", statusCode))
@@ -121,13 +119,11 @@ func (r *EmailIntegrationResource) Read(ctx context.Context, req resource.ReadRe
 	tflog.Trace(ctx, "Reading the EmailIntegrationResource")
 
 	emailIntegration := dto.EmailIntegration{}
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s", data.Id.ValueString())).
 		Method(httpClient.GET).
 		SetBodyParseObject(&emailIntegration).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -135,10 +131,10 @@ func (r *EmailIntegrationResource) Read(ctx context.Context, req resource.ReadRe
 		resp.Diagnostics.AddError("Client Error", "Unable to read email integration, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read email integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read email integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read email integration, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read email integration, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read email integration, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read email integration, got http response: %d", statusCode))
@@ -170,14 +166,12 @@ func (r *EmailIntegrationResource) Update(ctx context.Context, req resource.Upda
 	tflog.Trace(ctx, "Updating the EmailIntegrationResource")
 
 	email := EmailIntegrationModelToDto(ctx, data)
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s", data.Id.ValueString())).
 		Method(httpClient.PATCH).
 		SetBody(email).
 		SetBodyParseObject(&email).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -185,10 +179,10 @@ func (r *EmailIntegrationResource) Update(ctx context.Context, req resource.Upda
 		resp.Diagnostics.AddError("Client Error", "Unable to update email integration, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update email integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update email integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update email integration, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update email integration, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update email integration, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update email integration, got http response: %d", statusCode))
@@ -222,12 +216,10 @@ func (r *EmailIntegrationResource) Delete(ctx context.Context, req resource.Dele
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	tflog.Trace(ctx, "Deleting the EmailIntegrationResource")
-	errorMap := httpClient.NewOpsClientErrorMap()
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s", data.Id.ValueString())).
 		Method(httpClient.DELETE).
-		SetErrorParseMap(&errorMap).
 		Send()
 
 	if httpResp == nil {
@@ -235,10 +227,10 @@ func (r *EmailIntegrationResource) Delete(ctx context.Context, req resource.Dele
 		resp.Diagnostics.AddError("Client Error", "Unable to delete email integration, got nil response")
 	} else if httpResp.IsError() {
 		statusCode := httpResp.GetStatusCode()
-		errorResponse := errorMap[statusCode]
+		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete email integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete email integration, status code: %d. Got response: %s", statusCode, errorResponse.Error()))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete email integration, status code: %d. Got response: %s", statusCode, *errorResponse))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete email integration, status code: %d. Got response: %s", statusCode, *errorResponse))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete email integration, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete email integration, got http response: %d", statusCode))
