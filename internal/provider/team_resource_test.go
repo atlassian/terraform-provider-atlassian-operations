@@ -34,116 +34,116 @@ func TestAccTeamResource(t *testing.T) {
 			// Create and Read testing
 			{
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
 }
 
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   display_name = "` + teamName + `"
   description = "team description"
   organization_id = "` + organizationId + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-       account_id = data.atlassian-ops_user.test1.account_id
+       account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "display_name", teamName),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "description", "team description"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "organization_id", organizationId),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "team_type", "MEMBER_INVITE"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "user_permissions.add_members", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "user_permissions.remove_members", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "user_permissions.update_team", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "user_permissions.delete_team", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "member.#", "1"),
-					resource.TestCheckTypeSetElemAttrPair("atlassian-ops_team.example", "member.*.account_id", "data.atlassian-ops_user.test1", "account_id"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "display_name", teamName),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "description", "team description"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "organization_id", organizationId),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "team_type", "MEMBER_INVITE"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.add_members", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.remove_members", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.update_team", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.delete_team", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "member.#", "1"),
+					resource.TestCheckTypeSetElemAttrPair("atlassian-operations_team.example", "member.*.account_id", "data.atlassian-operations_user.test1", "account_id"),
 				),
 			},
 			// ImportState testing
 			{
-				ResourceName:      "atlassian-ops_team.example",
+				ResourceName:      "atlassian-operations_team.example",
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(state *terraform.State) (string, error) {
-					return state.RootModule().Resources["atlassian-ops_team.example"].Primary.ID +
+					return state.RootModule().Resources["atlassian-operations_team.example"].Primary.ID +
 							"," +
-							state.RootModule().Resources["atlassian-ops_team.example"].Primary.Attributes["organization_id"],
+							state.RootModule().Resources["atlassian-operations_team.example"].Primary.Attributes["organization_id"],
 						nil
 				},
 			},
 			// Update and Read testing
 			{
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
 }
 
-data "atlassian-ops_user" "test2" {
+data "atlassian-operations_user" "test2" {
 	email_address = "` + emailSecondary + `"
 }
 
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   display_name = "` + teamUpdateName + `"
   description = "team description_edited"
   organization_id = "` + organizationId + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-       account_id = data.atlassian-ops_user.test1.account_id
+       account_id = data.atlassian-operations_user.test1.account_id
     },
 	{
-       account_id = data.atlassian-ops_user.test2.account_id
+       account_id = data.atlassian-operations_user.test2.account_id
 	}
   ]
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "display_name", teamUpdateName),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "description", "team description_edited"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "organization_id", organizationId),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "team_type", "MEMBER_INVITE"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "user_permissions.add_members", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "user_permissions.remove_members", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "user_permissions.update_team", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "user_permissions.delete_team", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "member.#", "2"),
-					resource.TestCheckTypeSetElemAttrPair("atlassian-ops_team.example", "member.*.account_id", "data.atlassian-ops_user.test1", "account_id"),
-					resource.TestCheckTypeSetElemAttrPair("atlassian-ops_team.example", "member.*.account_id", "data.atlassian-ops_user.test2", "account_id"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "display_name", teamUpdateName),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "description", "team description_edited"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "organization_id", organizationId),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "team_type", "MEMBER_INVITE"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.add_members", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.remove_members", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.update_team", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.delete_team", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "member.#", "2"),
+					resource.TestCheckTypeSetElemAttrPair("atlassian-operations_team.example", "member.*.account_id", "data.atlassian-operations_user.test1", "account_id"),
+					resource.TestCheckTypeSetElemAttrPair("atlassian-operations_team.example", "member.*.account_id", "data.atlassian-operations_user.test2", "account_id"),
 				),
 			},
 			{
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
 }
 
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   display_name = "` + teamUpdateName + `"
   description = "team description_edited"
   organization_id = "` + organizationId + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-       account_id = data.atlassian-ops_user.test1.account_id
+       account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "display_name", teamUpdateName),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "description", "team description_edited"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "organization_id", organizationId),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "team_type", "MEMBER_INVITE"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "user_permissions.add_members", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "user_permissions.remove_members", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "user_permissions.update_team", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "user_permissions.delete_team", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_team.example", "member.#", "1"),
-					resource.TestCheckTypeSetElemAttrPair("atlassian-ops_team.example", "member.*.account_id", "data.atlassian-ops_user.test1", "account_id"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "display_name", teamUpdateName),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "description", "team description_edited"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "organization_id", organizationId),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "team_type", "MEMBER_INVITE"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.add_members", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.remove_members", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.update_team", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.delete_team", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_team.example", "member.#", "1"),
+					resource.TestCheckTypeSetElemAttrPair("atlassian-operations_team.example", "member.*.account_id", "data.atlassian-operations_user.test1", "account_id"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase

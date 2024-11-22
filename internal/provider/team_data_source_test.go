@@ -29,41 +29,41 @@ func TestAccTeamDataSource(t *testing.T) {
 			{
 				Config: providerConfig +
 					`
-						data "atlassian-ops_user" "test1" {
+						data "atlassian-operations_user" "test1" {
 							email_address = "` + emailPrimary + `"
 						}
 
-						resource "atlassian-ops_team" "example" {
+						resource "atlassian-operations_team" "example" {
 						  organization_id = "` + organizationId + `"
 						  description = "This is a team created by Terraform"
 						  display_name = "` + teamName + `"
 						  team_type = "MEMBER_INVITE"
 						  member = [
 						    {
-						      account_id = data.atlassian-ops_user.test1.account_id
+						      account_id = data.atlassian-operations_user.test1.account_id
 						    }
 						  ]
 						}
 
-						data "atlassian-ops_team" "test" {
+						data "atlassian-operations_team" "test" {
 							organization_id = "` + organizationId + `"
-							id = atlassian-ops_team.example.id
+							id = atlassian-operations_team.example.id
 						}
 					`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Verify the data source
 					// Verify all attributes are set
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_team.test", "id", "atlassian-ops_team.example", "id"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_team.test", "organization_id", "atlassian-ops_team.example", "organization_id"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_team.test", "description", "atlassian-ops_team.example", "description"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_team.test", "display_name", "atlassian-ops_team.example", "display_name"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_team.test", "team_type", "atlassian-ops_team.example", "team_type"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_team.test", "user_permissions.update_team", "atlassian-ops_team.example", "user_permissions.update_team"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_team.test", "user_permissions.delete_team", "atlassian-ops_team.example", "user_permissions.delete_team"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_team.test", "user_permissions.add_members", "atlassian-ops_team.example", "user_permissions.add_members"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_team.test", "user_permissions.remove_members", "atlassian-ops_team.example", "user_permissions.remove_members"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_team.test", "member.#", "atlassian-ops_team.example", "member.#"),
-					resource.TestCheckResourceAttrPair("data.atlassian-ops_team.test", "member.0.account_id", "atlassian-ops_team.example", "member.0.account_id"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "organization_id", "atlassian-operations_team.example", "organization_id"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "description", "atlassian-operations_team.example", "description"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "display_name", "atlassian-operations_team.example", "display_name"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "team_type", "atlassian-operations_team.example", "team_type"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "user_permissions.update_team", "atlassian-operations_team.example", "user_permissions.update_team"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "user_permissions.delete_team", "atlassian-operations_team.example", "user_permissions.delete_team"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "user_permissions.add_members", "atlassian-operations_team.example", "user_permissions.add_members"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "user_permissions.remove_members", "atlassian-operations_team.example", "user_permissions.remove_members"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "member.#", "atlassian-operations_team.example", "member.#"),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "member.0.account_id", "atlassian-operations_team.example", "member.0.account_id"),
 				),
 			},
 		},

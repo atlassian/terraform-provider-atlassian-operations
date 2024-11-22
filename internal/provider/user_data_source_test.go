@@ -22,19 +22,19 @@ func TestAccUserDataSource(t *testing.T) {
 			{
 				Config: providerConfig +
 					`
-						data "atlassian-ops_user" "test" {
+						data "atlassian-operations_user" "test" {
 							email_address = "` + emailPrimary + `"
 						}
 					`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Verify the data source
 					// Verify all attributes are set
-					resource.TestCheckResourceAttrSet("data.atlassian-ops_user.test", "account_id"),
-					resource.TestCheckResourceAttrSet("data.atlassian-ops_user.test", "account_type"),
-					resource.TestCheckResourceAttrSet("data.atlassian-ops_user.test", "active"),
-					resource.TestCheckResourceAttrSet("data.atlassian-ops_user.test", "display_name"),
-					resource.TestCheckResourceAttrSet("data.atlassian-ops_user.test", "locale"),
-					resource.TestCheckResourceAttrSet("data.atlassian-ops_user.test", "timezone"),
+					resource.TestCheckResourceAttrSet("data.atlassian-operations_user.test", "account_id"),
+					resource.TestCheckResourceAttrSet("data.atlassian-operations_user.test", "account_type"),
+					resource.TestCheckResourceAttrSet("data.atlassian-operations_user.test", "active"),
+					resource.TestCheckResourceAttrSet("data.atlassian-operations_user.test", "display_name"),
+					resource.TestCheckResourceAttrSet("data.atlassian-operations_user.test", "locale"),
+					resource.TestCheckResourceAttrSet("data.atlassian-operations_user.test", "timezone"),
 				),
 			},
 		},

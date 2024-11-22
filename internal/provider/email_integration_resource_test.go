@@ -33,26 +33,26 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 			// Create and Read testing
 			{
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
 }
 
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   display_name = "` + teamName + `"
   description = "team description"
   organization_id = "` + organizationId + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-       account_id = data.atlassian-ops_user.test1.account_id
+       account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
 
 
-resource "atlassian-ops_email_integration" "example" {
+resource "atlassian-operations_email_integration" "example" {
   name    = "` + emailIntegrationName + `"
-  team_id = atlassian-ops_team.example.id
+  team_id = atlassian-operations_team.example.id
   enabled = true
   type_specific_properties = {
   	email_username = "` + randomEmailUsername + `"
@@ -61,44 +61,44 @@ resource "atlassian-ops_email_integration" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_email_integration.example", "name", emailIntegrationName),
-					resource.TestCheckResourceAttrPair("atlassian-ops_email_integration.example", "team_id", "atlassian-ops_team.example", "id"),
-					resource.TestCheckResourceAttr("atlassian-ops_email_integration.example", "enabled", "true"),
-					resource.TestCheckResourceAttr("atlassian-ops_email_integration.example", "type_specific_properties.email_username", randomEmailUsername),
-					resource.TestCheckResourceAttr("atlassian-ops_email_integration.example", "type_specific_properties.suppress_notifications", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_email_integration.example", "name", emailIntegrationName),
+					resource.TestCheckResourceAttrPair("atlassian-operations_email_integration.example", "team_id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("atlassian-operations_email_integration.example", "enabled", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_email_integration.example", "type_specific_properties.email_username", randomEmailUsername),
+					resource.TestCheckResourceAttr("atlassian-operations_email_integration.example", "type_specific_properties.suppress_notifications", "true"),
 				),
 			},
 			// ImportState testing
 			{
-				ResourceName:            "atlassian-ops_email_integration.example",
+				ResourceName:            "atlassian-operations_email_integration.example",
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"directions.#", "domains.#", "domains.0", "directions.0"},
 				ImportStateIdFunc: func(state *terraform.State) (string, error) {
-					return state.RootModule().Resources["atlassian-ops_email_integration.example"].Primary.ID,
+					return state.RootModule().Resources["atlassian-operations_email_integration.example"].Primary.ID,
 						nil
 				},
 			},
 			// Update and Read testing
 			{
 				Config: providerConfig + `
-data "atlassian-ops_user" "test1" {
+data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
 }
-resource "atlassian-ops_team" "example" {
+resource "atlassian-operations_team" "example" {
   organization_id = "` + organizationId + `"
   description = "This is a team created by Terraform"
   display_name = "` + teamName + `"
   team_type = "MEMBER_INVITE"
   member = [
     {
-      account_id = data.atlassian-ops_user.test1.account_id
+      account_id = data.atlassian-operations_user.test1.account_id
     }
   ]
 }
-resource "atlassian-ops_email_integration" "example" {
+resource "atlassian-operations_email_integration" "example" {
   name    = "` + emailIntegrationUpdateName + `"
-  team_id = atlassian-ops_team.example.id
+  team_id = atlassian-operations_team.example.id
   enabled = false
   type_specific_properties = {
   	email_username = "` + randomEmailUsername + `"
@@ -107,11 +107,11 @@ resource "atlassian-ops_email_integration" "example" {
 }
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-ops_email_integration.example", "name", emailIntegrationUpdateName),
-					resource.TestCheckResourceAttrPair("atlassian-ops_email_integration.example", "team_id", "atlassian-ops_team.example", "id"),
-					resource.TestCheckResourceAttr("atlassian-ops_email_integration.example", "enabled", "false"),
-					resource.TestCheckResourceAttr("atlassian-ops_email_integration.example", "type_specific_properties.email_username", randomEmailUsername),
-					resource.TestCheckResourceAttr("atlassian-ops_email_integration.example", "type_specific_properties.suppress_notifications", "false"),
+					resource.TestCheckResourceAttr("atlassian-operations_email_integration.example", "name", emailIntegrationUpdateName),
+					resource.TestCheckResourceAttrPair("atlassian-operations_email_integration.example", "team_id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("atlassian-operations_email_integration.example", "enabled", "false"),
+					resource.TestCheckResourceAttr("atlassian-operations_email_integration.example", "type_specific_properties.email_username", randomEmailUsername),
+					resource.TestCheckResourceAttr("atlassian-operations_email_integration.example", "type_specific_properties.suppress_notifications", "false"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
