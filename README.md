@@ -1,15 +1,22 @@
-# Jira Service Management Operations (JSM Ops) Terraform Provider
+# Atlassian Operations Terraform Provider
 
-This project aims to enable users to manipulate Operations resources in Jira Service Management, via Terraform.
+This project aims to enable users to manipulate Operations resources in Atlassian(Jira Service Management), via Terraform.
 It is a functional replication of the _now transitioned_ [Opsgenie Provider](https://github.com/opsgenie/terraform-provider-opsgenie).
 
 The provider is still under development. It currently supports the following resources:
 
+* Team
+* Schedule (**incl.** Rotation)
+* Escalation
+* Email Integration
+* API-Based Integration
+
+And the following data sources:
 * User\*
 * Team
-* Schedule (incl. Rotation)
+* Schedule (**excl.** Rotation)
 
-\*Due to the internal structure of JSM, _user_ is implemented solely as a data source and supports **read operations only**.
+\*Due to the internal structure of Jira Service Management, _user_ is implemented solely as a data source and supports **read operations only**.
 
 ### Related Links
 
@@ -159,8 +166,8 @@ To include the necessary debug information within the library, you need to build
 go build -gcflags="all=-N -l" .
 dlv exec --accept-multiclient --continue --headless ./terraform_provider_jsm_ops -- -debug
 ```
-_Most IDE's do building with debug flags and attaching to Delve debugger in the background automatically when the 
-debugger is run from their UI._
+_Most IDEs do building with debug flags and attaching to Delve debugger in the background automatically when the 
+debugger is run from within their UI._
 
 When the provider executable is run with this configuration, it will output a message similar to the following:
 
