@@ -228,14 +228,15 @@ func TeamDtoToModel(dto dto.TeamDto, membersDto []dto.TeamMember) dataModels.Tea
 		model.UserPermissions = PublicApiUserPermissionsDtoToModel(*dto.UserPermissions).AsValue()
 	}
 
+	arr := make([]attr.Value, len(membersDto))
 	if len(membersDto) != 0 {
-		arr := make([]attr.Value, len(membersDto))
 		for i, member := range membersDto {
 			toModel := TeamMemberDtoToModel(member)
 			arr[i] = toModel.AsValue()
 		}
-		model.Member = types.SetValueMust(types.ObjectType{AttrTypes: dataModels.TeamMemberModelMap}, arr)
 	}
+	model.Member = types.SetValueMust(types.ObjectType{AttrTypes: dataModels.TeamMemberModelMap}, arr)
+
 	return model
 }
 
