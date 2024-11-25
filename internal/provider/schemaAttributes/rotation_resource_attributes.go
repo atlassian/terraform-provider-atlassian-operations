@@ -1,17 +1,21 @@
 package schemaAttributes
 
 import (
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes/customValidators"
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var RotationResourceAttributes = map[string]schema.Attribute{
@@ -63,6 +67,7 @@ var RotationResourceAttributes = map[string]schema.Attribute{
 	"participants": schema.ListNestedAttribute{
 		Description: "The participants of the rotation",
 		Optional:    true,
+		Computed:    true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: ResponderInfoResourceAttributes,
 			Validators: []validator.Object{
@@ -71,6 +76,12 @@ var RotationResourceAttributes = map[string]schema.Attribute{
 				customValidators.StringFieldNotNullIfOtherField(path.MatchRelative().AtName("id"), path.MatchRelative().AtName("type"), "escalation"),
 			},
 		},
+		Default: listdefault.StaticValue(
+			types.ListValueMust(
+				types.ObjectType{AttrTypes: dataModels.ResponderInfoModelMap},
+				[]attr.Value{},
+			),
+		),
 	},
 	"time_restriction": schema.SingleNestedAttribute{
 		Attributes: TimeRestrictionResourceAttributes,
