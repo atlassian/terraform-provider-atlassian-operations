@@ -110,49 +110,107 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	tflog.Trace(ctx, "Team created")
 	tflog.Trace(ctx, "Fetch auto created members")
 
-	autoCreatedMembers := dto.TeamMemberListResponse{}
-	httpResp, err = r.teamClient.NewRequest().
-		JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members", teamDto.OrganizationId, teamDto.TeamId)).
-		Method(httpClient.POST).
-		SetBodyParseObject(&autoCreatedMembers).
-		Send()
-
-	if httpResp == nil {
-		tflog.Error(ctx, "Client Error. Unable to fetch auto created members, got nil response")
-		resp.Diagnostics.AddError("Client Error", "Unable to fetch auto created members, got nil response")
-	} else if httpResp.IsError() {
-		statusCode := httpResp.GetStatusCode()
-		errorResponse := httpResp.GetErrorBody()
-		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch auto created members, status: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch auto created members, status: %d. Got response: %s", statusCode, *errorResponse))
-		} else {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch auto created members,got http response: %d", statusCode))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch auto created members, got http response: %d", statusCode))
-		}
-	}
+	autoAddedMembers, err := r.fetchTeamMembers(teamDto.OrganizationId, teamDto.TeamId)
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch auto created members, got error: %s", err))
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch auto created members, got error: %s", err))
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch members for the created team, %s", err.Error()))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch members for the created team, %s", err.Error()))
 	}
-
 	if resp.Diagnostics.HasError() {
-		// If there is an error while fetching created members, the creation fails on Terraform's side, even though there is still a team on JSM side.
-		// So, we need to delete the team on JSM side if the fetching created members fails.
 		tflog.Trace(ctx, "Deleting dangling team resource")
-		cleanupTeamSilent(r, teamDto)
+		r.cleanupTeamSilent(teamDto)
 		return
 	}
 
-	tflog.Trace(ctx, "Auto created members fetched")
+	addedUsers, removedUsers := diffUsers(membersDto, autoAddedMembers)
 
-	enableOpsBody := dto.TeamEnableOps{
-		TeamId:          teamDto.TeamId,
-		AdminAccountIds: []string{autoCreatedMembers.Results[0].AccountId},
-		InviteUsernames: make([]string, 0),
+	if len(addedUsers) > 0 {
+		tflog.Trace(ctx, "Adding users to the team")
+		memberAddResponse := dto.PublicApiMembershipAddResponse{}
+		httpResp, err = r.teamClient.NewRequest().
+			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/add", teamDto.OrganizationId, teamDto.TeamId)).
+			Method(httpClient.POST).
+			SetBody(dto.TeamMemberList{Members: addedUsers}).
+			SetBodyParseObject(&memberAddResponse).
+			Send()
+
+		if httpResp == nil {
+			tflog.Error(ctx, "Client Error. Unable to add users to the team, got nil response")
+			resp.Diagnostics.AddError("Client Error", "Unable to add users to the team, got nil response")
+		} else if httpResp.IsError() {
+			statusCode := httpResp.GetStatusCode()
+			errorResponse := httpResp.GetErrorBody()
+			if errorResponse != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, status code: %d. Got response: %s", statusCode, *errorResponse))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			} else {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got http response: %d", statusCode))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got http response: %d", statusCode))
+			}
+		}
+		if err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got error: %s", err))
+		} else if len(memberAddResponse.Errors) > 0 {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got errors: %v", memberAddResponse.Errors))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got errors: %v", memberAddResponse.Errors))
+		}
+
+		if resp.Diagnostics.HasError() {
+			// If there is an error while adding users, the creation fails on Terraform's side, even though there is still a team on JSM side.
+			// So, we need to delete the team on JSM side if the adding users fails.
+			tflog.Trace(ctx, "Deleting dangling team resource")
+			r.cleanupTeamSilent(teamDto)
+			return
+		}
+		tflog.Trace(ctx, "Users added to the team")
 	}
 
+	if len(removedUsers) > 0 {
+		tflog.Trace(ctx, "Removing extra users from the team")
+		removeMemberResponse := dto.PublicApiMembershipRemoveResponse{}
+		httpResp, err = r.teamClient.NewRequest().
+			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/remove", teamDto.OrganizationId, teamDto.TeamId)).
+			Method(httpClient.POST).
+			SetBody(dto.TeamMemberList{Members: removedUsers}).
+			SetBodyParseObject(&removeMemberResponse).
+			Send()
+
+		if httpResp == nil {
+			tflog.Error(ctx, "Client Error. Unable to remove extra team members, got nil response")
+			resp.Diagnostics.AddError("Client Error", "Unable to remove extra team members, got nil response")
+		} else if httpResp.IsError() {
+			statusCode := httpResp.GetStatusCode()
+			errorResponse := httpResp.GetErrorBody()
+			if errorResponse != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+			} else {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, got http response: %d", statusCode))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, got http response: %d", statusCode))
+			}
+		}
+		if err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, got error: %s", err))
+		} else if len(removeMemberResponse.Errors) > 0 {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, got errors: %v", removeMemberResponse.Errors))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, got errors: %v", removeMemberResponse.Errors))
+		}
+	}
+
+	if resp.Diagnostics.HasError() {
+		tflog.Trace(ctx, "Deleting dangling team resource")
+		r.cleanupTeamSilent(teamDto)
+		return
+	}
+	tflog.Trace(ctx, "Extra users removed from the team")
+
 	tflog.Trace(ctx, "Enabling Operations for the Team")
+	enableOpsBody := dto.TeamEnableOps{
+		TeamId:          teamDto.TeamId,
+		AdminAccountIds: []string{membersDto[0].AccountId},
+		InviteUsernames: make([]string, 0),
+	}
 
 	// Enable OPS for the Team
 	httpResp, err = r.opsClient.
@@ -191,50 +249,10 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		// If there is an error while enabling ops, the creation fails on Terraform's side, even though there is still a team on JSM side.
 		// So, we need to delete the team on JSM side if the enabling ops fails.
 		tflog.Trace(ctx, "Deleting dangling team resource")
-		cleanupTeamSilent(r, teamDto)
+		r.cleanupTeamSilent(teamDto)
 		return
 	}
-
 	tflog.Trace(ctx, "Enabled Operations for the Team")
-
-	if len(membersDto) > 0 {
-		tflog.Trace(ctx, "Adding users to the team")
-
-		httpResp, err = r.teamClient.NewRequest().
-			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/add", teamDto.OrganizationId, teamDto.TeamId)).
-			Method(httpClient.POST).
-			SetBody(dto.TeamMemberList{Members: membersDto}).
-			Send()
-
-		if httpResp == nil {
-			tflog.Error(ctx, "Client Error. Unable to add users to the team, got nil response")
-			resp.Diagnostics.AddError("Client Error", "Unable to add users to the team, got nil response")
-		} else if httpResp.IsError() {
-			statusCode := httpResp.GetStatusCode()
-			errorResponse := httpResp.GetErrorBody()
-			if errorResponse != nil {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, status code: %d. Got response: %s", statusCode, *errorResponse))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			} else {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got http response: %d", statusCode))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got http response: %d", statusCode))
-			}
-		}
-		if err != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got error: %s", err))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got error: %s", err))
-		}
-
-		if resp.Diagnostics.HasError() {
-			// If there is an error while adding users, the creation fails on Terraform's side, even though there is still a team on JSM side.
-			// So, we need to delete the team on JSM side if the adding users fails.
-			tflog.Trace(ctx, "Deleting dangling team resource")
-			cleanupTeamSilent(r, teamDto)
-			return
-		}
-
-		tflog.Trace(ctx, "Users added to the team")
-	}
 
 	data = TeamDtoToModel(teamDto, membersDto)
 
@@ -285,39 +303,19 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	tflog.Trace(ctx, "Fetching team members")
 
-	memberData := dto.TeamMemberListResponse{}
-
-	httpResp, err = r.teamClient.NewRequest().
-		JoinBaseUrl(fmt.Sprintf("/%s/teams/%s/members", data.OrganizationId.ValueString(), data.Id.ValueString())).
-		Method("POST").
-		SetBodyParseObject(&memberData).
-		Send()
-
+	memberData, err := r.fetchTeamMembers(data.OrganizationId.ValueString(), data.Id.ValueString())
 	if err != nil {
-		tflog.Error(ctx, "Sending HTTP request to JSM Team Members API Failed")
-		resp.Diagnostics.AddError("Client Error",
-			fmt.Sprintf("Unable to read team members, got error: %s", err))
-		return
-	} else if httpResp.IsError() {
-		statusCode := httpResp.GetStatusCode()
-		errorResponse := httpResp.GetErrorBody()
-		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team members, status code: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team members, status code: %d. Got response: %s", statusCode, *errorResponse))
-		} else {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team members, got http response: %d", statusCode))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to team members, got http response: %d", statusCode))
-		}
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch members for the created team, %s", err.Error()))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch members for the created team, %s", err.Error()))
 	}
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	tflog.Trace(ctx, "Done fetching team members")
 
-	tflog.Trace(ctx, "Fetching team members")
 	tflog.Trace(ctx, "Converting Team Data into Terraform Model")
 
-	data = TeamDtoToModel(teamDto, memberData.Results)
+	data = TeamDtoToModel(teamDto, memberData)
 
 	tflog.Trace(ctx, "Read the TeamResource")
 
@@ -418,10 +416,12 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	if len(removedUsers) > 0 {
 		tflog.Trace(ctx, "Removing old team members")
+		removeMembersResponse := dto.PublicApiMembershipRemoveResponse{}
 		httpResp, err = r.teamClient.NewRequest().
 			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/remove", currentData.OrganizationId.ValueString(), currentData.Id.ValueString())).
 			Method(httpClient.POST).
 			SetBody(dto.TeamMemberList{Members: removedUsers}).
+			SetBodyParseObject(&removeMembersResponse).
 			Send()
 
 		if httpResp == nil {
@@ -441,6 +441,9 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		if err != nil {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, got error: %s", err))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, got error: %s", err))
+		} else if len(removeMembersResponse.Errors) > 0 {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, got errors: %v", removeMembersResponse.Errors))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, got errors: %v", removeMembersResponse.Errors))
 		}
 
 		if resp.Diagnostics.HasError() {
@@ -512,7 +515,44 @@ func (r *TeamResource) ImportState(ctx context.Context, req resource.ImportState
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("organization_id"), idParts[1])...)
 }
 
-func cleanupTeamSilent(r *TeamResource, teamDto dto.TeamDto) {
+func (r *TeamResource) fetchTeamMembers(organizationId string, teamId string) ([]dto.TeamMember, error) {
+	var members []dto.TeamMember
+
+	doneLooping := false
+	request := dto.DefaultTeamMemberListRequest()
+	for !doneLooping {
+		response := dto.TeamMemberListResponse{}
+
+		httpResp, err := r.teamClient.NewRequest().
+			JoinBaseUrl(fmt.Sprintf("/%s/teams/%s/members", organizationId, teamId)).
+			Method("POST").
+			SetBody(request).
+			SetBodyParseObject(&response).
+			Send()
+
+		if err != nil {
+			return nil, err
+		} else if httpResp.IsError() {
+			statusCode := httpResp.GetStatusCode()
+			errorResponse := httpResp.GetErrorBody()
+			if errorResponse != nil {
+				return nil, fmt.Errorf("error while fetching team members. Status Code: %d. Got response: %s", statusCode, *errorResponse)
+			} else {
+				return nil, fmt.Errorf("error while fetching team members. Status Code: %d", httpResp.GetStatusCode())
+			}
+		}
+
+		members = append(members, response.Results...)
+		if !response.PageInfo.HasNextPage {
+			doneLooping = true
+		} else {
+			request.After = response.PageInfo.EndCursor
+		}
+	}
+	return members, nil
+}
+
+func (r *TeamResource) cleanupTeamSilent(teamDto dto.TeamDto) {
 	_, _ = r.teamClient.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", teamDto.OrganizationId, teamDto.TeamId)).
 		Method(httpClient.DELETE).

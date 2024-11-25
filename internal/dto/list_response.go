@@ -20,4 +20,25 @@ type (
 		PageInfo publicApiPageInfoAccountId `json:"pageInfo"`
 		Results  []TeamMember               `json:"results"`
 	}
+
+	TeamMemberListRequest struct {
+		After string `json:"after,omitempty"`
+		First int32  `json:"first"`
+	}
+
+	PublicApiMembershipAddResponse struct {
+		Members []TeamMember             `json:"members"`
+		Errors  []map[string]interface{} `json:"errors"`
+	}
+
+	PublicApiMembershipRemoveResponse struct {
+		Errors []map[string]interface{} `json:"errors"`
+	}
 )
+
+func DefaultTeamMemberListRequest() TeamMemberListRequest {
+	return TeamMemberListRequest{
+		After: "",
+		First: 50,
+	}
+}
