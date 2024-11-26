@@ -33,6 +33,13 @@ var RotationResourceAttributes = map[string]schema.Attribute{
 	"name": schema.StringAttribute{
 		Description: "The name of the rotation",
 		Optional:    true,
+		Computed:    true,
+		PlanModifiers: []planmodifier.String{
+			stringplanmodifier.UseStateForUnknown(),
+		},
+		Validators: []validator.String{
+			stringvalidator.LengthAtLeast(1),
+		},
 	},
 	"start_date": schema.StringAttribute{
 		Description: "The start date of the rotation",
