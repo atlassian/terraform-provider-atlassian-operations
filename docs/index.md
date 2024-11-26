@@ -26,4 +26,4 @@ provider "atlassian-operations" {
 - `cloud_id` (String)
 - `domain_name` (String)
 - `password` (String, Sensitive)
-- `username` (String)
+- `email_address` (String)

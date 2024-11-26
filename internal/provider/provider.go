@@ -19,8 +19,8 @@ import (
 type jsmopsProviderModel struct {
 	CloudId         types.String `tfsdk:"cloud_id"`
 	DomainName      types.String `tfsdk:"domain_name"`
-	Username        types.String `tfsdk:"username"`
-	Password        types.String `tfsdk:"password"`
+	EmailAddress    types.String `tfsdk:"email_address"`
+	Token           types.String `tfsdk:"token"`
 	ApiRetryCount   types.Int32  `tfsdk:"api_retry_count"`
 	ApiRetryWait    types.Int32  `tfsdk:"api_retry_wait"`
 	ApiRetryWaitMax types.Int32  `tfsdk:"api_retry_wait_max"`
@@ -70,10 +70,10 @@ func (p *jsmopsProvider) Schema(_ context.Context, _ provider.SchemaRequest, res
 			"domain_name": schema.StringAttribute{
 				Required: true,
 			},
-			"username": schema.StringAttribute{
+			"email_address": schema.StringAttribute{
 				Required: true,
 			},
-			"password": schema.StringAttribute{
+			"token": schema.StringAttribute{
 				Required:  true,
 				Sensitive: true,
 			},
@@ -123,20 +123,20 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		)
 	}
 
-	if config.Username.IsUnknown() {
+	if config.EmailAddress.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
-			path.Root("username"),
-			"Unknown atlassian-operations API Username",
-			"The provider cannot create the atlassian-operations API client as there is an unknown configuration value for the atlassian-operations API username. "+
+			path.Root("email_address"),
+			"Unknown atlassian-operations API EmailAddress",
+			"The provider cannot create the atlassian-operations API client as there is an unknown configuration value for the atlassian-operations API email_address. "+
 				"Either target apply the source of the value first, set the value statically in the configuration.",
 		)
 	}
 
-	if config.Password.IsUnknown() {
+	if config.Token.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
-			path.Root("password"),
-			"Unknown atlassian-operations API Password",
-			"The provider cannot create the atlassian-operations API client as there is an unknown configuration value for the atlassian-operations API password. "+
+			path.Root("token"),
+			"Unknown atlassian-operations API Token",
+			"The provider cannot create the atlassian-operations API client as there is an unknown configuration value for the atlassian-operations API token. "+
 				"Either target apply the source of the value first, set the value statically in the configuration.",
 		)
 	}
@@ -161,8 +161,8 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 	cloudId := os.Getenv("ATLASSIAN_OPS_CLOUD_ID")
 	domainName := os.Getenv("ATLASSIAN_OPS_DOMAIN_NAME")
-	username := os.Getenv("ATLASSIAN_OPS_API_USERNAME")
-	password := os.Getenv("ATLASSIAN_OPS_API_TOKEN")
+	email_address := os.Getenv("ATLASSIAN_OPS_API_USERNAME")
+	token := os.Getenv("ATLASSIAN_OPS_API_TOKEN")
 
 	if cloudId == "" {
 		if config.CloudId.IsNull() {
@@ -188,35 +188,35 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		}
 	}
 
-	if username == "" {
-		if config.Username.IsNull() {
+	if email_address == "" {
+		if config.EmailAddress.IsNull() {
 			resp.Diagnostics.AddAttributeError(
-				path.Root("username"),
-				"Unknown atlassian-operations API Username",
-				"The provider cannot create the atlassian-operations API client as there is an unknown configuration value for the atlassian-operations API username. ",
+				path.Root("email_address"),
+				"Unknown atlassian-operations API EmailAddress",
+				"The provider cannot create the atlassian-operations API client as there is an unknown configuration value for the atlassian-operations API email_address. ",
 			)
 		} else {
-			username = config.Username.ValueString()
+			email_address = config.EmailAddress.ValueString()
 		}
 	}
 
-	if password == "" {
-		if config.Password.IsNull() {
+	if token == "" {
+		if config.Token.IsNull() {
 			resp.Diagnostics.AddAttributeError(
-				path.Root("password"),
-				"Unknown atlassian-operations API Password",
-				"The provider cannot create the atlassian-operations API client as there is an unknown configuration value for the atlassian-operations API password. ",
+				path.Root("token"),
+				"Unknown atlassian-operations API Token",
+				"The provider cannot create the atlassian-operations API client as there is an unknown configuration value for the atlassian-operations API token. ",
 			)
 		} else {
-			password = config.Password.ValueString()
+			token = config.Token.ValueString()
 		}
 	}
 
 	ctx = tflog.SetField(ctx, "atlassian-operations_cloud_id", cloudId)
 	ctx = tflog.SetField(ctx, "atlassian-operations_domain_name", domainName)
-	ctx = tflog.SetField(ctx, "atlassian-operations_username", username)
-	ctx = tflog.SetField(ctx, "atlassian-operations_password", password)
-	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "atlassian-operations_password")
+	ctx = tflog.SetField(ctx, "atlassian-operations_email_address", email_address)
+	ctx = tflog.SetField(ctx, "atlassian-operations_token", token)
+	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "atlassian-operations_token")
 
 	tflog.Debug(ctx, "Creating atlassian-operations client")
 
@@ -227,21 +227,21 @@ func (p *jsmopsProvider) Configure(ctx context.Context, req provider.ConfigureRe
 			SetRetryCount(int(config.ApiRetryCount.ValueInt32())).
 			SetRetryWaitTime(time.Duration(config.ApiRetryWait.ValueInt32())*time.Second).
 			SetRetryMaxWaitTime(time.Duration(config.ApiRetryWaitMax.ValueInt32())*time.Second).
-			SetDefaultBasicAuth(username, password).
+			SetDefaultBasicAuth(email_address, token).
 			SetBaseUrl(fmt.Sprintf("https://api.atlassian.com/jsm/ops/api/%s", cloudId)),
 		TeamClient: httpClient.
 			NewHttpClient().
 			SetRetryCount(int(config.ApiRetryCount.ValueInt32())).
 			SetRetryWaitTime(time.Duration(config.ApiRetryWait.ValueInt32())*time.Second).
 			SetRetryMaxWaitTime(time.Duration(config.ApiRetryWaitMax.ValueInt32())*time.Second).
-			SetDefaultBasicAuth(username, password).
+			SetDefaultBasicAuth(email_address, token).
 			SetBaseUrl(fmt.Sprintf("https://%s/gateway/api/public/teams/v1/org/", domainName)),
 		UserClient: httpClient.
 			NewHttpClient().
 			SetRetryCount(int(config.ApiRetryCount.ValueInt32())).
 			SetRetryWaitTime(time.Duration(config.ApiRetryWait.ValueInt32())*time.Second).
 			SetRetryMaxWaitTime(time.Duration(config.ApiRetryWaitMax.ValueInt32())*time.Second).
-			SetDefaultBasicAuth(username, password).
+			SetDefaultBasicAuth(email_address, token).
 			SetBaseUrl(fmt.Sprintf("https://%s/rest/api/3/user/", domainName)),
 	}
 

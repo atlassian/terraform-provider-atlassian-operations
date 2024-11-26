@@ -111,8 +111,8 @@ provider_installation {
    provider "atlassian-operations" {
       cloud_id = "<YOUR_CLOUD_ID>"
       domain_name="<YOUR_DOMAIN>"      // e.g. domain.atlassian.net
-      username = "<YOUR_USERNAME>"     // e.g. user@example.com
-      password = "<YOUR_TOKEN_HERE>"   // e.g. API token created in Atlassian account settings
+      email_address = "<YOUR_EMAIL_ADDRESS>"     // e.g. user@example.com
+      token = "<YOUR_TOKEN_HERE>"   // e.g. API token created in Atlassian account settings
    }
    
    data "atlassian-operations_user" "example" {
@@ -129,7 +129,7 @@ Instead of providing values in the _provider_ block directly, you can also set t
 ```bash
 export ATLASSIAN_OPS_CLOUD_ID=YOUR_CLOUD_ID
 export ATLASSIAN_OPS_DOMAIN_NAME=YOUR_DOMAIN
-export ATLASSIAN_OPS_API_USERNAME=YOUR_USERNAME
+export ATLASSIAN_OPS_API_EMAIL_ADDRESS=YOUR_EMAIL_ADDRESS
 export ATLASSIAN_OPS_API_TOKEN=YOUR_TOKEN
 ```
 
