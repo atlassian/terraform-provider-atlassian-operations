@@ -28,3 +28,16 @@ type Rotation struct {
 	Participants    []ResponderInfo  `json:"participants"`
 	TimeRestriction *TimeRestriction `json:"timeRestriction"`
 }
+
+func (r *ResponderInfo) Equal(other *ResponderInfo) bool {
+	if r == nil || other == nil {
+		return false
+	}
+	if (r.Id == nil && other.Id == nil) && r.Type == other.Type {
+		return true
+	} else if r.Id == nil || other.Id == nil {
+		return false
+	} else {
+		return *r.Id == *other.Id && r.Type == other.Type
+	}
+}

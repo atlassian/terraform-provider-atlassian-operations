@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
@@ -14,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"slices"
 	"strings"
 )
 
@@ -71,6 +73,8 @@ func (r *ScheduleRotationResource) Create(ctx context.Context, req resource.Crea
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
+	// We need to compare the participant lists of the initial config vs. the server response
+	plannedDto := RotationModelToDto(ctx, data)
 	rotationDto := RotationModelToDto(ctx, data)
 
 	httpResp, err := r.client.NewRequest().
@@ -99,7 +103,23 @@ func (r *ScheduleRotationResource) Create(ctx context.Context, req resource.Crea
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create rotation, got error: %s", err))
 	}
 
+	if !(resp.Diagnostics.HasError() || areUserListsEqual(plannedDto.Participants, rotationDto.Participants)) {
+		plannedParticipants, _ := json.Marshal(plannedDto.Participants)
+		newParticipants, _ := json.Marshal(rotationDto.Participants)
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create rotation. The received participants list from the server does not match the one defined in Terraform configuration. Expected: %s, Got: %s", plannedParticipants, newParticipants))
+		resp.Diagnostics.AddAttributeError(
+			path.Root("participants"),
+			"Unable to create rotation. The received participants list from the server does not match the one defined in Terraform configuration.",
+			fmt.Sprintf(
+				"Expected: %s, Got: %s.\n"+
+					"This can be caused by the use of old Opsgenie UserIDs, instead of Atlassian Account IDs. The server automatically converts old IDs into new ones, which causes a state mismatch in Terraform.\n"+
+					"Please consider checking the ID values you specified.", plannedParticipants, newParticipants,
+			),
+		)
+	}
+
 	if resp.Diagnostics.HasError() {
+		cleanupRotationSilent(r, data.ScheduleId.ValueString(), rotationDto.Id)
 		return
 	}
 
@@ -160,19 +180,25 @@ func (r *ScheduleRotationResource) Read(ctx context.Context, req resource.ReadRe
 
 func (r *ScheduleRotationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data dataModels.RotationModel
+	var existingData dataModels.RotationModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &existingData)...)
+
 	tflog.Trace(ctx, "Updating the ScheduleRotationResource")
 
-	rotationDto := RotationModelToDto(ctx, data)
+	plannedDto := RotationModelToDto(ctx, data)
+	newDto := dto.Rotation{}
+	existingRotationDto := RotationModelToDto(ctx, existingData)
 
 	httpResp, err := r.client.NewRequest().
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations/%s", data.ScheduleId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.PATCH).
-		SetBody(rotationDto).
-		SetBodyParseObject(&rotationDto).
+		SetBody(plannedDto).
+		SetBodyParseObject(&newDto).
 		Send()
 
 	if httpResp == nil {
@@ -194,17 +220,29 @@ func (r *ScheduleRotationResource) Update(ctx context.Context, req resource.Upda
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update rotation, got error: %s", err))
 	}
 
+	if !(resp.Diagnostics.HasError() || areUserListsEqual(plannedDto.Participants, newDto.Participants)) {
+		plannedParticipants, _ := json.Marshal(plannedDto.Participants)
+		newParticipants, _ := json.Marshal(newDto.Participants)
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create rotation. The received participants list from the server does not match the one defined in Terraform configuration. Expected: %s, Got: %s", plannedParticipants, newParticipants))
+		resp.Diagnostics.AddAttributeError(
+			path.Root("participants"),
+			"Unable to create rotation. The received participants list from the server does not match the one defined in Terraform configuration.",
+			fmt.Sprintf(
+				"Expected: %s, Got: %s.\n"+
+					"This can be caused by the use of old Opsgenie UserIDs, instead of Atlassian Account IDs. The server automatically converts old IDs into new ones, which causes a state mismatch in Terraform.\n"+
+					"Please consider checking the ID values you specified.", plannedParticipants, newParticipants,
+			),
+		)
+		restoreRotationSlient(r, data.ScheduleId.ValueString(), existingRotationDto)
+	}
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	data = RotationDtoToModel(data.ScheduleId.ValueString(), rotationDto)
+	data = RotationDtoToModel(data.ScheduleId.ValueString(), newDto)
 
 	tflog.Trace(ctx, "Updated the ScheduleRotationResource")
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	tflog.Trace(ctx, "Saved the ScheduleRotationResource into Terraform state")
@@ -260,4 +298,34 @@ func (r *ScheduleRotationResource) ImportState(ctx context.Context, req resource
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("schedule_id"), idParts[1])...)
+}
+
+func areUserListsEqual(givenUserList []dto.ResponderInfo, receivedUserList []dto.ResponderInfo) bool {
+	if len(givenUserList) != len(receivedUserList) {
+		return false
+	}
+	for _, givenUser := range givenUserList {
+		contains := slices.ContainsFunc(receivedUserList, func(receivedUser dto.ResponderInfo) bool {
+			return givenUser.Equal(&receivedUser)
+		})
+		if !contains {
+			return false
+		}
+	}
+	return true
+}
+
+func cleanupRotationSilent(r *ScheduleRotationResource, scheduleID string, rotationID string) {
+	_, _ = r.client.NewRequest().
+		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations/%s", scheduleID, rotationID)).
+		Method(httpClient.DELETE).
+		Send()
+}
+
+func restoreRotationSlient(r *ScheduleRotationResource, scheduleID string, rotationDto dto.Rotation) {
+	_, _ = r.client.NewRequest().
+		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations/%s", scheduleID, rotationDto.Id)).
+		Method(httpClient.PATCH).
+		SetBody(rotationDto).
+		Send()
 }
