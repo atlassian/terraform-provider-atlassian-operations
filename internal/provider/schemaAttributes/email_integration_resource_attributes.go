@@ -34,12 +34,11 @@ var EmailIntegrationResourceAttributes = map[string]schema.Attribute{
 		Computed: true,
 	},
 	"advanced": schema.BoolAttribute{
-		Optional: true,
+		Optional: false,
 		Computed: true,
-		Default:  booldefault.StaticBool(false),
 	},
 	"maintenance_sources": schema.ListNestedAttribute{
-		Optional: true,
+		Optional: false,
 		Computed: true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: EmailIntegrationMaintenanceSourceResourceAttributes,
@@ -47,13 +46,13 @@ var EmailIntegrationResourceAttributes = map[string]schema.Attribute{
 	},
 	"directions": schema.ListAttribute{
 		ElementType: types.StringType,
-		Optional:    true,
+		Optional:    false,
 		Computed:    true,
 		Description: "Direction of the action. It can be incoming or outgoing",
 	},
 	"domains": schema.ListAttribute{
 		ElementType: types.StringType,
-		Optional:    true,
+		Optional:    false,
 		Computed:    true,
 		Description: "Domain of the action. It can be alert",
 	},
