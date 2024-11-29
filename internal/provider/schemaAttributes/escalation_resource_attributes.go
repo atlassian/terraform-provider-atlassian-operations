@@ -111,7 +111,7 @@ var EscalationRulesResponseResourceAttributes = map[string]schema.Attribute{
 		Description: "Time delay of the escalation rule in minutes.",
 		Required:    true,
 		Validators: []validator.Int64{
-			int64validator.AtLeast(1),
+			int64validator.AtLeast(0),
 		},
 	},
 	"recipient": schema.SingleNestedAttribute{
