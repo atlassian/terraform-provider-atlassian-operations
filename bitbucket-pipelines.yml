@@ -34,3 +34,14 @@ pipelines:
     '**':
       - step: *test
 #      - step: *lint
+  custom:
+      -step:
+        script:
+          - mkdir -p ~/.ssh
+          - ssh-keyscan -t rsa github.com > my_known_hosts
+          - cat my_known_hosts >> ~/.ssh/known_hosts
+          - (umask  077 ; echo $MY_SSH_KEY | base64 --decode > ~/.ssh/id_rsa)
+          - git remote rename origin bitbucket
+          - git remote add origin git@github.com:atlassian/terraform-provider-atlassian-operations.git
+          - git checkout -b test-bitbucket-branch
+          - git push origin master
