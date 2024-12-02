@@ -28,7 +28,7 @@ definitions:
     - step: &replicate-to-github
         name: Replicate main branch to GitHub
         script:
-          - git fetch && git checkout main && git pull
+          - git fetch --unshallow && git checkout main && git pull
           - git remote rename origin bitbucket
           - git remote add origin git@github.com:atlassian/terraform-provider-atlassian-operations.git
           - git pull --rebase
