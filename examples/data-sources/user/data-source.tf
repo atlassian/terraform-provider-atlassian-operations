@@ -6,10 +6,7 @@ terraform {
   }
 }
 
+# Get Atlassian User by email address
 data "atlassian-operations_user" "example" {
-	email_address = "iozkaya@atlassian.com"
-}
-
-output "example" {
-	value = "data.atlassian-operations_user.example"
+  email_address = "email@example.com"
 }

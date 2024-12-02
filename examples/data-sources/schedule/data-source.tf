@@ -6,10 +6,7 @@ terraform {
   }
 }
 
+# Get Atlassian Operations Schedule by name
 data "atlassian-operations_schedule" "example" {
-	name = "Test schedule"
-}
-
-output "example" {
-	value = "data.atlassian-operations_team.example"
+  name = "Test schedule"
 }
