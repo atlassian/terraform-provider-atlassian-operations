@@ -39,7 +39,7 @@ The process to run the provider in a local environment requires the following st
 
 ### 1. Requirements
 
-This project requires the following programs to be installed on your computer, and their main executables to be 
+This project requires the following programs to be installed on your computer, and their main executables to be
 available in your PATH:
 
 -	[Go](https://golang.org/doc/install) 1.22 (or higher, to build the provider plugin)
@@ -49,12 +49,12 @@ available in your PATH:
 ### 2. Cloning the repository
 
 ```bash
-git clone git@bitbucket.org:jira-service-management/terraform-provider-atlassian-operations.git
+git clone git@github.com:atlassian/terraform-provider-atlassian-operations.git
 ```
 
 ### 3. Compiling & Installing
 _Make sure that go is already installed and the command is available on your path.
-Check the [Go Documentation](https://go.dev/wiki/SettingGOPATH) for instructions on how to add the 
+Check the [Go Documentation](https://go.dev/wiki/SettingGOPATH) for instructions on how to add the
 go executable to your path, if not already added._
 
 While in the project directory, run the following commands:
@@ -70,7 +70,7 @@ go env GOPATH
 ```
 
 ### 4. Setting local overrides
-This step is required for Terraform to use the plugin executable that you just compiled, 
+This step is required for Terraform to use the plugin executable that you just compiled,
 instead of the one downloaded from the Terraform Registry.
 
 * For macOS & Linux: Create a file called `.terraformrc` in your `$HOME` directory
@@ -80,9 +80,9 @@ Add the following content to the file:
 
 ```hcl
 provider_installation {
-  
-  # "/Users/<YOUR_USERNAME>/go/bin" is the path to the compiled provider ($GOPATH/bin).
-  # Change it accordingly if your configuration is different.
+
+   # "/Users/<YOUR_USERNAME>/go/bin" is the path to the compiled provider ($GOPATH/bin).
+   # Change it accordingly if your configuration is different.
    dev_overrides {
       # Replace <YOUR_USERNAME> with your username
       "registry.terraform.io/atlassian/atlassian-operations" = "/Users/<YOUR_USERNAME>/go/bin"
@@ -101,27 +101,27 @@ provider_installation {
 
    ```hcl
    terraform {
-      required_providers {
-         atlassian-operations = {
-            source = "registry.terraform.io/atlassian/atlassian-operations"
-         }
+   required_providers {
+      atlassian-operations = {
+         source = "registry.terraform.io/atlassian/atlassian-operations"
       }
    }
-   
-   provider "atlassian-operations" {
-      cloud_id = "<YOUR_CLOUD_ID>"
-      domain_name="<YOUR_DOMAIN>"      // e.g. domain.atlassian.net
-      email_address = "<YOUR_EMAIL_ADDRESS>"     // e.g. user@example.com
-      token = "<YOUR_TOKEN_HERE>"   // e.g. API token created in Atlassian account settings
-   }
-   
-   data "atlassian-operations_user" "example" {
-      email_address = "user1@example.com"
-   }
-   
-   output "example" {
-      value = "data.atlassian-operations_user.example"
-   }
+}
+
+provider "atlassian-operations" {
+   cloud_id = "<YOUR_CLOUD_ID>"
+   domain_name="<YOUR_DOMAIN>"      // e.g. domain.atlassian.net
+   email_address = "<YOUR_EMAIL_ADDRESS>"     // e.g. user@example.com
+   token = "<YOUR_TOKEN_HERE>"   // e.g. API token created in Atlassian account settings
+}
+
+data "atlassian-operations_user" "example" {
+   email_address = "user1@example.com"
+}
+
+output "example" {
+   value = "data.atlassian-operations_user.example"
+}
    ```
 
 Instead of providing values in the _provider_ block directly, you can also set the following environment variables:
@@ -133,13 +133,13 @@ export ATLASSIAN_OPS_API_EMAIL_ADDRESS=YOUR_EMAIL_ADDRESS
 export ATLASSIAN_OPS_API_TOKEN=YOUR_TOKEN
 ```
 
-_If you do not want to debug the provider with a debugger, and would like to simply execute the Terraform file you 
+_If you do not want to debug the provider with a debugger, and would like to simply execute the Terraform file you
 just created, you can skip the next part and jump directly to [Running Without Debugging](#53-running-without-debugging)_
 
 #### 5.2. Enable Debugging
 
-To enable debugging for the provider and make it connect to Delve before carrying on with the execution of the 
-instructions in the .tf file, you need to set the `debug` flag to `true`, via altering the `flag.BoolVar` statement in 
+To enable debugging for the provider and make it connect to Delve before carrying on with the execution of the
+instructions in the .tf file, you need to set the `debug` flag to `true`, via altering the `flag.BoolVar` statement in
 the `main.tf` file:
 
 ```go
@@ -148,25 +148,25 @@ import "flag"
 // ...
 
 func main() {
-	var debug bool
+   var debug bool
 
-	flag.BoolVar(&debug, "debug", true, "set to true to run the provider with support for debuggers like delve")
-	flag.Parse()
+   flag.BoolVar(&debug, "debug", true, "set to true to run the provider with support for debuggers like delve")
+   flag.Parse()
 
-	// Rest of the main.go file
+   // Rest of the main.go file
 }
 ```
 This will make the provider executable pause the execution and wait for a debugger to connect before proceeding.
 
-With the default configuration, the provider binary is compiled **without debug information**. 
-To include the necessary debug information within the library, you need to build the provider with the 
+With the default configuration, the provider binary is compiled **without debug information**.
+To include the necessary debug information within the library, you need to build the provider with the
 -gcflags="all=-N -l" flag. Afterward, you can run and attach the process to the Delve debugger with the `dlv` command.
 
 ```bash
 go build -gcflags="all=-N -l" .
 dlv exec --accept-multiclient --continue --headless ./terraform_provider_jsm_ops -- -debug
 ```
-_Most IDEs do building with debug flags and attaching to Delve debugger in the background automatically when the 
+_Most IDEs do building with debug flags and attaching to Delve debugger in the background automatically when the
 debugger is run from within their UI._
 
 When the provider executable is run with this configuration, it will output a message similar to the following:
@@ -181,7 +181,7 @@ Provider started. To attach Terraform CLI, set the TF_REATTACH_PROVIDERS environ
         TF_REATTACH_PROVIDERS='{"registry.terraform.io/atlassian/atlassian-operations":{"Protocol":"grpc","ProtocolVersion":6,"Pid":47822,"Test":true,"Addr":{"Network":"unix","String":"/var/folders/5n/wcvl0l8d4nx15qz3jy9jn7wh0000gn/T/plugin3023012805"}}}'
 ```
 
-Simply follow the instructions as they are prompted. Either set the `TF_REATTACH_PROVIDERS` environment variable in 
+Simply follow the instructions as they are prompted. Either set the `TF_REATTACH_PROVIDERS` environment variable in
 your terminal, or prepend it to your every Terraform command.
 
 * Set the environment variable:
@@ -195,7 +195,7 @@ TF_REATTACH_PROVIDERS=<_PROMPTED_STRING_AT_THE_DEBUG_CONSOLE_> terraform plan
 TF_REATTACH_PROVIDERS=<_PROMPTED_STRING_AT_THE_DEBUG_CONSOLE_> terraform apply
 ```
 
-More information on how to use Delve with Terraform can be found in the 
+More information on how to use Delve with Terraform can be found in the
 [Terraform documentation](https://developer.hashicorp.com/terraform/plugin/debugging).
 
 ### 6. Running Acceptance Tests

@@ -25,11 +25,23 @@ definitions:
         image: golangci/golangci-lint:v1.31.0
         script:
           - golangci-lint run -v
+    - step: &replicate-to-github
+        name: Replicate main branch to GitHub
+        script:
+          - git fetch --unshallow && git checkout main && git pull
+          - git remote rename origin bitbucket
+          - git remote add origin git@github.com:atlassian/terraform-provider-atlassian-operations.git
+          - git pull --rebase
+          - git checkout -b release-from-bitbucket
+          - git push --set-upstream origin release-from-bitbucket --force
 
 pipelines:
   default:
     - parallel:
         - step: *build
+  custom:
+    replicate-to-github:
+        - step: *replicate-to-github
   pull-requests:
     '**':
       - step: *test

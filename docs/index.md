@@ -14,7 +14,10 @@ description: |-
 
 ```terraform
 provider "atlassian-operations" {
-  # example configuration here
+  cloud_id    = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  domain_name = "xxxx.atlassian.net"
+  username    = "email@example.com"
+  token    = "<YOUR_TOKEN_HERE>"
 }
 ```
 
@@ -25,5 +28,11 @@ provider "atlassian-operations" {
 
 - `cloud_id` (String)
 - `domain_name` (String)
-- `password` (String, Sensitive)
 - `email_address` (String)
+- `token` (String, Sensitive)
+
+### Optional
+
+- `api_retry_count` (Number)
+- `api_retry_wait` (Number)
+- `api_retry_wait_max` (Number)
