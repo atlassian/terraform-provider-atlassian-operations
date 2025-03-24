@@ -3,19 +3,24 @@ package httpClient
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
-	urlpkg "net/url"
+	"time"
 )
 
 type (
-	RequestMethod string
-	Request       struct {
+	OnRetryFunc        func(*Request) error
+	RetryConditionFunc func(*Response, error) bool
+	RequestMethod      string
+	Request            struct {
 		innerRequest    *retryablehttp.Request
+		innerClient     *retryablehttp.Client
 		parseBodyObject any
 		response        *Response
-		Client          *HttpClient
+		onRetryFuncs    []OnRetryFunc
+		retryConditions []RetryConditionFunc
 	}
 )
 
@@ -27,18 +32,20 @@ const (
 	PATCH  RequestMethod = http.MethodPatch
 )
 
-func NewRequest(client *HttpClient) *Request {
+func NewRequest() *Request {
 	inReq, _ := retryablehttp.NewRequest("", "", nil)
 	newReq := &Request{
-		innerRequest: inReq,
-		Client:       client,
+		innerRequest:    inReq,
+		innerClient:     retryablehttp.NewClient(),
+		onRetryFuncs:    make([]OnRetryFunc, 0),
+		retryConditions: make([]RetryConditionFunc, 0),
 	}
 	newReq.SetHeader("Content-Type", "application/json")
-	client.innerClient.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
-		return client.shouldRetryBecauseCondition(ctx, &Response{nativeResponse: resp}, err)
+	newReq.innerClient.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		return newReq.shouldRetryBecauseCondition(ctx, &Response{nativeResponse: resp}, err)
 	}
-	client.innerClient.PrepareRetry = func(req *http.Request) error {
-		for _, fun := range client.onRetryFuncs {
+	newReq.innerClient.PrepareRetry = func(req *http.Request) error {
+		for _, fun := range newReq.onRetryFuncs {
 			err := fun(newReq)
 			if err != nil {
 				return err
@@ -46,13 +53,63 @@ func NewRequest(client *HttpClient) *Request {
 		}
 		return nil
 	}
-	client.innerClient.ErrorHandler = func(resp *http.Response, err error, numTries int) (*http.Response, error) {
+	newReq.innerClient.ErrorHandler = func(resp *http.Response, err error, numTries int) (*http.Response, error) {
 		if err == nil {
 			return resp, fmt.Errorf("%s request giving up after %d attempt(s)", resp.Request.Method, numTries)
 		}
 		return resp, err
 	}
 	return newReq
+}
+
+func (receiver *Request) GetInnerClient() *retryablehttp.Client {
+	if receiver.innerClient == nil {
+		receiver.innerClient = retryablehttp.NewClient()
+	}
+	return receiver.innerClient
+}
+
+func (receiver *Request) SetRetryCount(count int) *Request {
+	receiver.innerClient.RetryMax = count
+	return receiver
+}
+
+func (receiver *Request) SetRetryWaitTime(waitTime time.Duration) *Request {
+	receiver.innerClient.RetryWaitMin = waitTime
+	return receiver
+}
+
+func (receiver *Request) SetRetryMaxWaitTime(maxWaitTime time.Duration) *Request {
+	receiver.innerClient.RetryWaitMax = maxWaitTime
+	return receiver
+}
+
+func (receiver *Request) AddRetryHook(hook OnRetryFunc) *Request {
+	receiver.onRetryFuncs = append(receiver.onRetryFuncs, hook)
+	return receiver
+}
+
+func (receiver *Request) AddRetryCondition(condition RetryConditionFunc) *Request {
+	receiver.retryConditions = append(receiver.retryConditions, condition)
+	return receiver
+}
+
+func (receiver *Request) shouldRetryBecauseCondition(ctx context.Context, resp *Response, err error) (bool, error) {
+	shouldRetry, _ := retryablehttp.DefaultRetryPolicy(ctx, resp.nativeResponse, err)
+	if !shouldRetry {
+		for _, fun := range receiver.retryConditions {
+			if fun(resp, err) {
+				shouldRetry = true
+				break
+			}
+		}
+	} else if err != nil {
+		var invalidUnmarshalError *json.InvalidUnmarshalError
+		if errors.As(err, &invalidUnmarshalError) {
+			shouldRetry = false
+		}
+	}
+	return shouldRetry, err
 }
 
 func (r *Request) SetBasicAuth(username, password string) *Request {
@@ -70,10 +127,12 @@ func (r *Request) SetOAuth2Auth(token string) *Request {
 	return r
 }
 
-func (r *Request) Url(url string) *Request {
-	parsedURL, _ := urlpkg.Parse(url)
-	parsedURL.RawQuery = r.innerRequest.URL.RawQuery
-	r.innerRequest.URL = parsedURL
+func (r *Request) SetUrl(url string) *Request {
+	parse, err := r.innerRequest.URL.Parse(url)
+	if err != nil {
+		return nil
+	}
+	r.innerRequest.URL = parse
 	return r
 }
 
@@ -166,7 +225,6 @@ func (r *Request) Send() (*Response, error) {
 		r.response = &clientResp
 		return retErr
 	})
-	client := r.Client.GetInnerClient()
-	_, err := client.Do(r.innerRequest)
+	_, err := r.innerClient.Do(r.innerRequest)
 	return r.response, err
 }

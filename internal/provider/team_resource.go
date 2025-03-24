@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -27,8 +28,7 @@ func NewTeamResource() resource.Resource {
 
 // TeamResource defines the resource implementation.
 type TeamResource struct {
-	teamClient *httpClient.HttpClient
-	opsClient  *httpClient.HttpClient
+	clientConfiguration dto.JsmopsProviderModel
 }
 
 func (r *TeamResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -49,7 +49,7 @@ func (r *TeamResource) Configure(ctx context.Context, req resource.ConfigureRequ
 		return
 	}
 
-	client, ok := req.ProviderData.(*JsmOpsClient)
+	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Unexpected Resource Configure Type")
@@ -60,8 +60,7 @@ func (r *TeamResource) Configure(ctx context.Context, req resource.ConfigureRequ
 		return
 	}
 
-	r.teamClient = client.TeamClient
-	r.opsClient = client.OpsClient
+	r.clientConfiguration = client
 
 	tflog.Trace(ctx, "Configured TeamResource")
 }
@@ -77,7 +76,8 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	tflog.Trace(ctx, "Creating the Team")
 
-	httpResp, err := r.teamClient.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateTeamsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("%s/teams/", teamDto.OrganizationId)).
 		Method(httpClient.POST).
 		SetBody(teamDto).
@@ -126,7 +126,8 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	if len(addedUsers) > 0 {
 		tflog.Trace(ctx, "Adding users to the team")
 		memberAddResponse := dto.PublicApiMembershipAddResponse{}
-		httpResp, err = r.teamClient.NewRequest().
+		httpResp, err = httpClientHelpers.
+			GenerateTeamsClientRequest(r.clientConfiguration).
 			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/add", teamDto.OrganizationId, teamDto.TeamId)).
 			Method(httpClient.POST).
 			SetBody(dto.TeamMemberList{Members: addedUsers}).
@@ -168,7 +169,8 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	if len(removedUsers) > 0 {
 		tflog.Trace(ctx, "Removing extra users from the team")
 		removeMemberResponse := dto.PublicApiMembershipRemoveResponse{}
-		httpResp, err = r.teamClient.NewRequest().
+		httpResp, err = httpClientHelpers.
+			GenerateTeamsClientRequest(r.clientConfiguration).
 			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/remove", teamDto.OrganizationId, teamDto.TeamId)).
 			Method(httpClient.POST).
 			SetBody(dto.TeamMemberList{Members: removedUsers}).
@@ -213,14 +215,14 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	// Enable OPS for the Team
-	httpResp, err = r.opsClient.
+	httpResp, err = httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		AddRetryCondition(func(response *httpClient.Response, err error) bool {
 			if response.GetStatusCode() == 404 {
 				return true
 			}
 			return false
 		}).
-		NewRequest().
 		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/enable-ops", teamDto.TeamId)).
 		Method(httpClient.POST).
 		SetBody(enableOpsBody).
@@ -272,7 +274,8 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	teamDto := dto.TeamDto{}
 
-	httpResp, err := r.teamClient.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateTeamsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.GET).
 		SetBodyParseObject(&teamDto).
@@ -349,7 +352,8 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	newTeamDto, newUsersDto := TeamModelToDto(ctx, newData)
 	_, currentUsersDto := TeamModelToDto(ctx, currentData)
 
-	httpResp, err := r.teamClient.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateTeamsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", newData.OrganizationId.ValueString(), newData.Id.ValueString())).
 		Method(httpClient.PATCH).
 		SetBody(newTeamDto).
@@ -384,7 +388,8 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	if len(addedUsers) > 0 {
 		tflog.Trace(ctx, "Adding new team members")
-		httpResp, err = r.teamClient.NewRequest().
+		httpResp, err = httpClientHelpers.
+			GenerateTeamsClientRequest(r.clientConfiguration).
 			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/add", newData.OrganizationId.ValueString(), newData.Id.ValueString())).
 			Method(httpClient.POST).
 			SetBody(dto.TeamMemberList{Members: addedUsers}).
@@ -417,7 +422,8 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	if len(removedUsers) > 0 {
 		tflog.Trace(ctx, "Removing old team members")
 		removeMembersResponse := dto.PublicApiMembershipRemoveResponse{}
-		httpResp, err = r.teamClient.NewRequest().
+		httpResp, err = httpClientHelpers.
+			GenerateTeamsClientRequest(r.clientConfiguration).
 			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/remove", currentData.OrganizationId.ValueString(), currentData.Id.ValueString())).
 			Method(httpClient.POST).
 			SetBody(dto.TeamMemberList{Members: removedUsers}).
@@ -471,7 +477,8 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 	tflog.Trace(ctx, "Deleting the TeamResource")
 
-	httpResp, err := r.teamClient.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateTeamsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.DELETE).
 		Send()
@@ -523,7 +530,8 @@ func (r *TeamResource) fetchTeamMembers(organizationId string, teamId string) ([
 	for !doneLooping {
 		response := dto.TeamMemberListResponse{}
 
-		httpResp, err := r.teamClient.NewRequest().
+		httpResp, err := httpClientHelpers.
+			GenerateTeamsClientRequest(r.clientConfiguration).
 			JoinBaseUrl(fmt.Sprintf("/%s/teams/%s/members", organizationId, teamId)).
 			Method("POST").
 			SetBody(request).
@@ -553,7 +561,8 @@ func (r *TeamResource) fetchTeamMembers(organizationId string, teamId string) ([
 }
 
 func (r *TeamResource) cleanupTeamSilent(teamDto dto.TeamDto) {
-	_, _ = r.teamClient.NewRequest().
+	_, _ = httpClientHelpers.
+		GenerateTeamsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", teamDto.OrganizationId, teamDto.TeamId)).
 		Method(httpClient.DELETE).
 		Send()

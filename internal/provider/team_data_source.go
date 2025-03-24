@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -26,7 +27,7 @@ func NewTeamDataSource() datasource.DataSource {
 
 // teamDataSource defines the data source implementation.
 type teamDataSource struct {
-	client *JsmOpsClient
+	clientConfiguration dto.JsmopsProviderModel
 }
 
 func (d *teamDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -47,7 +48,7 @@ func (d *teamDataSource) Configure(ctx context.Context, req datasource.Configure
 		return
 	}
 
-	client, ok := req.ProviderData.(*JsmOpsClient)
+	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Cannot configure team_data_source."+
@@ -61,7 +62,7 @@ func (d *teamDataSource) Configure(ctx context.Context, req datasource.Configure
 		return
 	}
 
-	d.client = client
+	d.clientConfiguration = client
 	tflog.Trace(ctx, "Configured team_data_source")
 }
 
@@ -93,8 +94,8 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	tflog.Trace(ctx, "Sending HTTP request to JSM Teams API")
 
-	clientResp, err := d.client.TeamClient.
-		NewRequest().
+	clientResp, err := httpClientHelpers.
+		GenerateTeamsClientRequest(d.clientConfiguration).
 		Method("GET").
 		JoinBaseUrl(teamFetchUrl).
 		SetQueryParam("siteId", model.SiteId.ValueString()).
@@ -123,8 +124,8 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	tflog.Trace(ctx, "Sending HTTP request to JSM Team Members API")
 
-	clientResp, err = d.client.TeamClient.
-		NewRequest().
+	clientResp, err = httpClientHelpers.
+		GenerateTeamsClientRequest(d.clientConfiguration).
 		Method("POST").
 		JoinBaseUrl(teamMembersFetchUrl).
 		SetBodyParseObject(&memberData).

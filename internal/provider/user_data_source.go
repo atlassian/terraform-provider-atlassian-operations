@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
-	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -27,7 +27,7 @@ func NewUserDataSource() datasource.DataSource {
 
 // userDataSource defines the data source implementation.
 type userDataSource struct {
-	client *httpClient.HttpClient
+	clientConfiguration dto.JsmopsProviderModel
 }
 
 func (d *userDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -49,7 +49,7 @@ func (d *userDataSource) Configure(ctx context.Context, req datasource.Configure
 		return
 	}
 
-	client, ok := req.ProviderData.(*JsmOpsClient)
+	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Cannot configure user_data_source."+
@@ -63,7 +63,7 @@ func (d *userDataSource) Configure(ctx context.Context, req datasource.Configure
 		return
 	}
 
-	d.client = client.UserClient
+	d.clientConfiguration = client
 	tflog.Trace(ctx, "Configured user_data_source")
 }
 
@@ -83,7 +83,8 @@ func (d *userDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	tflog.Trace(ctx, "Sending HTTP request to JSM User API")
 
-	clientResp, err := d.client.NewRequest().
+	clientResp, err := httpClientHelpers.
+		GenerateUserClientRequest(d.clientConfiguration).
 		Method("GET").
 		JoinBaseUrl("/search").
 		SetQueryParams(map[string]string{
@@ -119,7 +120,8 @@ func (d *userDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	clientResp, err = d.client.NewRequest().
+	clientResp, err = httpClientHelpers.
+		GenerateUserClientRequest(d.clientConfiguration).
 		Method("GET").
 		SetQueryParams(map[string]string{
 			"accountId": data[0].AccountId,
