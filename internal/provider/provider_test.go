@@ -7,8 +7,8 @@ import (
 
 const (
 	// providerConfig is a shared configuration to combine with the actual
-	// test configuration so the client is properly configured.
-	// Use environment variables to configure the client.
+	// test configuration so the clientConfiguration is properly configured.
+	// Use environment variables to configure the clientConfiguration.
 	providerConfig = `
 provider "atlassian-operations" {
 	cloud_id = ""

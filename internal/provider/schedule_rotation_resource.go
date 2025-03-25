@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -29,7 +30,7 @@ func NewScheduleRotationResource() resource.Resource {
 
 // ScheduleRotationResource defines the resource implementation.
 type ScheduleRotationResource struct {
-	client *httpClient.HttpClient
+	clientConfiguration dto.JsmopsProviderModel
 }
 
 func (r *ScheduleRotationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -50,7 +51,7 @@ func (r *ScheduleRotationResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	client, ok := req.ProviderData.(*JsmOpsClient)
+	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Unexpected Resource Configure Type")
@@ -61,7 +62,7 @@ func (r *ScheduleRotationResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	r.client = client.OpsClient
+	r.clientConfiguration = client
 
 	tflog.Trace(ctx, "Configured ScheduleRotationResource")
 }
@@ -77,7 +78,8 @@ func (r *ScheduleRotationResource) Create(ctx context.Context, req resource.Crea
 	plannedDto := RotationModelToDto(ctx, data)
 	rotationDto := RotationModelToDto(ctx, data)
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations", data.ScheduleId.ValueString())).
 		Method(httpClient.POST).
 		SetBody(rotationDto).
@@ -141,7 +143,8 @@ func (r *ScheduleRotationResource) Read(ctx context.Context, req resource.ReadRe
 
 	rotationDto := dto.Rotation{}
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations/%s", data.ScheduleId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.GET).
 		SetBodyParseObject(&rotationDto).
@@ -194,7 +197,8 @@ func (r *ScheduleRotationResource) Update(ctx context.Context, req resource.Upda
 	newDto := dto.Rotation{}
 	existingRotationDto := RotationModelToDto(ctx, existingData)
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations/%s", data.ScheduleId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.PATCH).
 		SetBody(plannedDto).
@@ -256,7 +260,8 @@ func (r *ScheduleRotationResource) Delete(ctx context.Context, req resource.Dele
 
 	tflog.Trace(ctx, "Deleting the ScheduleRotationResource")
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations/%s", data.ScheduleId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.DELETE).
 		Send()
@@ -316,14 +321,16 @@ func areUserListsEqual(givenUserList []dto.ResponderInfo, receivedUserList []dto
 }
 
 func cleanupRotationSilent(r *ScheduleRotationResource, scheduleID string, rotationID string) {
-	_, _ = r.client.NewRequest().
+	_, _ = httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations/%s", scheduleID, rotationID)).
 		Method(httpClient.DELETE).
 		Send()
 }
 
 func restoreRotationSlient(r *ScheduleRotationResource, scheduleID string, rotationDto dto.Rotation) {
-	_, _ = r.client.NewRequest().
+	_, _ = httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s/rotations/%s", scheduleID, rotationDto.Id)).
 		Method(httpClient.PATCH).
 		SetBody(rotationDto).

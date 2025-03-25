@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -26,7 +27,7 @@ func NewApiIntegrationResource() resource.Resource {
 
 // ApiIntegrationResource defines the resource implementation.
 type ApiIntegrationResource struct {
-	client *httpClient.HttpClient
+	clientConfiguration dto.JsmopsProviderModel
 }
 
 func (r *ApiIntegrationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -47,7 +48,7 @@ func (r *ApiIntegrationResource) Configure(ctx context.Context, req resource.Con
 		return
 	}
 
-	client, ok := req.ProviderData.(*JsmOpsClient)
+	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Unexpected Resource Configure Type")
@@ -58,7 +59,7 @@ func (r *ApiIntegrationResource) Configure(ctx context.Context, req resource.Con
 		return
 	}
 
-	r.client = client.OpsClient
+	r.clientConfiguration = client
 
 	tflog.Trace(ctx, "Configured ApiIntegrationResource")
 }
@@ -72,7 +73,8 @@ func (r *ApiIntegrationResource) Create(ctx context.Context, req resource.Create
 
 	dtoObj := ApiIntegrationModelToDto(ctx, data)
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl("v1/integrations").
 		Method(httpClient.POST).
 		SetBody(dtoObj).
@@ -120,7 +122,8 @@ func (r *ApiIntegrationResource) Read(ctx context.Context, req resource.ReadRequ
 
 	ApiIntegration := dto.ApiIntegration{}
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s", data.Id.ValueString())).
 		Method(httpClient.GET).
 		SetBodyParseObject(&ApiIntegration).
@@ -167,7 +170,8 @@ func (r *ApiIntegrationResource) Update(ctx context.Context, req resource.Update
 
 	dtoObj := ApiIntegrationModelToDto(ctx, data)
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s", data.Id.ValueString())).
 		Method(httpClient.PATCH).
 		SetBody(dtoObj).
@@ -213,7 +217,8 @@ func (r *ApiIntegrationResource) Delete(ctx context.Context, req resource.Delete
 
 	tflog.Trace(ctx, "Deleting the ApiIntegrationResource")
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s", data.Id.ValueString())).
 		Method(httpClient.DELETE).
 		Send()
