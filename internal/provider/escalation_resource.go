@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -27,7 +28,7 @@ func NewEscalationResource() resource.Resource {
 
 // EscalationResource defines the resource implementation.
 type EscalationResource struct {
-	client *httpClient.HttpClient
+	clientConfiguration dto.JsmopsProviderModel
 }
 
 func (r *EscalationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -48,7 +49,7 @@ func (r *EscalationResource) Configure(ctx context.Context, req resource.Configu
 		return
 	}
 
-	client, ok := req.ProviderData.(*JsmOpsClient)
+	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Unexpected Resource Configure Type")
@@ -59,7 +60,7 @@ func (r *EscalationResource) Configure(ctx context.Context, req resource.Configu
 		return
 	}
 
-	r.client = client.OpsClient
+	r.clientConfiguration = client
 
 	tflog.Trace(ctx, "Configured EscalationResource")
 }
@@ -73,7 +74,8 @@ func (r *EscalationResource) Create(ctx context.Context, req resource.CreateRequ
 
 	escalationDto := EscalationModelToDto(ctx, data)
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/escalations", data.TeamId.ValueString())).
 		Method(httpClient.POST).
 		SetBody(escalationDto).
@@ -121,7 +123,8 @@ func (r *EscalationResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	escalationDto := dto.EscalationDto{}
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/escalations/%s", data.TeamId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.GET).
 		SetBodyParseObject(&escalationDto).
@@ -168,7 +171,8 @@ func (r *EscalationResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	escalationDto := EscalationModelToDto(ctx, data)
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/escalations/%s", data.TeamId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.PATCH).
 		SetBody(escalationDto).
@@ -218,7 +222,8 @@ func (r *EscalationResource) Delete(ctx context.Context, req resource.DeleteRequ
 
 	tflog.Trace(ctx, "Deleting the EscalationResource")
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/escalations/%s", data.TeamId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.DELETE).
 		Send()

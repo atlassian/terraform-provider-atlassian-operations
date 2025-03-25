@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -26,7 +27,7 @@ func NewEmailIntegrationResource() resource.Resource {
 
 // EmailIntegrationResource defines the resource implementation.
 type EmailIntegrationResource struct {
-	client *httpClient.HttpClient
+	clientConfiguration dto.JsmopsProviderModel
 }
 
 func (r *EmailIntegrationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -47,7 +48,7 @@ func (r *EmailIntegrationResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	client, ok := req.ProviderData.(*JsmOpsClient)
+	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Unexpected Resource Configure Type")
@@ -58,7 +59,7 @@ func (r *EmailIntegrationResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	r.client = client.OpsClient
+	r.clientConfiguration = client
 
 	tflog.Trace(ctx, "Configured EmailIntegrationResource")
 }
@@ -72,7 +73,8 @@ func (r *EmailIntegrationResource) Create(ctx context.Context, req resource.Crea
 
 	emailIntegrationModelToDto := EmailIntegrationModelToDto(ctx, data)
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl("v1/integrations").
 		Method(httpClient.POST).
 		SetBody(emailIntegrationModelToDto).
@@ -120,7 +122,8 @@ func (r *EmailIntegrationResource) Read(ctx context.Context, req resource.ReadRe
 
 	emailIntegration := dto.EmailIntegration{}
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s", data.Id.ValueString())).
 		Method(httpClient.GET).
 		SetBodyParseObject(&emailIntegration).
@@ -167,7 +170,8 @@ func (r *EmailIntegrationResource) Update(ctx context.Context, req resource.Upda
 
 	email := EmailIntegrationModelToDto(ctx, data)
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s", data.Id.ValueString())).
 		Method(httpClient.PATCH).
 		SetBody(email).
@@ -217,7 +221,8 @@ func (r *EmailIntegrationResource) Delete(ctx context.Context, req resource.Dele
 
 	tflog.Trace(ctx, "Deleting the EmailIntegrationResource")
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s", data.Id.ValueString())).
 		Method(httpClient.DELETE).
 		Send()

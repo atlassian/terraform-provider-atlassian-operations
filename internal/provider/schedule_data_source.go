@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
-	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -27,7 +27,7 @@ func NewScheduleDataSource() datasource.DataSource {
 
 // ScheduleDataSource defines the data source implementation.
 type ScheduleDataSource struct {
-	client *httpClient.HttpClient
+	clientConfiguration dto.JsmopsProviderModel
 }
 
 func (d *ScheduleDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -48,7 +48,7 @@ func (d *ScheduleDataSource) Configure(ctx context.Context, req datasource.Confi
 		return
 	}
 
-	client, ok := req.ProviderData.(*JsmOpsClient)
+	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Cannot configure schedule_data_source."+
@@ -62,7 +62,7 @@ func (d *ScheduleDataSource) Configure(ctx context.Context, req datasource.Confi
 		return
 	}
 
-	d.client = client.OpsClient
+	d.clientConfiguration = client
 	tflog.Trace(ctx, "Configured schedule_data_source")
 }
 
@@ -81,7 +81,8 @@ func (d *ScheduleDataSource) Read(ctx context.Context, req datasource.ReadReques
 
 	tflog.Trace(ctx, "Sending HTTP request to JSM OPS API")
 
-	clientResp, err := d.client.NewRequest().
+	clientResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(d.clientConfiguration).
 		Method("GET").
 		JoinBaseUrl("/v1/schedules/").
 		SetQueryParams(map[string]string{

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -26,7 +27,7 @@ func NewScheduleResource() resource.Resource {
 
 // ScheduleResource defines the resource implementation.
 type ScheduleResource struct {
-	client *httpClient.HttpClient
+	clientConfiguration dto.JsmopsProviderModel
 }
 
 func (r *ScheduleResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -47,7 +48,7 @@ func (r *ScheduleResource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	client, ok := req.ProviderData.(*JsmOpsClient)
+	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Unexpected Resource Configure Type")
@@ -58,7 +59,7 @@ func (r *ScheduleResource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	r.client = client.OpsClient
+	r.clientConfiguration = client
 
 	tflog.Trace(ctx, "Configured ScheduleResource")
 }
@@ -72,7 +73,8 @@ func (r *ScheduleResource) Create(ctx context.Context, req resource.CreateReques
 
 	scheduleDto := ScheduleModelToDto(data)
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl("v1/schedules").
 		Method(httpClient.POST).
 		SetBody(scheduleDto).
@@ -132,7 +134,8 @@ func (r *ScheduleResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 	scheduleDto := dto.Schedule{}
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s", data.Id.ValueString())).
 		Method(httpClient.GET).
 		SetBodyParseObject(&scheduleDto).
@@ -179,7 +182,8 @@ func (r *ScheduleResource) Update(ctx context.Context, req resource.UpdateReques
 
 	scheduleDto := ScheduleModelToDto(data)
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s", data.Id.ValueString())).
 		Method(httpClient.PATCH).
 		SetBody(scheduleDto).
@@ -234,7 +238,8 @@ func (r *ScheduleResource) Delete(ctx context.Context, req resource.DeleteReques
 
 	tflog.Trace(ctx, "Deleting the ScheduleResource")
 
-	httpResp, err := r.client.NewRequest().
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s", data.Id.ValueString())).
 		Method(httpClient.DELETE).
 		Send()
@@ -269,7 +274,8 @@ func (r *ScheduleResource) ImportState(ctx context.Context, req resource.ImportS
 }
 
 func cleanupScheduleSilent(r *ScheduleResource, data dto.Schedule) {
-	_, _ = r.client.NewRequest().
+	_, _ = httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("v1/schedules/%s", data.Id)).
 		Method(httpClient.DELETE).
 		Send()
