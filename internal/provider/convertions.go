@@ -1170,3 +1170,38 @@ func NotificationRuleDtoToModel(ctx context.Context, dto dto.NotificationRuleDto
 		Criteria:         criteria,
 	}
 }
+func UserContactModelToDto(model *dataModels.UserContactModel) dto.UserContactDto {
+	return dto.UserContactDto{
+		ID:      model.ID.ValueString(),
+		Method:  model.Method.ValueString(),
+		To:      model.To.ValueString(),
+		Enabled: model.Enabled.ValueBool(),
+	}
+}
+
+func UserContactDtoToModel(dto *dto.UserContactDto) *dataModels.UserContactModel {
+	return &dataModels.UserContactModel{
+		ID:      types.StringValue(dto.ID),
+		Method:  types.StringValue(dto.Method),
+		To:      types.StringValue(dto.To),
+		Enabled: types.BoolValue(dto.Enabled),
+	}
+}
+
+func UserContactCUDDtoToModel(dto *dto.UserContactCUDResponseDto, data *dataModels.UserContactModel) *dataModels.UserContactModel {
+	return &dataModels.UserContactModel{
+		ID:      types.StringValue(dto.Data.ID),
+		Method:  data.Method,
+		To:      data.To,
+		Enabled: data.Enabled,
+	}
+}
+
+func UserContactReadDtoToModel(dto *dto.UserContactDataReadResponseDto) *dataModels.UserContactModel {
+	return &dataModels.UserContactModel{
+		ID:      types.StringValue(dto.ID),
+		Method:  types.StringValue(dto.Method),
+		To:      types.StringValue(dto.To),
+		Enabled: types.BoolValue(dto.Status.Enabled),
+	}
+}
