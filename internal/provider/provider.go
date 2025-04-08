@@ -223,5 +223,6 @@ func (p *jsmopsProvider) Resources(_ context.Context) []func() resource.Resource
 		NewRoutingRuleResource,
 		NewNotificationRuleResource,
 		NewUserContactResource,
+		NewAlertPolicyResource,
 	}
 }
