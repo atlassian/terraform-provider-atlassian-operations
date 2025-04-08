@@ -1704,3 +1704,438 @@ func CustomRoleCUDDtoToModel(dto *dto.CustomRoleCUDResponseDto, data *dataModels
 		DisallowedRights: data.DisallowedRights,
 	}
 }
+
+func NotificationPolicyModelToDto(ctx context.Context, model *dataModels.NotificationPolicyModel) (*dto.NotificationPolicyDto, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if model == nil {
+		return nil, diags
+	}
+
+	// Convert Filter
+	var filter *dto.NotificationFilterDto
+	if !(model.Filter.IsNull() || model.Filter.IsUnknown()) {
+		var filterModel dataModels.NotificationFilterModel
+		diags.Append(model.Filter.As(ctx, &filterModel, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		filter = &dto.NotificationFilterDto{
+			Type: filterModel.Type.ValueString(),
+		}
+
+		if !(filterModel.Conditions.IsNull() || filterModel.Conditions.IsUnknown()) {
+			var conditions []dataModels.NotificationConditionModel
+			diags.Append(filterModel.Conditions.ElementsAs(ctx, &conditions, false)...)
+			if diags.HasError() {
+				return nil, diags
+			}
+
+			filter.Conditions = make([]dto.NotificationConditionDto, len(conditions))
+			for i, condition := range conditions {
+				filter.Conditions[i] = dto.NotificationConditionDto{
+					Field:         condition.Field.ValueString(),
+					Key:           condition.Key.ValueString(),
+					Not:           condition.Not.ValueBool(),
+					Operation:     condition.Operation.ValueString(),
+					ExpectedValue: condition.ExpectedValue.ValueString(),
+					Order:         int(condition.Order.ValueInt64()),
+				}
+			}
+		}
+	}
+
+	// Convert TimeRestriction
+	var timeRestriction *dto.NotificationPolicyTimeRestrictionDto
+	if !(model.TimeRestriction.IsNull() || model.TimeRestriction.IsUnknown()) {
+		var trModel dataModels.NotificationPolicyTimeRestrictionModel
+		diags.Append(model.TimeRestriction.As(ctx, &trModel, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		timeRestriction = &dto.NotificationPolicyTimeRestrictionDto{
+			Enabled: trModel.Enabled.ValueBool(),
+		}
+
+		if !(trModel.TimeRestrictions.IsNull() || trModel.TimeRestrictions.IsUnknown()) {
+			var periods []dataModels.NotificationPolicyTimeRestrictionSettingsModel
+			diags.Append(trModel.TimeRestrictions.ElementsAs(ctx, &periods, false)...)
+			if diags.HasError() {
+				return nil, diags
+			}
+
+			timeRestriction.TimeRestrictions = make([]dto.NotificationPolicyTimeRestrictionSettingsDto, len(periods))
+			for i, period := range periods {
+				timeRestriction.TimeRestrictions[i] = dto.NotificationPolicyTimeRestrictionSettingsDto{
+					StartHour:   int(period.StartHour.ValueInt64()),
+					StartMinute: int(period.StartMinute.ValueInt64()),
+					EndHour:     int(period.EndHour.ValueInt64()),
+					EndMinute:   int(period.EndMinute.ValueInt64()),
+				}
+			}
+		}
+	}
+
+	// Convert AutoRestartAction
+	var autoRestartAction *dto.AutoRestartActionDto
+	if !(model.AutoRestartAction.IsNull() || model.AutoRestartAction.IsUnknown()) {
+		var actionModel dataModels.AutoRestartActionModel
+		diags.Append(model.AutoRestartAction.As(ctx, &actionModel, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		autoRestartAction = &dto.AutoRestartActionDto{
+			WaitDuration:   int(actionModel.WaitDuration.ValueInt64()),
+			MaxRepeatCount: int(actionModel.MaxRepeatCount.ValueInt64()),
+			DurationFormat: actionModel.DurationFormat.ValueString(),
+		}
+	}
+
+	// Convert AutoCloseAction
+	var autoCloseAction *dto.AutoCloseActionDto
+	if !(model.AutoCloseAction.IsNull() || model.AutoCloseAction.IsUnknown()) {
+		var actionModel dataModels.AutoCloseActionModel
+		diags.Append(model.AutoCloseAction.As(ctx, &actionModel, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		autoCloseAction = &dto.AutoCloseActionDto{
+			WaitDuration:   int(actionModel.WaitDuration.ValueInt64()),
+			DurationFormat: actionModel.DurationFormat.ValueString(),
+		}
+	}
+
+	// Convert DeduplicationAction
+	var deduplicationAction *dto.DeduplicationActionDto
+	if !(model.DeduplicationAction.IsNull() || model.DeduplicationAction.IsUnknown()) {
+		var actionModel dataModels.DeduplicationActionModel
+		diags.Append(model.DeduplicationAction.As(ctx, &actionModel, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		deduplicationAction = &dto.DeduplicationActionDto{
+			DeduplicationActionType: actionModel.DeduplicationActionType.ValueString(),
+			Frequency:               int(actionModel.Frequency.ValueInt64()),
+			CountValueLimit:         int(actionModel.CountValueLimit.ValueInt64()),
+			WaitDuration:            int(actionModel.WaitDuration.ValueInt64()),
+			DurationFormat:          actionModel.DurationFormat.ValueString(),
+		}
+	}
+
+	// Convert DelayAction
+	var delayAction *dto.DelayActionDto
+	if !(model.DelayAction.IsNull() || model.DelayAction.IsUnknown()) {
+		var actionModel dataModels.DelayActionModel
+		diags.Append(model.DelayAction.As(ctx, &actionModel, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var delayTime *dto.DelayTimeDto
+		if !(actionModel.DelayTime.IsNull() || actionModel.DelayTime.IsUnknown()) {
+			var delayTimeModel dataModels.DelayActionDelayTimeModel
+			diags.Append(actionModel.DelayTime.As(ctx, &delayTimeModel, basetypes.ObjectAsOptions{})...)
+			if diags.HasError() {
+				return nil, diags
+			}
+
+			delayTime = &dto.DelayTimeDto{
+				Hours:   int(delayTimeModel.Hours.ValueInt64()),
+				Minutes: int(delayTimeModel.Minutes.ValueInt64()),
+			}
+		} else {
+			delayTime = &dto.DelayTimeDto{}
+		}
+
+		delayAction = &dto.DelayActionDto{
+			DelayTime:      delayTime,
+			DelayOption:    actionModel.DelayOption.ValueString(),
+			WaitDuration:   int(actionModel.WaitDuration.ValueInt64()),
+			DurationFormat: actionModel.DurationFormat.ValueString(),
+		}
+	}
+
+	return &dto.NotificationPolicyDto{
+		ID:                  model.ID.ValueString(),
+		Type:                model.Type.ValueString(),
+		Name:                model.Name.ValueString(),
+		Description:         model.Description.ValueString(),
+		TeamID:              model.TeamID.ValueString(),
+		Enabled:             model.Enabled.ValueBool(),
+		Order:               model.Order.ValueFloat64(),
+		Filter:              filter,
+		TimeRestriction:     timeRestriction,
+		AutoRestartAction:   autoRestartAction,
+		AutoCloseAction:     autoCloseAction,
+		DeduplicationAction: deduplicationAction,
+		DelayAction:         delayAction,
+		Suppress:            model.Suppress.ValueBool(),
+	}, diags
+}
+
+func NotificationPolicyDtoToModel(ctx context.Context, dto *dto.NotificationPolicyDto) (*dataModels.NotificationPolicyModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if dto == nil {
+		return nil, diags
+	}
+
+	// Convert Filter
+	var filter types.Object
+	if dto.Filter != nil {
+		conditions := make([]attr.Value, len(dto.Filter.Conditions))
+		for i, condition := range dto.Filter.Conditions {
+			conditionCustomKey := types.StringNull()
+			if condition.Key != "" {
+				conditionCustomKey = types.StringValue(condition.Key)
+			}
+			conditions[i] = types.ObjectValueMust(
+				map[string]attr.Type{
+					"field":          types.StringType,
+					"key":            types.StringType,
+					"not":            types.BoolType,
+					"operation":      types.StringType,
+					"expected_value": types.StringType,
+					"order":          types.Int64Type,
+				},
+				map[string]attr.Value{
+					"field":          types.StringValue(condition.Field),
+					"key":            conditionCustomKey,
+					"not":            types.BoolValue(condition.Not),
+					"operation":      types.StringValue(condition.Operation),
+					"expected_value": types.StringValue(condition.ExpectedValue),
+					"order":          types.Int64Value(int64(condition.Order)),
+				},
+			)
+		}
+
+		filter = types.ObjectValueMust(
+			map[string]attr.Type{
+				"type": types.StringType,
+				"conditions": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+					"field":          types.StringType,
+					"key":            types.StringType,
+					"not":            types.BoolType,
+					"operation":      types.StringType,
+					"expected_value": types.StringType,
+					"order":          types.Int64Type,
+				}}},
+			},
+			map[string]attr.Value{
+				"type": types.StringValue(dto.Filter.Type),
+				"conditions": types.ListValueMust(types.ObjectType{AttrTypes: map[string]attr.Type{
+					"field":          types.StringType,
+					"key":            types.StringType,
+					"not":            types.BoolType,
+					"operation":      types.StringType,
+					"expected_value": types.StringType,
+					"order":          types.Int64Type,
+				}}, conditions),
+			},
+		)
+	} else {
+		filter = types.ObjectNull(map[string]attr.Type{
+			"type": types.StringType,
+			"conditions": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+				"field":          types.StringType,
+				"key":            types.StringType,
+				"not":            types.BoolType,
+				"operation":      types.StringType,
+				"expected_value": types.StringType,
+				"order":          types.Int64Type,
+			}}},
+		})
+	}
+
+	// Convert TimeRestriction
+	var timeRestriction types.Object
+	if dto.TimeRestriction != nil {
+		periods := make([]attr.Value, len(dto.TimeRestriction.TimeRestrictions))
+		for i, period := range dto.TimeRestriction.TimeRestrictions {
+			periods[i] = types.ObjectValueMust(
+				map[string]attr.Type{
+					"start_hour":   types.Int64Type,
+					"start_minute": types.Int64Type,
+					"end_hour":     types.Int64Type,
+					"end_minute":   types.Int64Type,
+				},
+				map[string]attr.Value{
+					"start_hour":   types.Int64Value(int64(period.StartHour)),
+					"start_minute": types.Int64Value(int64(period.StartMinute)),
+					"end_hour":     types.Int64Value(int64(period.EndHour)),
+					"end_minute":   types.Int64Value(int64(period.EndMinute)),
+				},
+			)
+		}
+
+		timeRestriction = types.ObjectValueMust(
+			map[string]attr.Type{
+				"enabled": types.BoolType,
+				"time_restrictions": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+					"start_hour":   types.Int64Type,
+					"start_minute": types.Int64Type,
+					"end_hour":     types.Int64Type,
+					"end_minute":   types.Int64Type,
+				}}},
+			},
+			map[string]attr.Value{
+				"enabled": types.BoolValue(dto.TimeRestriction.Enabled),
+				"time_restrictions": types.ListValueMust(types.ObjectType{AttrTypes: map[string]attr.Type{
+					"start_hour":   types.Int64Type,
+					"start_minute": types.Int64Type,
+					"end_hour":     types.Int64Type,
+					"end_minute":   types.Int64Type,
+				}}, periods),
+			},
+		)
+	} else {
+		timeRestriction = types.ObjectNull(map[string]attr.Type{
+			"enabled": types.BoolType,
+			"time_restrictions": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+				"start_hour":   types.Int64Type,
+				"start_minute": types.Int64Type,
+				"end_hour":     types.Int64Type,
+				"end_minute":   types.Int64Type,
+			}}},
+		})
+	}
+
+	// Convert AutoRestartAction
+	var autoRestartAction types.Object
+	if dto.AutoRestartAction != nil {
+		autoRestartAction = types.ObjectValueMust(
+			map[string]attr.Type{
+				"wait_duration":    types.Int64Type,
+				"max_repeat_count": types.Int64Type,
+				"duration_format":  types.StringType,
+			},
+			map[string]attr.Value{
+				"wait_duration":    types.Int64Value(int64(dto.AutoRestartAction.WaitDuration)),
+				"max_repeat_count": types.Int64Value(int64(dto.AutoRestartAction.MaxRepeatCount)),
+				"duration_format":  types.StringValue(dto.AutoRestartAction.DurationFormat),
+			},
+		)
+	} else {
+		autoRestartAction = types.ObjectNull(map[string]attr.Type{
+			"wait_duration":    types.Int64Type,
+			"max_repeat_count": types.Int64Type,
+			"duration_format":  types.StringType,
+		})
+	}
+
+	// Convert AutoCloseAction
+	var autoCloseAction types.Object
+	if dto.AutoCloseAction != nil {
+		autoCloseAction = types.ObjectValueMust(
+			map[string]attr.Type{
+				"wait_duration":   types.Int64Type,
+				"duration_format": types.StringType,
+			},
+			map[string]attr.Value{
+				"wait_duration":   types.Int64Value(int64(dto.AutoCloseAction.WaitDuration)),
+				"duration_format": types.StringValue(dto.AutoCloseAction.DurationFormat),
+			},
+		)
+	} else {
+		autoCloseAction = types.ObjectNull(map[string]attr.Type{
+			"wait_duration":   types.Int64Type,
+			"duration_format": types.StringType,
+		})
+	}
+
+	// Convert DeduplicationAction
+	var deduplicationAction types.Object
+	if dto.DeduplicationAction != nil {
+		deduplicationAction = types.ObjectValueMust(
+			map[string]attr.Type{
+				"deduplication_action_type": types.StringType,
+				"frequency":                 types.Int64Type,
+				"count_value_limit":         types.Int64Type,
+				"wait_duration":             types.Int64Type,
+				"duration_format":           types.StringType,
+			},
+			map[string]attr.Value{
+				"deduplication_action_type": types.StringValue(dto.DeduplicationAction.DeduplicationActionType),
+				"frequency":                 types.Int64Value(int64(dto.DeduplicationAction.Frequency)),
+				"count_value_limit":         types.Int64Value(int64(dto.DeduplicationAction.CountValueLimit)),
+				"wait_duration":             types.Int64Value(int64(dto.DeduplicationAction.WaitDuration)),
+				"duration_format":           types.StringValue(dto.DeduplicationAction.DurationFormat),
+			},
+		)
+	} else {
+		deduplicationAction = types.ObjectNull(map[string]attr.Type{
+			"deduplication_action_type": types.StringType,
+			"frequency":                 types.Int64Type,
+			"count_value_limit":         types.Int64Type,
+			"wait_duration":             types.Int64Type,
+			"duration_format":           types.StringType,
+		})
+	}
+
+	// Convert DelayAction
+	var delayAction types.Object
+	if dto.DelayAction != nil {
+		var delayTime types.Object
+		if dto.DelayAction.DelayTime != nil {
+			delayTime = types.ObjectValueMust(
+				map[string]attr.Type{
+					"hours":   types.Int64Type,
+					"minutes": types.Int64Type,
+				},
+				map[string]attr.Value{
+					"hours":   types.Int64Value(int64(dto.DelayAction.DelayTime.Hours)),
+					"minutes": types.Int64Value(int64(dto.DelayAction.DelayTime.Minutes)),
+				},
+			)
+		}
+		delayAction = types.ObjectValueMust(
+			map[string]attr.Type{
+				"delay_time": types.ObjectType{AttrTypes: map[string]attr.Type{
+					"hours":   types.Int64Type,
+					"minutes": types.Int64Type,
+				}},
+				"delay_option":    types.StringType,
+				"wait_duration":   types.Int64Type,
+				"duration_format": types.StringType,
+			},
+			map[string]attr.Value{
+				"delay_time":      delayTime,
+				"delay_option":    types.StringValue(dto.DelayAction.DelayOption),
+				"wait_duration":   types.Int64Value(int64(dto.DelayAction.WaitDuration)),
+				"duration_format": types.StringValue(dto.DelayAction.DurationFormat),
+			},
+		)
+	} else {
+		delayAction = types.ObjectNull(map[string]attr.Type{
+			"delay_time": types.ObjectType{AttrTypes: map[string]attr.Type{
+				"hours":   types.Int64Type,
+				"minutes": types.Int64Type,
+			}},
+			"delay_option":    types.StringType,
+			"wait_duration":   types.Int64Type,
+			"duration_format": types.StringType,
+		})
+	}
+
+	return &dataModels.NotificationPolicyModel{
+		ID:                  types.StringValue(dto.ID),
+		Type:                types.StringValue(strings.ToLower(dto.Type)),
+		Name:                types.StringValue(dto.Name),
+		Description:         types.StringValue(dto.Description),
+		TeamID:              types.StringValue(dto.TeamID),
+		Enabled:             types.BoolValue(dto.Enabled),
+		Order:               types.Float64Value(dto.Order),
+		Filter:              filter,
+		TimeRestriction:     timeRestriction,
+		AutoRestartAction:   autoRestartAction,
+		AutoCloseAction:     autoCloseAction,
+		DeduplicationAction: deduplicationAction,
+		DelayAction:         delayAction,
+		Suppress:            types.BoolValue(dto.Suppress),
+	}, diags
+}
