@@ -2,6 +2,9 @@ package provider
 
 import (
 	"context"
+	"os"
+	"time"
+
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes"
@@ -12,8 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"os"
-	"time"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -220,5 +221,6 @@ func (p *jsmopsProvider) Resources(_ context.Context) []func() resource.Resource
 		NewEmailIntegrationResource,
 		NewApiIntegrationResource,
 		NewRoutingRuleResource,
+		NewNotificationRuleResource,
 	}
 }

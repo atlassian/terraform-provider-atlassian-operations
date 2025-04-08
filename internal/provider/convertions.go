@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
@@ -709,11 +710,14 @@ func ApiIntegrationDtoToModel(dtoObj dto.ApiIntegration) dataModels.ApiIntegrati
 	return model
 }
 
-func CriteriaConditionModelToDto(model dataModels.RoutingRuleConditionModel) dto.RoutingRuleConditionDto {
-	return dto.RoutingRuleConditionDto{
+func CriteriaConditionModelToDto(model dataModels.CriteriaConditionModel) dto.CriteriaConditionDto {
+	return dto.CriteriaConditionDto{
 		Field:         model.Field.ValueString(),
 		Operation:     model.Operation.ValueString(),
 		ExpectedValue: model.ExpectedValue.ValueString(),
+		Key:           model.Key.ValueString(),
+		Not:           model.Not.ValueBool(),
+		Order:         int(model.Order.ValueInt64()),
 	}
 }
 
@@ -724,16 +728,16 @@ func RoutingRuleNotifyModelToDto(model dataModels.RoutingRuleNotifyModel) *dto.R
 	}
 }
 
-func CriteriaModelToDto(ctx context.Context, model dataModels.RoutingRuleCriteriaModel) *dto.RoutingRuleCriteriaDto {
-	dtoObj := dto.RoutingRuleCriteriaDto{
+func CriteriaModelToDto(ctx context.Context, model dataModels.CriteriaModel) *dto.CriteriaDto {
+	dtoObj := dto.CriteriaDto{
 		Type: dto.CriteriaType(model.Type.ValueString()),
 	}
 
 	if dtoObj.Type != dto.MatchAll {
-		var conditions []dataModels.RoutingRuleConditionModel
+		var conditions []dataModels.CriteriaConditionModel
 		model.Conditions.ElementsAs(ctx, &conditions, false)
 
-		arr := make([]dto.RoutingRuleConditionDto, len(conditions))
+		arr := make([]dto.CriteriaConditionDto, len(conditions))
 		for i, restriction := range conditions {
 			arr[i] = CriteriaConditionModelToDto(restriction)
 		}
@@ -763,7 +767,7 @@ func RoutingRuleModelToDto(ctx context.Context, model dataModels.RoutingRuleMode
 	}
 
 	if !(model.Criteria.IsNull() || model.Criteria.IsUnknown()) {
-		var criteria dataModels.RoutingRuleCriteriaModel
+		var criteria dataModels.CriteriaModel
 		model.Criteria.As(ctx, &criteria, basetypes.ObjectAsOptions{})
 		dtoObj.Criteria = CriteriaModelToDto(ctx, criteria)
 	}
@@ -786,7 +790,7 @@ func RoutingRuleDtoToModel(teamId string, dto dto.RoutingRuleDto) dataModels.Rou
 		IsDefault:       types.BoolValue(dto.IsDefault),
 		Timezone:        types.StringValue(dto.Timezone),
 		TimeRestriction: types.ObjectNull(dataModels.TimeRestrictionModelMap),
-		Criteria:        types.ObjectNull(dataModels.RoutingRuleCriteriaModelMap),
+		Criteria:        types.ObjectNull(dataModels.CriteriaModelMap),
 		Notify:          types.ObjectNull(dataModels.RoutingRuleNotifyModelMap),
 	}
 
@@ -794,7 +798,7 @@ func RoutingRuleDtoToModel(teamId string, dto dto.RoutingRuleDto) dataModels.Rou
 		attributes := map[string]attr.Value{
 			"type": types.StringValue(string(dto.Criteria.Type)),
 			"conditions": types.ListNull(
-				types.ObjectType{AttrTypes: dataModels.RoutingRuleConditionModelMap},
+				types.ObjectType{AttrTypes: dataModels.ConditionModelMap},
 			),
 		}
 
@@ -802,23 +806,26 @@ func RoutingRuleDtoToModel(teamId string, dto dto.RoutingRuleDto) dataModels.Rou
 			conditions := make([]attr.Value, len(*dto.Criteria.Conditions))
 			for i, condition := range *dto.Criteria.Conditions {
 				conditions[i], _ = types.ObjectValue(
-					dataModels.RoutingRuleConditionModelMap,
+					dataModels.ConditionModelMap,
 					map[string]attr.Value{
 						"field":          types.StringValue(condition.Field),
 						"operation":      types.StringValue(condition.Operation),
 						"expected_value": types.StringValue(condition.ExpectedValue),
+						"key":            types.StringValue(condition.Key),
+						"not":            types.BoolValue(condition.Not),
+						"order":          types.Int64Value(int64(condition.Order)),
 					},
 				)
 			}
 
 			attributes["conditions"] = types.ListValueMust(
-				types.ObjectType{AttrTypes: dataModels.RoutingRuleConditionModelMap},
+				types.ObjectType{AttrTypes: dataModels.ConditionModelMap},
 				conditions,
 			)
 		}
 
 		model.Criteria = types.ObjectValueMust(
-			dataModels.RoutingRuleCriteriaModelMap,
+			dataModels.CriteriaModelMap,
 			attributes,
 		)
 	}
@@ -883,4 +890,266 @@ func RoutingRuleDtoToModel(teamId string, dto dto.RoutingRuleDto) dataModels.Rou
 	}
 
 	return model
+}
+
+func CriteriaDtoToModel(dto *dto.CriteriaDto) dataModels.CriteriaModel {
+	model := dataModels.CriteriaModel{
+		Type: types.StringValue(string(dto.Type)),
+		Conditions: types.ListNull(
+			types.ObjectType{AttrTypes: dataModels.ConditionModelMap},
+		),
+	}
+
+	if dto.Conditions != nil {
+		conditions := make([]attr.Value, len(*dto.Conditions))
+		for i, condition := range *dto.Conditions {
+			conditions[i] = types.ObjectValueMust(
+				dataModels.ConditionModelMap,
+				map[string]attr.Value{
+					"field":          types.StringValue(condition.Field),
+					"operation":      types.StringValue(condition.Operation),
+					"expected_value": types.StringValue(condition.ExpectedValue),
+					"key":            types.StringValue(condition.Key),
+					"not":            types.BoolValue(condition.Not),
+					"order":          types.Int64Value(int64(condition.Order)),
+				},
+			)
+		}
+
+		model.Conditions = types.ListValueMust(
+			types.ObjectType{AttrTypes: dataModels.ConditionModelMap},
+			conditions,
+		)
+	}
+
+	return model
+}
+
+func NotificationRuleModelToDto(ctx context.Context, model dataModels.NotificationRuleModel) dto.NotificationRuleDto {
+	var notificationTimes []string
+	if !model.NotificationTime.IsNull() {
+		var times []string
+		diags := model.NotificationTime.ElementsAs(ctx, &times, false)
+		if diags.HasError() {
+			return dto.NotificationRuleDto{}
+		}
+		notificationTimes = times
+	}
+
+	var schedules []string
+	if !model.Schedules.IsNull() {
+		var scheds []string
+		diags := model.Schedules.ElementsAs(ctx, &scheds, false)
+		if diags.HasError() {
+			return dto.NotificationRuleDto{}
+		}
+		schedules = scheds
+	}
+
+	var timeRestriction *dto.TimeRestriction
+	if !model.TimeRestriction.IsNull() {
+		var timeRestrictionModel dataModels.TimeRestrictionModel
+		diags := model.TimeRestriction.As(ctx, &timeRestrictionModel, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			return dto.NotificationRuleDto{}
+		}
+		timeRestriction = TimeRestrictionModelToDto(ctx, timeRestrictionModel)
+	}
+
+	var steps []dto.NotificationRuleStep
+	if !model.Steps.IsNull() {
+		var stepsList []dataModels.NotificationRuleStepModel
+		diags := model.Steps.ElementsAs(ctx, &stepsList, false)
+		if diags.HasError() {
+			return dto.NotificationRuleDto{}
+		}
+
+		for _, step := range stepsList {
+			var contact dataModels.NotificationContactModel
+			diags := step.Contact.As(ctx, &contact, basetypes.ObjectAsOptions{})
+			if diags.HasError() {
+				return dto.NotificationRuleDto{}
+			}
+
+			steps = append(steps, dto.NotificationRuleStep{
+				Contact: dto.NotificationContact{
+					Method: contact.Method.ValueString(),
+					To:     contact.To.ValueString(),
+				},
+				SendAfter: int(step.SendAfter.ValueInt64()),
+				Enabled:   step.Enabled.ValueBool(),
+			})
+		}
+	}
+
+	var repeat *dto.NotificationRuleRepeat
+	if !model.Repeat.IsNull() {
+		var repeatModel dataModels.NotificationRuleRepeatModel
+		diags := model.Repeat.As(ctx, &repeatModel, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			return dto.NotificationRuleDto{}
+		}
+
+		repeat = &dto.NotificationRuleRepeat{
+			LoopAfter: int(repeatModel.LoopAfter.ValueInt64()),
+			Enabled:   repeatModel.Enabled.ValueBool(),
+		}
+	}
+
+	var criteria *dto.CriteriaDto
+	if !(model.Criteria.IsNull() || model.Criteria.IsUnknown()) {
+		var criteriaModel dataModels.CriteriaModel
+		model.Criteria.As(ctx, &criteriaModel, basetypes.ObjectAsOptions{})
+		criteria = CriteriaModelToDto(ctx, criteriaModel)
+	}
+
+	return dto.NotificationRuleDto{
+		ID:               model.ID.ValueString(),
+		Name:             model.Name.ValueString(),
+		ActionType:       model.ActionType.ValueString(),
+		NotificationTime: notificationTimes,
+		TimeRestriction:  timeRestriction,
+		Schedules:        schedules,
+		Order:            int(model.Order.ValueInt64()),
+		Steps:            steps,
+		Repeat:           repeat,
+		Enabled:          model.Enabled.ValueBool(),
+		Criteria:         criteria,
+	}
+}
+
+func NotificationRuleDtoToModel(ctx context.Context, dto dto.NotificationRuleDto) dataModels.NotificationRuleModel {
+	var notificationTime types.List
+	if dto.NotificationTime != nil {
+		elements := make([]attr.Value, len(dto.NotificationTime))
+		for i, time := range dto.NotificationTime {
+			elements[i] = types.StringValue(time)
+		}
+		notificationTime = types.ListValueMust(types.StringType, elements)
+	} else {
+		notificationTime = types.ListNull(types.StringType)
+	}
+
+	var schedules types.List
+	if dto.Schedules != nil {
+		elements := make([]attr.Value, len(dto.Schedules))
+		for i, schedule := range dto.Schedules {
+			elements[i] = types.StringValue(schedule)
+		}
+		schedules = types.ListValueMust(types.StringType, elements)
+	} else {
+		schedules = types.ListNull(types.StringType)
+	}
+
+	var timeRestriction types.Object
+	if dto.TimeRestriction != nil {
+		attributes := map[string]attr.Value{
+			"type":        types.StringValue(string(dto.TimeRestriction.Type)),
+			"restriction": types.ObjectNull(dataModels.TimeOfDayTimeRestrictionSettingsModelMap),
+			"restrictions": types.ListNull(
+				types.ObjectType{AttrTypes: dataModels.WeekdayTimeRestrictionSettingsModelMap},
+			),
+		}
+
+		if dto.TimeRestriction.TimeOfDayRestriction != nil {
+			attributes["restriction"] = types.ObjectValueMust(
+				dataModels.TimeOfDayTimeRestrictionSettingsModelMap,
+				map[string]attr.Value{
+					"start_hour": types.Int32Value(dto.TimeRestriction.TimeOfDayRestriction.StartHour),
+					"end_hour":   types.Int32Value(dto.TimeRestriction.TimeOfDayRestriction.EndHour),
+					"start_min":  types.Int32Value(dto.TimeRestriction.TimeOfDayRestriction.StartMin),
+					"end_min":    types.Int32Value(dto.TimeRestriction.TimeOfDayRestriction.EndMin),
+				},
+			)
+		}
+
+		if dto.TimeRestriction.WeekAndTimeOfDayRestriction != nil {
+			restrictions := make([]attr.Value, len(*dto.TimeRestriction.WeekAndTimeOfDayRestriction))
+			for i, restriction := range *dto.TimeRestriction.WeekAndTimeOfDayRestriction {
+				restrictions[i] = types.ObjectValueMust(
+					dataModels.WeekdayTimeRestrictionSettingsModelMap,
+					map[string]attr.Value{
+						"start_day":  types.StringValue(string(restriction.StartDay)),
+						"end_day":    types.StringValue(string(restriction.EndDay)),
+						"start_hour": types.Int32Value(restriction.StartHour),
+						"end_hour":   types.Int32Value(restriction.EndHour),
+						"start_min":  types.Int32Value(restriction.StartMin),
+						"end_min":    types.Int32Value(restriction.EndMin),
+					},
+				)
+			}
+			attributes["restrictions"] = types.ListValueMust(
+				types.ObjectType{AttrTypes: dataModels.WeekdayTimeRestrictionSettingsModelMap},
+				restrictions,
+			)
+		}
+
+		timeRestriction = types.ObjectValueMust(
+			dataModels.TimeRestrictionModelMap,
+			attributes,
+		)
+	} else {
+		timeRestriction = types.ObjectNull(dataModels.TimeRestrictionModelMap)
+	}
+
+	var steps types.List
+	if dto.Steps != nil {
+		elements := make([]attr.Value, len(dto.Steps))
+		for i, step := range dto.Steps {
+			contact := types.ObjectValueMust(
+				dataModels.NotificationContactModelMap,
+				map[string]attr.Value{
+					"method": types.StringValue(step.Contact.Method),
+					"to":     types.StringValue(step.Contact.To),
+				},
+			)
+
+			elements[i] = types.ObjectValueMust(
+				dataModels.NotificationRuleStepModelMap,
+				map[string]attr.Value{
+					"contact":    contact,
+					"send_after": types.Int64Value(int64(step.SendAfter)),
+					"enabled":    types.BoolValue(step.Enabled),
+				},
+			)
+		}
+		steps = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.NotificationRuleStepModelMap}, elements)
+	} else {
+		steps = types.ListNull(types.ObjectType{AttrTypes: dataModels.NotificationRuleStepModelMap})
+	}
+
+	var repeat types.Object
+	if dto.Repeat != nil {
+		repeat = types.ObjectValueMust(
+			dataModels.NotificationRuleRepeatModelMap,
+			map[string]attr.Value{
+				"loop_after": types.Int64Value(int64(dto.Repeat.LoopAfter)),
+				"enabled":    types.BoolValue(dto.Repeat.Enabled),
+			},
+		)
+	} else {
+		repeat = types.ObjectNull(dataModels.NotificationRuleRepeatModelMap)
+	}
+
+	var criteria types.Object
+	if dto.Criteria != nil {
+		model := CriteriaDtoToModel(dto.Criteria)
+		criteria = model.AsValue()
+	} else {
+		criteria = types.ObjectNull(dataModels.CriteriaModelMap)
+	}
+
+	return dataModels.NotificationRuleModel{
+		ID:               types.StringValue(dto.ID),
+		Name:             types.StringValue(dto.Name),
+		ActionType:       types.StringValue(dto.ActionType),
+		NotificationTime: notificationTime,
+		TimeRestriction:  timeRestriction,
+		Schedules:        schedules,
+		Order:            types.Int64Value(int64(dto.Order)),
+		Steps:            steps,
+		Repeat:           repeat,
+		Enabled:          types.BoolValue(dto.Enabled),
+		Criteria:         criteria,
+	}
 }
