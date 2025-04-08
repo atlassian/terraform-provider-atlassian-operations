@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"strings"
 )
 
 func ResponderInfoDtoToModel(dto dto.ResponderInfo) dataModels.ResponderInfoModel {
@@ -704,6 +705,182 @@ func ApiIntegrationDtoToModel(dtoObj dto.ApiIntegration) dataModels.ApiIntegrati
 		}
 	}
 	model.Domains = types.ListValueMust(types.StringType, domains)
+
+	return model
+}
+
+func CriteriaConditionModelToDto(model dataModels.RoutingRuleConditionModel) dto.RoutingRuleConditionDto {
+	return dto.RoutingRuleConditionDto{
+		Field:         model.Field.ValueString(),
+		Operation:     model.Operation.ValueString(),
+		ExpectedValue: model.ExpectedValue.ValueString(),
+	}
+}
+
+func RoutingRuleNotifyModelToDto(model dataModels.RoutingRuleNotifyModel) *dto.RoutingRuleNotifyDto {
+	return &dto.RoutingRuleNotifyDto{
+		Type: model.Type.ValueString(),
+		ID:   model.ID.ValueString(),
+	}
+}
+
+func CriteriaModelToDto(ctx context.Context, model dataModels.RoutingRuleCriteriaModel) *dto.RoutingRuleCriteriaDto {
+	dtoObj := dto.RoutingRuleCriteriaDto{
+		Type: dto.CriteriaType(model.Type.ValueString()),
+	}
+
+	if dtoObj.Type != dto.MatchAll {
+		var conditions []dataModels.RoutingRuleConditionModel
+		model.Conditions.ElementsAs(ctx, &conditions, false)
+
+		arr := make([]dto.RoutingRuleConditionDto, len(conditions))
+		for i, restriction := range conditions {
+			arr[i] = CriteriaConditionModelToDto(restriction)
+		}
+
+		dtoObj.Conditions = &arr
+	}
+
+	return &dtoObj
+}
+
+func RoutingRuleModelToDto(ctx context.Context, model dataModels.RoutingRuleModel) dto.RoutingRuleDto {
+	dtoObj := dto.RoutingRuleDto{
+		ID:              model.ID.ValueString(),
+		Name:            model.Name.ValueString(),
+		Order:           model.Order.ValueInt64(),
+		IsDefault:       model.IsDefault.ValueBool(),
+		Timezone:        model.Timezone.ValueString(),
+		Criteria:        nil,
+		TimeRestriction: nil,
+		Notify:          nil,
+	}
+
+	if !(model.TimeRestriction.IsNull() || model.TimeRestriction.IsUnknown()) {
+		var timeRestriction dataModels.TimeRestrictionModel
+		model.TimeRestriction.As(ctx, &timeRestriction, basetypes.ObjectAsOptions{})
+		dtoObj.TimeRestriction = TimeRestrictionModelToDto(ctx, timeRestriction)
+	}
+
+	if !(model.Criteria.IsNull() || model.Criteria.IsUnknown()) {
+		var criteria dataModels.RoutingRuleCriteriaModel
+		model.Criteria.As(ctx, &criteria, basetypes.ObjectAsOptions{})
+		dtoObj.Criteria = CriteriaModelToDto(ctx, criteria)
+	}
+
+	if !(model.Notify.IsNull() || model.Notify.IsUnknown()) {
+		var notify dataModels.RoutingRuleNotifyModel
+		model.Notify.As(ctx, &notify, basetypes.ObjectAsOptions{})
+		dtoObj.Notify = RoutingRuleNotifyModelToDto(notify)
+	}
+
+	return dtoObj
+}
+
+func RoutingRuleDtoToModel(teamId string, dto dto.RoutingRuleDto) dataModels.RoutingRuleModel {
+	model := dataModels.RoutingRuleModel{
+		ID:              types.StringValue(dto.ID),
+		TeamID:          types.StringValue(teamId),
+		Name:            types.StringValue(dto.Name),
+		Order:           types.Int64Value(dto.Order),
+		IsDefault:       types.BoolValue(dto.IsDefault),
+		Timezone:        types.StringValue(dto.Timezone),
+		TimeRestriction: types.ObjectNull(dataModels.TimeRestrictionModelMap),
+		Criteria:        types.ObjectNull(dataModels.RoutingRuleCriteriaModelMap),
+		Notify:          types.ObjectNull(dataModels.RoutingRuleNotifyModelMap),
+	}
+
+	if dto.Criteria != nil {
+		attributes := map[string]attr.Value{
+			"type": types.StringValue(string(dto.Criteria.Type)),
+			"conditions": types.ListNull(
+				types.ObjectType{AttrTypes: dataModels.RoutingRuleConditionModelMap},
+			),
+		}
+
+		if dto.Criteria.Conditions != nil {
+			conditions := make([]attr.Value, len(*dto.Criteria.Conditions))
+			for i, condition := range *dto.Criteria.Conditions {
+				conditions[i], _ = types.ObjectValue(
+					dataModels.RoutingRuleConditionModelMap,
+					map[string]attr.Value{
+						"field":          types.StringValue(condition.Field),
+						"operation":      types.StringValue(condition.Operation),
+						"expected_value": types.StringValue(condition.ExpectedValue),
+					},
+				)
+			}
+
+			attributes["conditions"] = types.ListValueMust(
+				types.ObjectType{AttrTypes: dataModels.RoutingRuleConditionModelMap},
+				conditions,
+			)
+		}
+
+		model.Criteria = types.ObjectValueMust(
+			dataModels.RoutingRuleCriteriaModelMap,
+			attributes,
+		)
+	}
+
+	if dto.Notify != nil {
+		model.Notify = types.ObjectValueMust(
+			dataModels.RoutingRuleNotifyModelMap,
+			map[string]attr.Value{
+				"type": types.StringValue(strings.ToLower(dto.Notify.Type)),
+				"id":   types.StringValue(dto.Notify.ID),
+			},
+		)
+	}
+
+	if dto.TimeRestriction != nil {
+		attributes := map[string]attr.Value{
+			"type":        types.StringValue(string(dto.TimeRestriction.Type)),
+			"restriction": types.ObjectNull(dataModels.TimeOfDayTimeRestrictionSettingsModelMap),
+			"restrictions": types.ListNull(
+				types.ObjectType{AttrTypes: dataModels.WeekdayTimeRestrictionSettingsModelMap},
+			),
+		}
+
+		if dto.TimeRestriction.TimeOfDayRestriction != nil {
+			attributes["restriction"] = types.ObjectValueMust(
+				dataModels.TimeOfDayTimeRestrictionSettingsModelMap,
+				map[string]attr.Value{
+					"start_hour": types.Int32Value(dto.TimeRestriction.TimeOfDayRestriction.StartHour),
+					"end_hour":   types.Int32Value(dto.TimeRestriction.TimeOfDayRestriction.EndHour),
+					"start_min":  types.Int32Value(dto.TimeRestriction.TimeOfDayRestriction.StartMin),
+					"end_min":    types.Int32Value(dto.TimeRestriction.TimeOfDayRestriction.EndMin),
+				},
+			)
+		}
+
+		if dto.TimeRestriction.WeekAndTimeOfDayRestriction != nil {
+			restrictions := make([]attr.Value, len(*dto.TimeRestriction.WeekAndTimeOfDayRestriction))
+			for i, restriction := range *dto.TimeRestriction.WeekAndTimeOfDayRestriction {
+				restrictions[i], _ = types.ObjectValue(
+					dataModels.WeekdayTimeRestrictionSettingsModelMap,
+					map[string]attr.Value{
+						"start_day":  types.StringValue(string(restriction.StartDay)),
+						"end_day":    types.StringValue(string(restriction.EndDay)),
+						"start_hour": types.Int32Value(restriction.StartHour),
+						"end_hour":   types.Int32Value(restriction.EndHour),
+						"start_min":  types.Int32Value(restriction.StartMin),
+						"end_min":    types.Int32Value(restriction.EndMin),
+					},
+				)
+			}
+
+			attributes["restrictions"] = types.ListValueMust(
+				types.ObjectType{AttrTypes: dataModels.WeekdayTimeRestrictionSettingsModelMap},
+				restrictions,
+			)
+		}
+
+		model.TimeRestriction = types.ObjectValueMust(
+			dataModels.TimeRestrictionModelMap,
+			attributes,
+		)
+	}
 
 	return model
 }
