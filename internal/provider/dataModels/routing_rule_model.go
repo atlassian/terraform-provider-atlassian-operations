@@ -17,17 +17,6 @@ type RoutingRuleModel struct {
 	Notify          types.Object `tfsdk:"notify"`
 }
 
-type RoutingRuleCriteriaModel struct {
-	Type       types.String `tfsdk:"type"`
-	Conditions types.List   `tfsdk:"conditions"`
-}
-
-type RoutingRuleConditionModel struct {
-	Field         types.String `tfsdk:"field"`
-	Operation     types.String `tfsdk:"operation"`
-	ExpectedValue types.String `tfsdk:"expected_value"`
-}
-
 type RoutingRuleNotifyModel struct {
 	Type types.String `tfsdk:"type"`
 	ID   types.String `tfsdk:"id"`
@@ -41,7 +30,7 @@ var RoutingRuleModelMap = map[string]attr.Type{
 	"is_default": types.BoolType,
 	"timezone":   types.StringType,
 	"criteria": types.ObjectType{
-		AttrTypes: RoutingRuleCriteriaModelMap,
+		AttrTypes: CriteriaModelMap,
 	},
 	"time_restriction": types.ObjectType{
 		AttrTypes: TimeRestrictionModelMap,
@@ -56,38 +45,10 @@ var RoutingRuleNotifyModelMap = map[string]attr.Type{
 	"id":   types.StringType,
 }
 
-var RoutingRuleConditionModelMap = map[string]attr.Type{
-	"field":          types.StringType,
-	"operation":      types.StringType,
-	"expected_value": types.StringType,
-}
-
-var RoutingRuleCriteriaModelMap = map[string]attr.Type{
-	"type": types.StringType,
-	"conditions": types.ListType{ElemType: types.ObjectType{
-		AttrTypes: RoutingRuleConditionModelMap,
-	}},
-}
-
 func (receiver *RoutingRuleNotifyModel) AsValue() types.Object {
 	return types.ObjectValueMust(RoutingRuleNotifyModelMap, map[string]attr.Value{
 		"type": receiver.Type,
 		"id":   receiver.ID,
-	})
-}
-
-func (receiver *RoutingRuleConditionModel) AsValue() types.Object {
-	return types.ObjectValueMust(RoutingRuleConditionModelMap, map[string]attr.Value{
-		"field":          receiver.Field,
-		"operation":      receiver.Operation,
-		"expected_value": receiver.ExpectedValue,
-	})
-}
-
-func (receiver *RoutingRuleCriteriaModel) AsValue() types.Object {
-	return types.ObjectValueMust(RoutingRuleCriteriaModelMap, map[string]attr.Value{
-		"type":       receiver.Type,
-		"conditions": receiver.Conditions,
 	})
 }
 

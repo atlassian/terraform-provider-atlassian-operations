@@ -9,25 +9,14 @@ const (
 )
 
 type RoutingRuleDto struct {
-	ID              string                  `json:"id,omitempty"`
-	Name            string                  `json:"name,omitempty"`
-	Order           int64                   `json:"order,omitempty"`
-	IsDefault       bool                    `json:"isDefault,omitempty"`
-	Timezone        string                  `json:"timezone,omitempty"`
-	Criteria        *RoutingRuleCriteriaDto `json:"criteria,omitempty"`
-	TimeRestriction *TimeRestriction        `json:"timeRestriction,omitempty"`
-	Notify          *RoutingRuleNotifyDto   `json:"notify"`
-}
-
-type RoutingRuleCriteriaDto struct {
-	Type       CriteriaType               `json:"type"`
-	Conditions *[]RoutingRuleConditionDto `json:"conditions,omitempty"`
-}
-
-type RoutingRuleConditionDto struct {
-	Field         string `json:"field"`
-	Operation     string `json:"operation"`
-	ExpectedValue string `json:"expectedValue"`
+	ID              string                `json:"id,omitempty"`
+	Name            string                `json:"name,omitempty"`
+	Order           int64                 `json:"order,omitempty"`
+	IsDefault       bool                  `json:"isDefault,omitempty"`
+	Timezone        string                `json:"timezone,omitempty"`
+	Criteria        *CriteriaDto          `json:"criteria,omitempty"`
+	TimeRestriction *TimeRestriction      `json:"timeRestriction,omitempty"`
+	Notify          *RoutingRuleNotifyDto `json:"notify"`
 }
 
 type TimeRestrictionEntry struct {
