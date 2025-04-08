@@ -219,5 +219,6 @@ func (p *jsmopsProvider) Resources(_ context.Context) []func() resource.Resource
 		NewEscalationResource,
 		NewEmailIntegrationResource,
 		NewApiIntegrationResource,
+		NewRoutingRuleResource,
 	}
 }
