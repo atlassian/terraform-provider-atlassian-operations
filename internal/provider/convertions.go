@@ -2206,3 +2206,187 @@ func HeartbeatDtoToModel(ctx context.Context, dto *dto.HeartbeatDto, teamID stri
 		AlertPriority: types.StringValue(dto.AlertPriority),
 	}, diags
 }
+
+func IntegrationActionModelToDto(ctx context.Context, model *dataModels.IntegrationActionModel) (*dto.IntegrationActionDto, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if model == nil {
+		return nil, diags
+	}
+
+	var filter *dto.FilterDto
+	if !(model.Filter.IsNull() || model.Filter.IsUnknown()) {
+		var filterModel dataModels.FilterModel
+		diags.Append(model.Filter.As(ctx, &filterModel, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		var conditions []dto.FilterConditionDto
+		if !(filterModel.Conditions.IsNull() || filterModel.Conditions.IsUnknown()) {
+			elements := filterModel.Conditions.Elements()
+			conditions = make([]dto.FilterConditionDto, 0, len(elements))
+			for _, element := range elements {
+				var condition dataModels.FilterConditionModel
+				if obj, ok := element.(types.Object); ok {
+					diags.Append(obj.As(ctx, &condition, basetypes.ObjectAsOptions{})...)
+					if diags.HasError() {
+						return nil, diags
+					}
+					conditions = append(conditions, dto.FilterConditionDto{
+						Field:           condition.Field.ValueString(),
+						Operation:       condition.Operation.ValueString(),
+						ExpectedValue:   condition.ExpectedValue.ValueString(),
+						Key:             condition.Key.ValueString(),
+						Not:             condition.Not.ValueBool(),
+						Order:           condition.Order.ValueInt64(),
+						SystemCondition: condition.SystemCondition.ValueBool(),
+					})
+				}
+			}
+		}
+
+		filter = &dto.FilterDto{
+			ConditionsEmpty:    filterModel.ConditionsEmpty.ValueBool(),
+			ConditionMatchType: filterModel.ConditionMatchType.ValueString(),
+			Conditions:         conditions,
+		}
+	}
+
+	var actionMapping *dto.ActionMappingDto
+	if !(model.ActionMapping.IsNull() || model.ActionMapping.IsUnknown()) {
+		var actionMappingModel dataModels.ActionMappingModel
+		diags.Append(model.ActionMapping.As(ctx, &actionMappingModel, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		parameter := make(map[string]interface{})
+		if !(actionMappingModel.Parameter.IsNull() || actionMappingModel.Parameter.IsUnknown()) {
+			actionMappingModel.Parameter.Unmarshal(&parameter)
+		}
+
+		actionMapping = &dto.ActionMappingDto{
+			Type:      actionMappingModel.Type.ValueString(),
+			Parameter: parameter,
+		}
+	}
+
+	typeSpecificProperties := make(map[string]interface{})
+	if !(model.TypeSpecificProperties.IsNull() || model.TypeSpecificProperties.IsUnknown()) {
+		model.TypeSpecificProperties.Unmarshal(&typeSpecificProperties)
+	}
+
+	fieldMappings := make(map[string]interface{})
+	if !(model.FieldMappings.IsNull() || model.FieldMappings.IsUnknown()) {
+		model.FieldMappings.Unmarshal(&fieldMappings)
+	}
+
+	return &dto.IntegrationActionDto{
+		ID:                     model.ID.ValueString(),
+		Type:                   model.Type.ValueString(),
+		Name:                   model.Name.ValueString(),
+		Domain:                 model.Domain.ValueString(),
+		Direction:              model.Direction.ValueString(),
+		GroupType:              model.GroupType.ValueString(),
+		Filter:                 filter,
+		TypeSpecificProperties: typeSpecificProperties,
+		FieldMappings:          fieldMappings,
+		ActionMapping:          actionMapping,
+		Enabled:                model.Enabled.ValueBoolPointer(),
+	}, diags
+}
+
+func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationActionDto, integrationID types.String, model *dataModels.IntegrationActionModel) (*dataModels.IntegrationActionModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if dto == nil {
+		return nil, diags
+	}
+
+	var filter types.Object
+	if dto.Filter != nil {
+		conditions := make([]attr.Value, 0, len(dto.Filter.Conditions))
+		for _, c := range dto.Filter.Conditions {
+			conditions = append(conditions, types.ObjectValueMust(
+				dataModels.FilterConditionModelMap,
+				map[string]attr.Value{
+					"field":            types.StringValue(c.Field),
+					"operation":        types.StringValue(c.Operation),
+					"expected_value":   types.StringValue(c.ExpectedValue),
+					"key":              types.StringValue(c.Key),
+					"not":              types.BoolValue(c.Not),
+					"order":            types.Int64Value(int64(c.Order)),
+					"system_condition": types.BoolValue(c.SystemCondition),
+				},
+			))
+		}
+
+		filter = types.ObjectValueMust(
+			dataModels.FilterModelMap,
+			map[string]attr.Value{
+				"conditions_empty":     types.BoolValue(dto.Filter.ConditionsEmpty),
+				"condition_match_type": types.StringValue(dto.Filter.ConditionMatchType),
+				"conditions":           types.ListValueMust(types.ObjectType{AttrTypes: dataModels.FilterConditionModelMap}, conditions),
+			},
+		)
+	} else {
+		filter = types.ObjectNull(dataModels.FilterModelMap)
+	}
+
+	var actionMapping types.Object
+	if dto.ActionMapping != nil {
+		parameterMap, _ := json.Marshal(dto.ActionMapping.Parameter)
+
+		actionMapping = types.ObjectValueMust(
+			dataModels.ActionMappingModelMap,
+			map[string]attr.Value{
+				"type":      types.StringValue(dto.ActionMapping.Type),
+				"parameter": jsontypes.NewExactValue(string(parameterMap)),
+			},
+		)
+	} else {
+		actionMapping = types.ObjectNull(dataModels.ActionMappingModelMap)
+	}
+
+	var groupType types.String
+	if dto.GroupType != "" {
+		groupType = types.StringValue(dto.GroupType)
+	} else {
+		if model != nil && !model.GroupType.IsNull() && !model.GroupType.IsUnknown() {
+			groupType = model.GroupType
+		} else {
+			groupType = types.StringNull() // Default group type if not specified
+		}
+	}
+
+	var enabled types.Bool
+	if dto.Enabled == nil {
+		if (model != nil) && !model.Enabled.IsNull() && !model.Enabled.IsUnknown() {
+			enabled = model.Enabled
+		} else {
+			enabled = types.BoolNull() // Default to true if not specified
+		}
+	} else {
+		enabled = types.BoolPointerValue(dto.Enabled)
+	}
+
+	typeSpecificPropsMap, _ := json.Marshal(dto.TypeSpecificProperties)
+
+	fieldMappingsMap, _ := json.Marshal(dto.FieldMappings)
+
+	return &dataModels.IntegrationActionModel{
+		ID:                     types.StringValue(dto.ID),
+		IntegrationID:          integrationID,
+		Type:                   types.StringValue(dto.Type),
+		Name:                   types.StringValue(dto.Name),
+		Domain:                 types.StringValue(dto.Domain),
+		Direction:              types.StringValue(dto.Direction),
+		GroupType:              groupType,
+		Filter:                 filter,
+		TypeSpecificProperties: jsontypes.NewExactValue(string(typeSpecificPropsMap)),
+		FieldMappings:          jsontypes.NewExactValue(string(fieldMappingsMap)),
+		ActionMapping:          actionMapping,
+		Enabled:                enabled,
+	}, diags
+}
