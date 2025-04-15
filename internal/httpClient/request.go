@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
 	"time"
@@ -33,7 +32,7 @@ const (
 )
 
 func NewRequest() *Request {
-	inReq, _ := retryablehttp.NewRequest("", "", nil)
+	inReq, _ := retryablehttp.NewRequest(http.MethodGet, "", nil)
 	newReq := &Request{
 		innerRequest:    inReq,
 		innerClient:     retryablehttp.NewClient(),
@@ -52,12 +51,6 @@ func NewRequest() *Request {
 			}
 		}
 		return nil
-	}
-	newReq.innerClient.ErrorHandler = func(resp *http.Response, err error, numTries int) (*http.Response, error) {
-		if err == nil {
-			return resp, fmt.Errorf("%s request giving up after %d attempt(s)", resp.Request.Method, numTries)
-		}
-		return resp, err
 	}
 	return newReq
 }
@@ -199,32 +192,32 @@ func parseBody(t interface{}, resp *Response) error {
 	return nil
 }
 
-func parseErrorBody(resp *Response) (*string, error) {
-	body, err := resp.Body()
-	if err != nil {
-		return nil, err
-	}
-	bodyString := string(body)
-	return &bodyString, nil
-}
-
 func (r *Request) Send() (*Response, error) {
 	r.innerRequest.SetResponseHandler(func(resp *http.Response) error {
 		var retErr error = nil
-		clientResp := Response{nativeResponse: resp}
+		clientResp := &Response{nativeResponse: resp}
 		if clientResp.IsError() {
-			errorBody, err := parseErrorBody(&clientResp)
+			err := clientResp.parseErrorBody()
 			if err != nil {
 				retErr = err
-			} else {
-				clientResp.errorBody = errorBody
 			}
 		} else if r.parseBodyObject != nil {
-			retErr = parseBody(r.parseBodyObject, &clientResp)
+			retErr = parseBody(r.parseBodyObject, clientResp)
 		}
-		r.response = &clientResp
+		r.response = clientResp
 		return retErr
 	})
+	r.innerClient.ErrorHandler = func(resp *http.Response, err error, numTries int) (*http.Response, error) {
+		if resp != nil {
+			clientResp := Response{nativeResponse: resp}
+			r.response = &clientResp
+			parseErrorBodyError := clientResp.parseErrorBody()
+			if parseErrorBodyError != nil {
+				err = parseErrorBodyError
+			}
+		}
+		return resp, err
+	}
 	_, err := r.innerClient.Do(r.innerRequest)
 	return r.response, err
 }
