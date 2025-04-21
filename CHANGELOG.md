@@ -1,3 +1,11 @@
+## v1.0.2
+
+### FIXES:
+
+- [JSDCLOUD-16292](https://jira.atlassian.com/browse/JSDCLOUD-16292): Added a workaround for Date-Time Format Mismatch between OPS API and Terraform Provider
+- Corrected wrong parameter name (username -> email_address) in the example provider configuration
+- Provide a more descriptive error message an API request repeatedly fails, instead of only providing the retry count
+
 ## v1.0.1
 
 ### FIXES:
