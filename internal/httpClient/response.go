@@ -21,6 +21,16 @@ func (receiver *Response) Discard() error {
 	return nil
 }
 
+func (receiver *Response) parseErrorBody() error {
+	body, err := receiver.Body()
+	if err != nil {
+		return err
+	}
+	bodyString := string(body)
+	receiver.errorBody = &bodyString
+	return nil
+}
+
 func (receiver *Response) Body() ([]byte, error) {
 	if receiver.nativeResponse != nil {
 		defer receiver.nativeResponse.Body.Close()
