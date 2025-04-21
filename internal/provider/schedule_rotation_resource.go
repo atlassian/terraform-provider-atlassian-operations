@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"slices"
 	"strings"
+	"time"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -125,6 +126,22 @@ func (r *ScheduleRotationResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
+	// HEIMDALL-12257 Workaround for time format from the server not matching the one in the config despite denoting the same time
+	startDateRequest, _ := time.Parse(time.RFC3339, data.StartDate.ValueString())
+	startDateResponse, _ := time.Parse(time.RFC3339, rotationDto.StartDate)
+
+	endDateRequest, _ := time.Parse(time.RFC3339, data.EndDate.ValueString())
+	endDateResponse, _ := time.Parse(time.RFC3339, rotationDto.EndDate)
+
+	if startDateRequest.Equal(startDateResponse) {
+		rotationDto.StartDate = data.StartDate.ValueString()
+	}
+
+	if endDateRequest.Equal(endDateResponse) {
+		rotationDto.EndDate = data.EndDate.ValueString()
+	}
+	//
+
 	data = RotationDtoToModel(data.ScheduleId.ValueString(), rotationDto)
 
 	tflog.Trace(ctx, "Created the ScheduleRotationResource")
@@ -172,6 +189,22 @@ func (r *ScheduleRotationResource) Read(ctx context.Context, req resource.ReadRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// HEIMDALL-12257 Workaround for time format from the server not matching the one in the config despite denoting the same time
+	startDateRequest, _ := time.Parse(time.RFC3339, data.StartDate.ValueString())
+	startDateResponse, _ := time.Parse(time.RFC3339, rotationDto.StartDate)
+
+	endDateRequest, _ := time.Parse(time.RFC3339, data.EndDate.ValueString())
+	endDateResponse, _ := time.Parse(time.RFC3339, rotationDto.EndDate)
+
+	if startDateRequest.Equal(startDateResponse) {
+		rotationDto.StartDate = data.StartDate.ValueString()
+	}
+
+	if endDateRequest.Equal(endDateResponse) {
+		rotationDto.EndDate = data.EndDate.ValueString()
+	}
+	//
 
 	data = RotationDtoToModel(data.ScheduleId.ValueString(), rotationDto)
 
@@ -243,6 +276,22 @@ func (r *ScheduleRotationResource) Update(ctx context.Context, req resource.Upda
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// HEIMDALL-12257 Workaround for time format from the server not matching the one in the config despite denoting the same time
+	startDateRequest, _ := time.Parse(time.RFC3339, data.StartDate.ValueString())
+	startDateResponse, _ := time.Parse(time.RFC3339, newDto.StartDate)
+
+	endDateRequest, _ := time.Parse(time.RFC3339, data.EndDate.ValueString())
+	endDateResponse, _ := time.Parse(time.RFC3339, newDto.EndDate)
+
+	if startDateRequest.Equal(startDateResponse) {
+		newDto.StartDate = data.StartDate.ValueString()
+	}
+
+	if endDateRequest.Equal(endDateResponse) {
+		newDto.EndDate = data.EndDate.ValueString()
+	}
+	//
 
 	data = RotationDtoToModel(data.ScheduleId.ValueString(), newDto)
 
