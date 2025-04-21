@@ -32,7 +32,9 @@ const (
 )
 
 func NewRequest() *Request {
+
 	inReq, _ := retryablehttp.NewRequest(http.MethodGet, "", nil)
+
 	newReq := &Request{
 		innerRequest:    inReq,
 		innerClient:     retryablehttp.NewClient(),
@@ -53,6 +55,57 @@ func NewRequest() *Request {
 		return nil
 	}
 	return newReq
+}
+
+func (receiver *Request) GetInnerClient() *retryablehttp.Client {
+	if receiver.innerClient == nil {
+		receiver.innerClient = retryablehttp.NewClient()
+	}
+	return receiver.innerClient
+}
+
+func (receiver *Request) SetRetryCount(count int) *Request {
+	receiver.innerClient.RetryMax = count
+	return receiver
+}
+
+func (receiver *Request) SetRetryWaitTime(waitTime time.Duration) *Request {
+	receiver.innerClient.RetryWaitMin = waitTime
+	return receiver
+}
+
+func (receiver *Request) SetRetryMaxWaitTime(maxWaitTime time.Duration) *Request {
+	receiver.innerClient.RetryWaitMax = maxWaitTime
+	return receiver
+}
+
+func (receiver *Request) AddRetryHook(hook OnRetryFunc) *Request {
+	receiver.onRetryFuncs = append(receiver.onRetryFuncs, hook)
+	return receiver
+}
+
+func (receiver *Request) AddRetryCondition(condition RetryConditionFunc) *Request {
+	receiver.retryConditions = append(receiver.retryConditions, condition)
+	return receiver
+}
+
+func (receiver *Request) shouldRetryBecauseCondition(ctx context.Context, resp *Response, err error) (bool, error) {
+	shouldRetry, _ := retryablehttp.DefaultRetryPolicy(ctx, resp.nativeResponse, err)
+	if !shouldRetry {
+		for _, fun := range receiver.retryConditions {
+			if fun(resp, err) {
+				shouldRetry = true
+				break
+			}
+		}
+	} else if err != nil {
+		var invalidUnmarshalError *json.InvalidUnmarshalError
+		if errors.As(err, &invalidUnmarshalError) {
+			shouldRetry = false
+
+		}
+	}
+	return shouldRetry, err
 }
 
 func (receiver *Request) GetInnerClient() *retryablehttp.Client {
@@ -218,6 +271,7 @@ func (r *Request) Send() (*Response, error) {
 		}
 		return resp, err
 	}
+
 	_, err := r.innerClient.Do(r.innerRequest)
 	return r.response, err
 }
