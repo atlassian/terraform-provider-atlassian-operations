@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -66,6 +67,9 @@ var RoutingRuleResourceAttributes = map[string]schema.Attribute{
 						"field": schema.StringAttribute{
 							Description: "The incident field to evaluate (e.g., 'message', 'priority', 'tags').",
 							Required:    true,
+							Validators: []validator.String{
+								stringvalidator.OneOf("message", "alias", "description", "source", "entity", "tags", "actions", "extra-properties", "priority", "details", "responders"),
+							},
 						},
 						"operation": schema.StringAttribute{
 							Description: "The comparison operation to perform (e.g., 'equals', 'contains', 'matches').",
@@ -73,7 +77,24 @@ var RoutingRuleResourceAttributes = map[string]schema.Attribute{
 						},
 						"expected_value": schema.StringAttribute{
 							Description: "The value to compare against the field value.",
-							Required:    true,
+							Optional:    true,
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "If field is set as extra-properties, key could be used for key-value pair.",
+							Optional:    true,
+							Computed:    true,
+						},
+						"not": schema.BoolAttribute{
+							Description: "Indicates behaviour of the given operation.",
+							Optional:    true,
+							Computed:    true,
+							Default:     booldefault.StaticBool(false),
+						},
+						"order": schema.Int64Attribute{
+							Description: "Order of the condition in conditions list.",
+							Optional:    true,
+							Computed:    true,
 						},
 					},
 				},
