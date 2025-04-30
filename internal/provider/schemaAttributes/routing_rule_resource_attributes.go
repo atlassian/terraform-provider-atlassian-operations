@@ -1,10 +1,14 @@
 package schemaAttributes
 
 import (
+	"context"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes/customValidators"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -26,6 +30,8 @@ var RoutingRuleResourceAttributes = map[string]schema.Attribute{
 	"name": schema.StringAttribute{
 		Description: "A descriptive name for the routing rule. This helps identify the rule's purpose and should be unique within the team.",
 		Optional:    true,
+		Computed:    true,
+		Default:     stringdefault.StaticString(""),
 	},
 	"order": schema.Int64Attribute{
 		Description: "The order of the team routing rule within the rules. Order value is actually the index of the team routing rule whose minimum value is 0 and whose maximum value is n-1 (number of team routing rules is n).",
@@ -40,6 +46,16 @@ var RoutingRuleResourceAttributes = map[string]schema.Attribute{
 		Description: "Indicates whether this is the default routing rule for the team. Default rules are used when no other rules match.",
 		Optional:    true,
 		Computed:    true,
+		PlanModifiers: []planmodifier.Bool{
+			boolplanmodifier.RequiresReplaceIf(func(ctx context.Context, request planmodifier.BoolRequest, response *boolplanmodifier.RequiresReplaceIfFuncResponse) {
+				if !request.StateValue.ValueBool() && request.ConfigValue.ValueBool() {
+					response.RequiresReplace = true
+					return
+				}
+			},
+				"Force replacement since is_default value updated to true",
+				"Force replacement since is_default value updated to true"),
+		},
 	},
 	"timezone": schema.StringAttribute{
 		Description: "The timezone used for time-based routing decisions (e.g., 'America/New_York', 'Europe/London'). Must be a valid IANA timezone identifier.",
@@ -47,10 +63,17 @@ var RoutingRuleResourceAttributes = map[string]schema.Attribute{
 		Validators: []validator.String{
 			stringvalidator.LengthBetween(1, 50),
 		},
+		Computed: true,
 	},
 	"criteria": schema.SingleNestedAttribute{
 		Description: "The conditions that determine when this routing rule should be applied to an incident.",
 		Optional:    true,
+		Computed:    true,
+		Validators: []validator.Object{
+			customValidators.ListFieldNullIfOtherField(path.MatchRelative().AtName("conditions"), path.MatchRelative().AtName("type"), "match-all"),
+			customValidators.ListFieldNotNullIfOtherField(path.MatchRelative().AtName("conditions"), path.MatchRelative().AtName("type"), "match-all-conditions"),
+			customValidators.ListFieldNotNullIfOtherField(path.MatchRelative().AtName("conditions"), path.MatchRelative().AtName("type"), "match-any-condition"),
+		},
 		Attributes: map[string]schema.Attribute{
 			"type": schema.StringAttribute{
 				Description: "The type of criteria matching to use. Valid values are: 'match-all' (matches all incidents), 'match-all-conditions' (all conditions must match), or 'match-any-condition' (any condition can match).",
@@ -104,21 +127,26 @@ var RoutingRuleResourceAttributes = map[string]schema.Attribute{
 	"time_restriction": schema.SingleNestedAttribute{
 		Description: "Time-based restrictions for when this routing rule should be active. Allows defining specific time windows and days of the week.",
 		Optional:    true,
+		Computed:    true,
 		Attributes:  TimeRestrictionResourceAttributes,
 	},
 	"notify": schema.SingleNestedAttribute{
 		Description: "Configuration for how incidents matching this rule should be handled.",
 		Required:    true,
+		Validators: []validator.Object{
+			customValidators.StringFieldNotNullIfOtherField(path.MatchRelative().AtName("id"), path.MatchRelative().AtName("type"), "escalation"),
+			customValidators.StringFieldNotNullIfOtherField(path.MatchRelative().AtName("id"), path.MatchRelative().AtName("type"), "schedule"),
+		},
 		Attributes: map[string]schema.Attribute{
 			"type": schema.StringAttribute{
-				Description: "The type of notification to send. Valid values are: 'none' (no notification) or 'escalation' (use escalation policy).",
+				Description: "The type of notification to send. Valid values are: 'none' (no notification), 'escalation' (use escalation policy), 'schedule'.",
 				Required:    true,
 				Validators: []validator.String{
-					stringvalidator.OneOf("none", "escalation"),
+					stringvalidator.OneOf("none", "escalation", "schedule"),
 				},
 			},
 			"id": schema.StringAttribute{
-				Description: "The ID of the escalation policy to use. Required when type is 'escalation'.",
+				Description: "The ID of the escalation policy to use. Required when type is 'escalation' or 'schedule'.",
 				Optional:    true,
 				Computed:    true,
 				Default:     stringdefault.StaticString(""),

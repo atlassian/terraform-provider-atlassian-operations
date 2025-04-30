@@ -927,7 +927,7 @@ func CriteriaDtoToModel(dto *dto.CriteriaDto) dataModels.CriteriaModel {
 
 func NotificationRuleModelToDto(ctx context.Context, model dataModels.NotificationRuleModel) dto.NotificationRuleDto {
 	var notificationTimes []string
-	if !model.NotificationTime.IsNull() {
+	if !(model.NotificationTime.IsNull() || model.NotificationTime.IsUnknown()) {
 		var times []string
 		diags := model.NotificationTime.ElementsAs(ctx, &times, false)
 		if diags.HasError() {
@@ -937,7 +937,7 @@ func NotificationRuleModelToDto(ctx context.Context, model dataModels.Notificati
 	}
 
 	var schedules []string
-	if !model.Schedules.IsNull() {
+	if !(model.Schedules.IsNull() || model.Schedules.IsUnknown()) {
 		var scheds []string
 		diags := model.Schedules.ElementsAs(ctx, &scheds, false)
 		if diags.HasError() {
@@ -947,7 +947,7 @@ func NotificationRuleModelToDto(ctx context.Context, model dataModels.Notificati
 	}
 
 	var timeRestriction *dto.TimeRestriction
-	if !model.TimeRestriction.IsNull() {
+	if !(model.TimeRestriction.IsNull() || model.TimeRestriction.IsUnknown()) {
 		var timeRestrictionModel dataModels.TimeRestrictionModel
 		diags := model.TimeRestriction.As(ctx, &timeRestrictionModel, basetypes.ObjectAsOptions{})
 		if diags.HasError() {
@@ -957,7 +957,7 @@ func NotificationRuleModelToDto(ctx context.Context, model dataModels.Notificati
 	}
 
 	var steps []dto.NotificationRuleStep
-	if !model.Steps.IsNull() {
+	if !(model.Steps.IsNull() || model.Steps.IsUnknown()) {
 		var stepsList []dataModels.NotificationRuleStepModel
 		diags := model.Steps.ElementsAs(ctx, &stepsList, false)
 		if diags.HasError() {
@@ -983,7 +983,7 @@ func NotificationRuleModelToDto(ctx context.Context, model dataModels.Notificati
 	}
 
 	var repeat *dto.NotificationRuleRepeat
-	if !model.Repeat.IsNull() {
+	if !(model.Repeat.IsNull() || model.Repeat.IsUnknown()) {
 		var repeatModel dataModels.NotificationRuleRepeatModel
 		diags := model.Repeat.As(ctx, &repeatModel, basetypes.ObjectAsOptions{})
 		if diags.HasError() {
