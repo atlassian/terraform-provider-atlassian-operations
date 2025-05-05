@@ -51,7 +51,6 @@ var NotificationRuleResourceAttributes = map[string]schema.Attribute{
 			"conditions": schema.ListNestedAttribute{
 				Description: "List of conditions that must be met for the routing rule to be applied. Required if type is 'match-all-conditions' or 'match-any-condition'.",
 				Optional:    true,
-				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"field": schema.StringAttribute{
@@ -91,7 +90,7 @@ var NotificationRuleResourceAttributes = map[string]schema.Attribute{
 			},
 		},
 	},
-	"notification_time": schema.ListAttribute{
+	"notification_time": schema.SetAttribute{
 		Description: "List of times when notifications should be sent. Valid values include: just-before, 15-minutes-ago, 1-hour-ago, 1-day-ago.",
 		ElementType: types.StringType,
 		Optional:    true,
@@ -122,7 +121,7 @@ var NotificationRuleResourceAttributes = map[string]schema.Attribute{
 			Attributes: map[string]schema.Attribute{
 				"send_after": schema.Int64Attribute{
 					Description: "The number of minutes to wait before sending this notification after the rule is triggered.",
-					Required:    true,
+					Optional:    true,
 				},
 				"contact": schema.SingleNestedAttribute{
 					Description: "The contact information for this notification step.",

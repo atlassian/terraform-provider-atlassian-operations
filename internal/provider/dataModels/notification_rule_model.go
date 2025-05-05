@@ -14,7 +14,7 @@ type NotificationRuleModel struct {
 	Name             types.String `tfsdk:"name"`
 	ActionType       types.String `tfsdk:"action_type"`
 	Criteria         types.Object `tfsdk:"criteria"`
-	NotificationTime types.List   `tfsdk:"notification_time"`
+	NotificationTime types.Set    `tfsdk:"notification_time"`
 	TimeRestriction  types.Object `tfsdk:"time_restriction"`
 	Schedules        types.List   `tfsdk:"schedules"`
 	Order            types.Int64  `tfsdk:"order"`
@@ -108,7 +108,7 @@ var NotificationRuleModelMap = map[string]attr.Type{
 	"criteria": types.ObjectType{
 		AttrTypes: CriteriaModelMap,
 	},
-	"notification_time": types.ListType{
+	"notification_time": types.SetType{
 		ElemType: types.StringType,
 	},
 	"time_restriction": types.ObjectType{
