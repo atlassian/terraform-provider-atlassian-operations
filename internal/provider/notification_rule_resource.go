@@ -68,7 +68,12 @@ func (r *NotificationRuleResource) Create(ctx context.Context, req resource.Crea
 	}
 
 	// Convert to DTO
-	notificationRuleDto := NotificationRuleModelToDto(ctx, data)
+	notificationRuleDto, err := NotificationRuleModelToDto(ctx, data)
+	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Configuration Error. Unable to convert notification rule model to DTO, got error: %s", err))
+		resp.Diagnostics.AddError("Configuration Error", fmt.Sprintf("Unable to convert notification rule model to DTO, got error: %s", err))
+		return
+	}
 
 	// Create notification rule
 	httpResp, err := httpClientHelpers.
@@ -163,7 +168,12 @@ func (r *NotificationRuleResource) Update(ctx context.Context, req resource.Upda
 	}
 
 	// Convert to DTO
-	notificationRuleDto := NotificationRuleModelToDto(ctx, data)
+	notificationRuleDto, err := NotificationRuleModelToDto(ctx, data)
+	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Configuration Error. Unable to convert notification rule model to DTO, got error: %s", err))
+		resp.Diagnostics.AddError("Configuration Error", fmt.Sprintf("Unable to convert notification rule model to DTO, got error: %s", err))
+		return
+	}
 
 	// Update notification rule
 	httpResp, err := httpClientHelpers.

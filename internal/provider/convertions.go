@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
@@ -925,23 +926,31 @@ func CriteriaDtoToModel(dto *dto.CriteriaDto) dataModels.CriteriaModel {
 	return model
 }
 
-func NotificationRuleModelToDto(ctx context.Context, model dataModels.NotificationRuleModel) dto.NotificationRuleDto {
+func NotificationRuleModelToDto(ctx context.Context, model dataModels.NotificationRuleModel) (dto.NotificationRuleDto, error) {
 	var notificationTimes []string
 	if !(model.NotificationTime.IsNull() || model.NotificationTime.IsUnknown()) {
+		if !(model.ActionType.ValueString() == "schedule-start" || model.ActionType.ValueString() == "schedule-end") {
+			return dto.NotificationRuleDto{}, errors.New("schedules are only available for schedule-start and schedule-end action types")
+
+		}
 		var times []string
 		diags := model.NotificationTime.ElementsAs(ctx, &times, false)
 		if diags.HasError() {
-			return dto.NotificationRuleDto{}
+			return dto.NotificationRuleDto{}, errors.New("failed to convert notification times")
 		}
 		notificationTimes = times
 	}
 
 	var schedules []string
 	if !(model.Schedules.IsNull() || model.Schedules.IsUnknown()) {
+		if !(model.ActionType.ValueString() == "schedule-start" || model.ActionType.ValueString() == "schedule-end") {
+			return dto.NotificationRuleDto{}, errors.New("schedules are only available for schedule-start and schedule-end action types")
+
+		}
 		var scheds []string
 		diags := model.Schedules.ElementsAs(ctx, &scheds, false)
 		if diags.HasError() {
-			return dto.NotificationRuleDto{}
+			return dto.NotificationRuleDto{}, errors.New("failed to convert schedules")
 		}
 		schedules = scheds
 	}
@@ -951,7 +960,7 @@ func NotificationRuleModelToDto(ctx context.Context, model dataModels.Notificati
 		var timeRestrictionModel dataModels.TimeRestrictionModel
 		diags := model.TimeRestriction.As(ctx, &timeRestrictionModel, basetypes.ObjectAsOptions{})
 		if diags.HasError() {
-			return dto.NotificationRuleDto{}
+			return dto.NotificationRuleDto{}, errors.New("failed to convert timeRestriction")
 		}
 		timeRestriction = TimeRestrictionModelToDto(ctx, timeRestrictionModel)
 	}
@@ -961,14 +970,18 @@ func NotificationRuleModelToDto(ctx context.Context, model dataModels.Notificati
 		var stepsList []dataModels.NotificationRuleStepModel
 		diags := model.Steps.ElementsAs(ctx, &stepsList, false)
 		if diags.HasError() {
-			return dto.NotificationRuleDto{}
+			return dto.NotificationRuleDto{}, errors.New("failed to convert steps")
 		}
 
 		for _, step := range stepsList {
 			var contact dataModels.NotificationContactModel
 			diags := step.Contact.As(ctx, &contact, basetypes.ObjectAsOptions{})
 			if diags.HasError() {
-				return dto.NotificationRuleDto{}
+				return dto.NotificationRuleDto{}, errors.New("failed to convert contact")
+			}
+			if !(model.ActionType.ValueString() == "create-alert" || model.ActionType.ValueString() == "assigned-alert") &&
+				!(step.SendAfter.IsNull() || step.SendAfter.IsUnknown()) {
+				return dto.NotificationRuleDto{}, errors.New("contact method is only available for create-alert and assigned-alert action types")
 			}
 
 			steps = append(steps, dto.NotificationRuleStep{
@@ -976,7 +989,7 @@ func NotificationRuleModelToDto(ctx context.Context, model dataModels.Notificati
 					Method: contact.Method.ValueString(),
 					To:     contact.To.ValueString(),
 				},
-				SendAfter: int(step.SendAfter.ValueInt64()),
+				SendAfter: step.SendAfter.ValueInt64Pointer(),
 				Enabled:   step.Enabled.ValueBool(),
 			})
 		}
@@ -984,10 +997,14 @@ func NotificationRuleModelToDto(ctx context.Context, model dataModels.Notificati
 
 	var repeat *dto.NotificationRuleRepeat
 	if !(model.Repeat.IsNull() || model.Repeat.IsUnknown()) {
+		if !(model.ActionType.ValueString() == "create-alert" || model.ActionType.ValueString() == "assigned-alert") {
+			return dto.NotificationRuleDto{}, errors.New("repeat is only available for create-alert and assigned-alert action types")
+		}
+
 		var repeatModel dataModels.NotificationRuleRepeatModel
 		diags := model.Repeat.As(ctx, &repeatModel, basetypes.ObjectAsOptions{})
 		if diags.HasError() {
-			return dto.NotificationRuleDto{}
+			return dto.NotificationRuleDto{}, errors.New("failed to convert repeat")
 		}
 
 		repeat = &dto.NotificationRuleRepeat{
@@ -1015,19 +1032,19 @@ func NotificationRuleModelToDto(ctx context.Context, model dataModels.Notificati
 		Repeat:           repeat,
 		Enabled:          model.Enabled.ValueBool(),
 		Criteria:         criteria,
-	}
+	}, nil
 }
 
 func NotificationRuleDtoToModel(ctx context.Context, dto dto.NotificationRuleDto) dataModels.NotificationRuleModel {
-	var notificationTime types.List
+	var notificationTime types.Set
 	if dto.NotificationTime != nil {
 		elements := make([]attr.Value, len(dto.NotificationTime))
 		for i, time := range dto.NotificationTime {
 			elements[i] = types.StringValue(time)
 		}
-		notificationTime = types.ListValueMust(types.StringType, elements)
+		notificationTime = types.SetValueMust(types.StringType, elements)
 	} else {
-		notificationTime = types.ListNull(types.StringType)
+		notificationTime = types.SetNull(types.StringType)
 	}
 
 	var schedules types.List
@@ -1108,7 +1125,7 @@ func NotificationRuleDtoToModel(ctx context.Context, dto dto.NotificationRuleDto
 				dataModels.NotificationRuleStepModelMap,
 				map[string]attr.Value{
 					"contact":    contact,
-					"send_after": types.Int64Value(int64(step.SendAfter)),
+					"send_after": types.Int64PointerValue(step.SendAfter),
 					"enabled":    types.BoolValue(step.Enabled),
 				},
 			)
