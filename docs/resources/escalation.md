@@ -17,40 +17,40 @@ description: |-
 
 ### Required
 
-- `name` (String) The name of the escalation
-- `rules` (Attributes Set) List of the escalation rules. (see [below for nested schema](#nestedatt--rules))
-- `team_id` (String) The ID of the team that owns the escalation
+- `name` (String) The name of the escalation policy. This helps identify the policy's purpose and scope.
+- `rules` (Attributes Set) List of escalation rules that define how and when to escalate alerts. Each rule specifies conditions, delays, and recipients. (see [below for nested schema](#nestedatt--rules))
+- `team_id` (String) The ID of the team that owns this escalation policy. Used for access control and organization.
 
 ### Optional
 
-- `description` (String) The description of the escalation
-- `enabled` (Boolean) Whether the escalation is enabled
-- `repeat` (Attributes) Repeat preferences of the escalation including repeat interval, count, reverting acknowledge and seen states back and closing an alert automatically as soon as repeats are completed. (see [below for nested schema](#nestedatt--repeat))
+- `description` (String) A detailed description of the escalation policy's purpose and behavior. Maximum length is 200 characters.
+- `enabled` (Boolean) Whether the escalation policy is active. When disabled, no escalations will be triggered. Defaults to true.
+- `repeat` (Attributes) Configuration for repeating escalations, including intervals, counts, and state management. (see [below for nested schema](#nestedatt--repeat))
 
 ### Read-Only
 
-- `id` (String) The ID of the escalation
+- `id` (String) The unique identifier of the escalation policy. This is automatically generated when the policy is created.
 
 <a id="nestedatt--rules"></a>
 ### Nested Schema for `rules`
 
 Required:
 
-- `condition` (String) The condition for notifying the recipient of escalation rule that is based on the alert state.
-- `delay` (Number) Time delay of the escalation rule in minutes.
-- `notify_type` (String) Recipient calculation logic for escalations.
-- `recipient` (Attributes) Object of schedule, team, or users which will be notified in escalation. (see [below for nested schema](#nestedatt--rules--recipient))
+- `condition` (String) The condition that triggers this escalation rule. Valid values are 'if-not-acked' (escalate if alert is not acknowledged) or 'if-not-closed' (escalate if alert is not closed).
+- `delay` (Number) The time to wait (in minutes) before executing this escalation rule. Must be 0 or greater.
+- `notify_type` (String) How to select recipients for notification. Valid values are: 'default' (use default notification rules), 'next' (next in rotation), 'previous' (previous in rotation), 'users' (specific users), 'admins' (team admins), 'random' (random member), or 'all' (all members).
+- `recipient` (Attributes) The target recipient for this escalation rule. Can be a user, schedule, or team. (see [below for nested schema](#nestedatt--rules--recipient))
 
 <a id="nestedatt--rules--recipient"></a>
 ### Nested Schema for `rules.recipient`
 
 Required:
 
-- `type` (String) The type of the recipient
+- `type` (String) The type of recipient. Valid values are 'user' (individual user), 'schedule' (on-call schedule), or 'team' (entire team).
 
 Optional:
 
-- `id` (String) The ID of the recipient
+- `id` (String) The unique identifier of the recipient (user ID, schedule ID, or team ID).
 
 
 
@@ -59,7 +59,7 @@ Optional:
 
 Optional:
 
-- `close_alert_after_all` (Boolean) It is to close the alert automatically if escalation repeats are completed.
-- `count` (Number) Repeat time indicating how many times the repeat action will be performed.
-- `reset_recipient_states` (Boolean) It is for reverting acknowledge and seen states back on each repeat turn if an alert is not closed.
-- `wait_interval` (Number) The duration in minutes to repeat the escalation rules after processing the last escalation rule. It is mandatory if you would like to add or remove repeat option. 0 should be given as a value to disable repeat option.
+- `close_alert_after_all` (Boolean) Whether to automatically close the alert after all repeat cycles are completed. Defaults to false.
+- `count` (Number) The number of times to repeat the escalation rules. Must be between 1 and 20. Defaults to 1.
+- `reset_recipient_states` (Boolean) Whether to reset acknowledgment and seen states for recipients on each repeat cycle if the alert remains open. Defaults to false.
+- `wait_interval` (Number) The time to wait (in minutes) before repeating the escalation rules. Set to 0 to disable repeats. Required when configuring repeat behavior.

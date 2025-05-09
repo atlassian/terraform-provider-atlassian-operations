@@ -17,27 +17,27 @@ description: |-
 
 ### Required
 
-- `description` (String) The description of the team
-- `display_name` (String) The display name of the team
-- `member` (Attributes Set) The members of the team (see [below for nested schema](#nestedatt--member))
-- `organization_id` (String) The organization ID of the team
-- `team_type` (String) The type of the team
+- `description` (String) A detailed description of the team's purpose, responsibilities, and scope of operations.
+- `display_name` (String) The human-readable name of the team as it appears in the Atlassian interface. This should be clear and identifiable.
+- `member` (Attributes Set) The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID. (see [below for nested schema](#nestedatt--member))
+- `organization_id` (String) The unique identifier of the organization this team belongs to. This determines the team's organizational context.
+- `team_type` (String) The type of team that determines access and invitation policies. Valid values are 'open' (anyone can join), 'member_invite' (members can invite others), or 'external' (managed externally).
 
 ### Optional
 
-- `site_id` (String) The site ID of the team
+- `site_id` (String) The identifier of the Atlassian site where this team is configured. Must be between 1 and 255 characters.
 
 ### Read-Only
 
-- `id` (String) The ID of the team
-- `user_permissions` (Attributes) The user permissions of the team (see [below for nested schema](#nestedatt--user_permissions))
+- `id` (String) The unique identifier of the team. This is automatically generated when the team is created.
+- `user_permissions` (Attributes) The set of permissions that define what operations users can perform on this team. These are computed based on team type and user roles. (see [below for nested schema](#nestedatt--user_permissions))
 
 <a id="nestedatt--member"></a>
 ### Nested Schema for `member`
 
 Required:
 
-- `account_id` (String) The account ID of the user
+- `account_id` (String) The unique Atlassian account identifier for the team member. This is used to uniquely identify users across Atlassian products.
 
 
 <a id="nestedatt--user_permissions"></a>
@@ -45,7 +45,7 @@ Required:
 
 Read-Only:
 
-- `add_members` (Boolean) The permission to add members to the team
-- `delete_team` (Boolean) The permission to delete the team
-- `remove_members` (Boolean) The permission to remove members from the team
-- `update_team` (Boolean) The permission to update the team
+- `add_members` (Boolean) Whether the user has permission to add new members to the team. This is computed based on the user's role and team type.
+- `delete_team` (Boolean) Whether the user has permission to delete the entire team. This is typically restricted to team administrators.
+- `remove_members` (Boolean) Whether the user has permission to remove existing members from the team. This is computed based on the user's role and team type.
+- `update_team` (Boolean) Whether the user has permission to modify team settings and properties. This includes changing the team name, description, and other configurations.
