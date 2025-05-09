@@ -17,32 +17,32 @@ description: |-
 
 ### Required
 
-- `name` (String)
-- `type_specific_properties` (Attributes) Integration specific properties may be provided to this object. (see [below for nested schema](#nestedatt--type_specific_properties))
+- `name` (String) The name of the email integration. Must be between 1 and 250 characters.
+- `type_specific_properties` (Attributes) Configuration properties specific to email integrations, such as email address and notification settings. (see [below for nested schema](#nestedatt--type_specific_properties))
 
 ### Optional
 
-- `enabled` (Boolean)
-- `team_id` (String)
+- `enabled` (Boolean) Whether the email integration is enabled. When disabled, the integration will not process any emails. Defaults to true.
+- `team_id` (String) The ID of the team that owns this email integration. Used for access control and organization.
 
 ### Read-Only
 
-- `advanced` (Boolean)
-- `directions` (List of String) Direction of the action. It can be incoming or outgoing
-- `domains` (List of String) Domain of the action. It can be alert
-- `id` (String) The ID of the escalation
-- `maintenance_sources` (Attributes List) (see [below for nested schema](#nestedatt--maintenance_sources))
+- `advanced` (Boolean) Indicates whether this is an advanced email integration with additional configuration options.
+- `directions` (List of String) The communication directions supported by this integration. Valid values are 'incoming' for receiving emails and 'outgoing' for sending emails.
+- `domains` (List of String) The domains this integration operates on. Currently supports 'alert' for alert-related email communications.
+- `id` (String) The unique identifier of the email integration. This is automatically generated when the integration is created.
+- `maintenance_sources` (Attributes List) List of maintenance windows associated with this email integration. These define when the integration is under maintenance. (see [below for nested schema](#nestedatt--maintenance_sources))
 
 <a id="nestedatt--type_specific_properties"></a>
 ### Nested Schema for `type_specific_properties`
 
 Required:
 
-- `email_username` (String)
+- `email_username` (String) The email address used for this integration. This will be used as the sender/receiver address depending on the integration direction.
 
 Optional:
 
-- `suppress_notifications` (Boolean)
+- `suppress_notifications` (Boolean) Whether to suppress email notifications from this integration. When true, no notification emails will be sent. Defaults to false.
 
 
 <a id="nestedatt--maintenance_sources"></a>
@@ -50,14 +50,14 @@ Optional:
 
 Read-Only:
 
-- `enabled` (Boolean)
-- `interval` (Attributes) (see [below for nested schema](#nestedatt--maintenance_sources--interval))
-- `maintenance_id` (String)
+- `enabled` (Boolean) Whether the maintenance window is active. When enabled, the integration behavior may be modified during the maintenance period.
+- `interval` (Attributes) The time interval during which the maintenance window is active. (see [below for nested schema](#nestedatt--maintenance_sources--interval))
+- `maintenance_id` (String) The unique identifier of the maintenance window. This is automatically generated when the maintenance window is created.
 
 <a id="nestedatt--maintenance_sources--interval"></a>
 ### Nested Schema for `maintenance_sources.interval`
 
 Read-Only:
 
-- `end_time_millis` (Number)
-- `start_time_millis` (Number)
+- `end_time_millis` (Number) The end time of the maintenance window in Unix milliseconds (UTC).
+- `start_time_millis` (Number) The start time of the maintenance window in Unix milliseconds (UTC).

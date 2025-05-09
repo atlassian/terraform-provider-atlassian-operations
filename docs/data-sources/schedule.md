@@ -17,12 +17,12 @@ Schedule data source
 
 ### Required
 
-- `name` (String) The name of the schedule
+- `name` (String) The name of the schedule. This is used to look up the schedule and must be unique within your organization.
 
 ### Read-Only
 
-- `description` (String) The description of the schedule
-- `enabled` (Boolean) Whether the schedule is enabled
-- `id` (String) The ID of the schedule
-- `team_id` (String) The ID of the team that owns the schedule
-- `timezone` (String) The timezone of the schedule
+- `description` (String) A detailed description of the schedule's purpose and coverage. This helps team members understand the schedule's role.
+- `enabled` (Boolean) Indicates whether the schedule is currently active and can be used for rotations and assignments.
+- `id` (String) The unique identifier of the schedule. This is automatically generated when the schedule is created.
+- `team_id` (String) The unique identifier of the team that owns this schedule. Used for access control and organization.
+- `timezone` (String) The timezone in IANA format (e.g., 'America/New_York') that this schedule operates in. All times in the schedule are interpreted in this timezone.
