@@ -20,18 +20,18 @@ import (
 
 var RotationResourceAttributes = map[string]schema.Attribute{
 	"id": schema.StringAttribute{
-		Description: "The ID of the rotation",
+		Description: "The unique identifier of the rotation. This is automatically generated when the rotation is created.",
 		Computed:    true,
 		PlanModifiers: []planmodifier.String{
 			stringplanmodifier.UseStateForUnknown(),
 		},
 	},
 	"schedule_id": schema.StringAttribute{
-		Description: "The ID of the schedule",
+		Description: "The ID of the schedule this rotation belongs to. This links the rotation to a specific on-call schedule.",
 		Required:    true,
 	},
 	"name": schema.StringAttribute{
-		Description: "The name of the rotation",
+		Description: "The name of the rotation. Must be at least 1 character long. This helps identify the rotation's purpose.",
 		Optional:    true,
 		Computed:    true,
 		PlanModifiers: []planmodifier.String{
@@ -42,25 +42,25 @@ var RotationResourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"start_date": schema.StringAttribute{
-		Description: "The start date of the rotation",
+		Description: "The date and time when this rotation begins, in RFC3339 format (e.g., '2024-01-01T00:00:00Z').",
 		Required:    true,
 		CustomType:  timetypes.RFC3339Type{},
 	},
 	"end_date": schema.StringAttribute{
-		Description: "The end date of the rotation",
+		Description: "The date and time when this rotation ends, in RFC3339 format. If not specified, the rotation continues indefinitely.",
 		Computed:    true,
 		Optional:    true,
 		CustomType:  timetypes.RFC3339Type{},
 	},
 	"type": schema.StringAttribute{
-		Description: "The type of the rotation",
+		Description: "The frequency of rotation. Valid values are 'daily' (rotate every day), 'weekly' (rotate every week), or 'hourly' (rotate every hour).",
 		Required:    true,
 		Validators: []validator.String{
 			stringvalidator.OneOf([]string{"daily", "weekly", "hourly"}...),
 		},
 	},
 	"length": schema.Int32Attribute{
-		Description: "The length of the rotation",
+		Description: "The duration of each rotation shift in units matching the rotation type (hours for hourly, days for daily, weeks for weekly). Defaults to 1.",
 		Default:     int32default.StaticInt32(1),
 		Computed:    true,
 		Optional:    true,
@@ -72,7 +72,7 @@ var RotationResourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"participants": schema.ListNestedAttribute{
-		Description: "The participants of the rotation",
+		Description: "The list of participants in this rotation. Can include users, teams, escalation policies, or empty slots (noone).",
 		Optional:    true,
 		Computed:    true,
 		NestedObject: schema.NestedAttributeObject{
@@ -91,18 +91,19 @@ var RotationResourceAttributes = map[string]schema.Attribute{
 		),
 	},
 	"time_restriction": schema.SingleNestedAttribute{
-		Attributes: TimeRestrictionResourceAttributes,
-		Optional:   true,
+		Description: "Optional time restrictions for when this rotation is active. Used to define specific hours or days when the rotation applies.",
+		Attributes:  TimeRestrictionResourceAttributes,
+		Optional:    true,
 	},
 }
 
 var ResponderInfoResourceAttributes = map[string]schema.Attribute{
 	"id": schema.StringAttribute{
-		Description: "The ID of the participant",
+		Description: "The unique identifier of the participant (user ID, team ID, or escalation policy ID). Required when type is 'user', 'team', or 'escalation'.",
 		Optional:    true,
 	},
 	"type": schema.StringAttribute{
-		Description: "The type of the participant",
+		Description: "The type of participant. Valid values are 'user' (individual user), 'team' (entire team), 'escalation' (escalation policy), or 'noone' (empty slot).",
 		Required:    true,
 		Validators: []validator.String{
 			stringvalidator.OneOf([]string{"user", "team", "escalation", "noone"}...),
