@@ -26,13 +26,13 @@ provider "atlassian-operations" {
 
 ### Required
 
-- `cloud_id` (String)
-- `domain_name` (String)
-- `email_address` (String)
-- `token` (String, Sensitive)
+- `cloud_id` (String) The unique identifier of your Atlassian Cloud instance. This can be found in your Atlassian Cloud URL.
+- `domain_name` (String) The domain name of your Atlassian Cloud instance (e.g., 'your-domain.atlassian.net').
+- `email_address` (String) The email address associated with your Atlassian Cloud account. This must be an admin account.
+- `token` (String, Sensitive) Your Atlassian API token. You can generate this from your Atlassian account settings.
 
 ### Optional
 
-- `api_retry_count` (Number)
-- `api_retry_wait` (Number)
-- `api_retry_wait_max` (Number)
+- `api_retry_count` (Number) The number of times to retry failed API requests. Defaults to 3.
+- `api_retry_wait` (Number) The initial wait time in seconds between API retries. This value is doubled for each subsequent retry. Defaults to 1.
+- `api_retry_wait_max` (Number) The maximum wait time in seconds between API retries. Defaults to 30.

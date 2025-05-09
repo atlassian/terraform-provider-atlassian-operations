@@ -17,36 +17,36 @@ description: |-
 
 ### Required
 
-- `name` (String)
-- `type` (String)
+- `name` (String) The name of the API integration. Must be between 1 and 250 characters.
+- `type` (String) The type of API integration.
 
 ### Optional
 
-- `enabled` (Boolean)
-- `team_id` (String)
-- `type_specific_properties` (String) Integration specific properties may be provided to this object. Use jsonencode to convert the object into a string.
+- `enabled` (Boolean) Whether the API integration is enabled. When disabled, the integration will not process any requests. Defaults to false.
+- `team_id` (String) The ID of the team that owns this API integration. Cannot be changed after creation.
+- `type_specific_properties` (String) JSON object containing integration-specific configuration properties. The schema depends on the integration type.
 
 ### Read-Only
 
-- `advanced` (Boolean)
-- `directions` (List of String)
-- `domains` (List of String)
-- `id` (String) The ID of the escalation
-- `maintenance_sources` (Attributes List) (see [below for nested schema](#nestedatt--maintenance_sources))
+- `advanced` (Boolean) Indicates whether this is an advanced API integration with additional configuration options.
+- `directions` (List of String) List of supported communication directions for this integration (e.g., 'inbound', 'outbound').
+- `domains` (List of String) List of domains associated with this API integration. Used for routing and security purposes.
+- `id` (String) The unique identifier of the API integration. This is automatically generated when the integration is created.
+- `maintenance_sources` (Attributes List) List of maintenance windows associated with this API integration. These define when the integration is under maintenance. (see [below for nested schema](#nestedatt--maintenance_sources))
 
 <a id="nestedatt--maintenance_sources"></a>
 ### Nested Schema for `maintenance_sources`
 
 Read-Only:
 
-- `enabled` (Boolean) Whether the maintenance is enabled
-- `interval` (Attributes) (see [below for nested schema](#nestedatt--maintenance_sources--interval))
-- `maintenance_id` (String) The ID of the maintenance
+- `enabled` (Boolean) Whether the maintenance window is active. When enabled, the integration behavior may be modified during the maintenance period.
+- `interval` (Attributes) The time interval during which the maintenance window is active. (see [below for nested schema](#nestedatt--maintenance_sources--interval))
+- `maintenance_id` (String) The unique identifier of the maintenance window. This is automatically generated when the maintenance window is created.
 
 <a id="nestedatt--maintenance_sources--interval"></a>
 ### Nested Schema for `maintenance_sources.interval`
 
 Read-Only:
 
-- `end_time_millis` (Number) The end time of the maintenance
-- `start_time_millis` (Number) The start time of the maintenance
+- `end_time_millis` (Number) The end time of the maintenance window in Unix milliseconds (UTC).
+- `start_time_millis` (Number) The start time of the maintenance window in Unix milliseconds (UTC).

@@ -17,32 +17,32 @@ description: |-
 
 ### Required
 
-- `schedule_id` (String) The ID of the schedule
-- `start_date` (String) The start date of the rotation
-- `type` (String) The type of the rotation
+- `schedule_id` (String) The ID of the schedule this rotation belongs to. This links the rotation to a specific on-call schedule.
+- `start_date` (String) The date and time when this rotation begins, in RFC3339 format (e.g., '2024-01-01T00:00:00Z').
+- `type` (String) The frequency of rotation. Valid values are 'daily' (rotate every day), 'weekly' (rotate every week), or 'hourly' (rotate every hour).
 
 ### Optional
 
-- `end_date` (String) The end date of the rotation
-- `length` (Number) The length of the rotation
-- `name` (String) The name of the rotation
-- `participants` (Attributes List) The participants of the rotation (see [below for nested schema](#nestedatt--participants))
-- `time_restriction` (Attributes) (see [below for nested schema](#nestedatt--time_restriction))
+- `end_date` (String) The date and time when this rotation ends, in RFC3339 format. If not specified, the rotation continues indefinitely.
+- `length` (Number) The duration of each rotation shift in units matching the rotation type (hours for hourly, days for daily, weeks for weekly). Defaults to 1.
+- `name` (String) The name of the rotation. Must be at least 1 character long. This helps identify the rotation's purpose.
+- `participants` (Attributes List) The list of participants in this rotation. Can include users, teams, escalation policies, or empty slots (noone). (see [below for nested schema](#nestedatt--participants))
+- `time_restriction` (Attributes) Optional time restrictions for when this rotation is active. Used to define specific hours or days when the rotation applies. (see [below for nested schema](#nestedatt--time_restriction))
 
 ### Read-Only
 
-- `id` (String) The ID of the rotation
+- `id` (String) The unique identifier of the rotation. This is automatically generated when the rotation is created.
 
 <a id="nestedatt--participants"></a>
 ### Nested Schema for `participants`
 
 Required:
 
-- `type` (String) The type of the participant
+- `type` (String) The type of participant. Valid values are 'user' (individual user), 'team' (entire team), 'escalation' (escalation policy), or 'noone' (empty slot).
 
 Optional:
 
-- `id` (String) The ID of the participant
+- `id` (String) The unique identifier of the participant (user ID, team ID, or escalation policy ID). Required when type is 'user', 'team', or 'escalation'.
 
 
 <a id="nestedatt--time_restriction"></a>
@@ -50,22 +50,22 @@ Optional:
 
 Required:
 
-- `type` (String) The type of the time restriction
+- `type` (String) The type of time restriction to apply. Must be either 'time-of-day' for daily recurring windows or 'weekday-and-time-of-day' for weekly schedules.
 
 Optional:
 
-- `restriction` (Attributes) (see [below for nested schema](#nestedatt--time_restriction--restriction))
-- `restrictions` (Attributes List) The restrictions of the time restriction (see [below for nested schema](#nestedatt--time_restriction--restrictions))
+- `restriction` (Attributes) Configuration for daily time windows. Used when type is 'time-of-day'. Specifies the same time window for every day. (see [below for nested schema](#nestedatt--time_restriction--restriction))
+- `restrictions` (Attributes List) List of weekly time windows. Used when type is 'weekday-and-time-of-day'. Allows different time windows for different days of the week. (see [below for nested schema](#nestedatt--time_restriction--restrictions))
 
 <a id="nestedatt--time_restriction--restriction"></a>
 ### Nested Schema for `time_restriction.restriction`
 
 Required:
 
-- `end_hour` (Number) The end hour of the restriction
-- `end_min` (Number) The end minute of the restriction
-- `start_hour` (Number) The start hour of the restriction
-- `start_min` (Number) The start minute of the restriction
+- `end_hour` (Number) The hour when the restriction ends (0-23, where 0 is midnight). Must be a valid 24-hour time.
+- `end_min` (Number) The minute when the restriction ends. Must be either 0 or 30 (half-hour increments only).
+- `start_hour` (Number) The hour when the restriction begins (0-23, where 0 is midnight). Must be a valid 24-hour time.
+- `start_min` (Number) The minute when the restriction begins. Must be either 0 or 30 (half-hour increments only).
 
 
 <a id="nestedatt--time_restriction--restrictions"></a>
@@ -73,9 +73,9 @@ Required:
 
 Required:
 
-- `end_day` (String) The end day of the restriction
-- `end_hour` (Number) The end hour of the restriction
-- `end_min` (Number) The end minute of the restriction
-- `start_day` (String) The start day of the restriction
-- `start_hour` (Number) The start hour of the restriction
-- `start_min` (Number) The start minute of the restriction
+- `end_day` (String) The day of the week when the restriction ends. Must be a lowercase day name (e.g., 'monday', 'tuesday').
+- `end_hour` (Number) The hour when the restriction ends on the end day (0-23, where 0 is midnight). Must be a valid 24-hour time.
+- `end_min` (Number) The minute when the restriction ends on the end day. Must be either 0 or 30 (half-hour increments only).
+- `start_day` (String) The day of the week when the restriction begins. Must be a lowercase day name (e.g., 'monday', 'tuesday').
+- `start_hour` (Number) The hour when the restriction begins on the start day (0-23, where 0 is midnight). Must be a valid 24-hour time.
+- `start_min` (Number) The minute when the restriction begins on the start day. Must be either 0 or 30 (half-hour increments only).

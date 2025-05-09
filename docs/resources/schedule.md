@@ -17,15 +17,15 @@ description: |-
 
 ### Required
 
-- `name` (String) The name of the schedule
-- `team_id` (String) The ID of the team that owns the schedule
+- `name` (String) The name of the schedule. This helps identify the schedule's purpose and the team or service it covers.
+- `team_id` (String) The ID of the team that owns this schedule. Used for access control and organization of schedules.
 
 ### Optional
 
-- `description` (String) The description of the schedule
-- `enabled` (Boolean) Whether the schedule is enabled
-- `timezone` (String) The timezone of the schedule
+- `description` (String) A detailed description of the schedule's purpose, coverage, and any special instructions. Defaults to empty string.
+- `enabled` (Boolean) Whether the schedule is active and can be used for on-call rotations. When disabled, no notifications will be sent to participants. Defaults to true.
+- `timezone` (String) The timezone in IANA format (e.g., 'America/New_York') that this schedule operates in. All rotations and shifts are interpreted in this timezone. Defaults to 'America/New_York'.
 
 ### Read-Only
 
-- `id` (String) The ID of the schedule
+- `id` (String) The unique identifier of the schedule. This is automatically generated when the schedule is created.
