@@ -17,27 +17,27 @@ Team data source
 
 ### Required
 
-- `id` (String) The ID of the team
-- `organization_id` (String) The organization ID of the team
+- `id` (String) The unique identifier of the team. Used to look up specific team information.
+- `organization_id` (String) The unique identifier of the organization this team belongs to. Required for team lookup.
 
 ### Optional
 
-- `site_id` (String) The site ID of the team
+- `site_id` (String) The identifier of the Atlassian site where this team is configured. Must be between 1 and 255 characters.
 
 ### Read-Only
 
-- `description` (String) The description of the team
-- `display_name` (String) The display name of the team
-- `member` (Attributes Set) The members of the team (see [below for nested schema](#nestedatt--member))
-- `team_type` (String) The type of the team
-- `user_permissions` (Attributes) The user permissions of the team (see [below for nested schema](#nestedatt--user_permissions))
+- `description` (String) A detailed description of the team's purpose, responsibilities, and scope of operations.
+- `display_name` (String) The human-readable name of the team as it appears in the Atlassian interface.
+- `member` (Attributes Set) The set of users who are members of this team. Each member has their own role and permissions. (see [below for nested schema](#nestedatt--member))
+- `team_type` (String) The type of team (e.g., 'open', 'member_invite', 'external'). Determines team access and invitation policies.
+- `user_permissions` (Attributes) The set of permissions that define what operations users can perform on this team. (see [below for nested schema](#nestedatt--user_permissions))
 
 <a id="nestedatt--member"></a>
 ### Nested Schema for `member`
 
 Read-Only:
 
-- `account_id` (String) The account ID of the user
+- `account_id` (String) The unique Atlassian account identifier for the team member.
 
 
 <a id="nestedatt--user_permissions"></a>
@@ -45,7 +45,7 @@ Read-Only:
 
 Read-Only:
 
-- `add_members` (Boolean) The permission to add members to the team
-- `delete_team` (Boolean) The permission to delete the team
-- `remove_members` (Boolean) The permission to remove members from the team
-- `update_team` (Boolean) The permission to update the team
+- `add_members` (Boolean) Indicates whether the user has permission to add new members to the team.
+- `delete_team` (Boolean) Indicates whether the user has permission to delete the entire team.
+- `remove_members` (Boolean) Indicates whether the user has permission to remove existing members from the team.
+- `update_team` (Boolean) Indicates whether the user has permission to modify team settings and properties.

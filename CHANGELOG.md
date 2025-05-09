@@ -1,3 +1,11 @@
+## v1.0.3
+
+#### Resources:
+
+- Implemented Notification Rule Resource
+- Implemented Routing Rule Resource
+- Updated documentation for existing resources
+
 ## v1.0.2
 
 ### FIXES:

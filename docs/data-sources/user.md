@@ -17,45 +17,45 @@ User data source
 
 ### Required
 
-- `email_address` (String) The email address of the user
+- `email_address` (String) The user's email address. This is used as the primary identifier for looking up user information.
 
 ### Read-Only
 
-- `account_id` (String) The account ID of the user
-- `account_type` (String) The account type of the user
-- `active` (Boolean) The active status of the user
-- `application_roles` (Attributes List) The application roles of the user (see [below for nested schema](#nestedatt--application_roles))
-- `avatar_urls` (Attributes) The avatar URLs of the user (see [below for nested schema](#nestedatt--avatar_urls))
-- `display_name` (String) The display name of the user
-- `expand` (String) The expand of the user
-- `groups` (Attributes List) The groups of the user (see [below for nested schema](#nestedatt--groups))
-- `locale` (String) The locale of the user
-- `timezone` (String) The time zone of the user
+- `account_id` (String) The unique Atlassian account identifier for the user. This is a permanent, unchangeable ID.
+- `account_type` (String) The type of Atlassian account (e.g., 'atlassian', 'customer', 'app'). Determines the user's access level and capabilities.
+- `active` (Boolean) Indicates whether the user account is currently active and can access Atlassian services.
+- `application_roles` (Attributes List) List of roles and permissions the user has across different Atlassian applications. (see [below for nested schema](#nestedatt--application_roles))
+- `avatar_urls` (Attributes) Collection of URLs for the user's avatar image in different sizes. (see [below for nested schema](#nestedatt--avatar_urls))
+- `display_name` (String) The user's full name as it appears in the Atlassian interface.
+- `expand` (String) Comma-separated list of additional user details to include in the response.
+- `groups` (Attributes List) List of groups the user belongs to, determining their access rights and permissions. (see [below for nested schema](#nestedatt--groups))
+- `locale` (String) The user's preferred language and region settings (e.g., 'en_US', 'fr_FR').
+- `timezone` (String) The user's configured timezone in IANA format (e.g., 'America/New_York'). Used for displaying times and dates.
 
 <a id="nestedatt--application_roles"></a>
 ### Nested Schema for `application_roles`
 
 Read-Only:
 
-- `default_groups` (List of String) The default groups of the application role
-- `default_groups_details` (Attributes List) The default groups details of the application role (see [below for nested schema](#nestedatt--application_roles--default_groups_details))
-- `defined` (Boolean) The defined status of the application role
-- `group_details` (Attributes List) The group details of the application role (see [below for nested schema](#nestedatt--application_roles--group_details))
-- `groups` (List of String) The groups of the application role
-- `has_unlimited_seats` (Boolean) The has unlimited seats status of the application role
-- `key` (String) The key of the application role
-- `name` (String) The name of the application role
-- `number_of_seats` (Number) The number of seats of the application role
-- `platform` (Boolean) The platform status of the application role
+- `default_groups` (List of String) List of group names that are automatically assigned to users with this application role.
+- `default_groups_details` (Attributes List) Detailed information about the default groups associated with this application role. (see [below for nested schema](#nestedatt--application_roles--default_groups_details))
+- `defined` (Boolean) Indicates whether this application role has been explicitly defined or is inherited.
+- `group_details` (Attributes List) Detailed information about all groups associated with this application role. (see [below for nested schema](#nestedatt--application_roles--group_details))
+- `groups` (List of String) List of all group names associated with this application role.
+- `has_unlimited_seats` (Boolean) Indicates whether this application role has no limit on the number of users who can be assigned to it.
+- `key` (String) The unique identifier for this application role.
+- `name` (String) The human-readable name of this application role.
+- `number_of_seats` (Number) The maximum number of users who can be assigned this application role.
+- `platform` (Boolean) Indicates whether this is a platform-level application role that applies across all Atlassian products.
 
 <a id="nestedatt--application_roles--default_groups_details"></a>
 ### Nested Schema for `application_roles.default_groups_details`
 
 Read-Only:
 
-- `group_id` (String) The group ID
-- `name` (String) The name of the group
-- `self` (String) The self of the group
+- `group_id` (String) The unique identifier for the group.
+- `name` (String) The display name of the group.
+- `self` (String) The URL to the REST API endpoint for this group.
 
 
 <a id="nestedatt--application_roles--group_details"></a>
@@ -63,9 +63,9 @@ Read-Only:
 
 Read-Only:
 
-- `group_id` (String) The group ID
-- `name` (String) The name of the group
-- `self` (String) The self of the group
+- `group_id` (String) The unique identifier for the group.
+- `name` (String) The display name of the group.
+- `self` (String) The URL to the REST API endpoint for this group.
 
 
 
@@ -74,10 +74,10 @@ Read-Only:
 
 Read-Only:
 
-- `a_16x16` (String) The 16x16 avatar URL
-- `a_24x24` (String) The 24x24 avatar URL
-- `a_32x32` (String) The 32x32 avatar URL
-- `a_48x48` (String) The 48x48 avatar URL
+- `a_16x16` (String) URL to the user's 16x16 pixel avatar image.
+- `a_24x24` (String) URL to the user's 24x24 pixel avatar image.
+- `a_32x32` (String) URL to the user's 32x32 pixel avatar image.
+- `a_48x48` (String) URL to the user's 48x48 pixel avatar image.
 
 
 <a id="nestedatt--groups"></a>
@@ -85,6 +85,6 @@ Read-Only:
 
 Read-Only:
 
-- `group_id` (String) The group ID
-- `name` (String) The name of the group
-- `self` (String) The self of the group
+- `group_id` (String) The unique identifier for the group.
+- `name` (String) The display name of the group.
+- `self` (String) The URL to the REST API endpoint for this group.
