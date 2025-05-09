@@ -8,23 +8,23 @@ import (
 
 var TeamDataSourceAttributes = map[string]schema.Attribute{
 	"description": schema.StringAttribute{
-		Description: "The description of the team",
+		Description: "A detailed description of the team's purpose, responsibilities, and scope of operations.",
 		Computed:    true,
 	},
 	"display_name": schema.StringAttribute{
-		Description: "The display name of the team",
+		Description: "The human-readable name of the team as it appears in the Atlassian interface.",
 		Computed:    true,
 	},
 	"organization_id": schema.StringAttribute{
-		Description: "The organization ID of the team",
+		Description: "The unique identifier of the organization this team belongs to. Required for team lookup.",
 		Required:    true,
 	},
 	"id": schema.StringAttribute{
-		Description: "The ID of the team",
+		Description: "The unique identifier of the team. Used to look up specific team information.",
 		Required:    true,
 	},
 	"site_id": schema.StringAttribute{
-		Description: "The site ID of the team",
+		Description: "The identifier of the Atlassian site where this team is configured. Must be between 1 and 255 characters.",
 		Computed:    true,
 		Optional:    true,
 		Validators: []validator.String{
@@ -32,16 +32,16 @@ var TeamDataSourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"team_type": schema.StringAttribute{
-		Description: "The type of the team",
+		Description: "The type of team (e.g., 'open', 'member_invite', 'external'). Determines team access and invitation policies.",
 		Computed:    true,
 	},
 	"user_permissions": schema.SingleNestedAttribute{
-		Description: "The user permissions of the team",
+		Description: "The set of permissions that define what operations users can perform on this team.",
 		Computed:    true,
 		Attributes:  PublicApiUserPermissionsDataSourceAttributes,
 	},
 	"member": schema.SetNestedAttribute{
-		Description: "The members of the team",
+		Description: "The set of users who are members of this team. Each member has their own role and permissions.",
 		Computed:    true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: TeamMemberDataSourceAttributes,
@@ -51,26 +51,26 @@ var TeamDataSourceAttributes = map[string]schema.Attribute{
 
 var PublicApiUserPermissionsDataSourceAttributes = map[string]schema.Attribute{
 	"add_members": schema.BoolAttribute{
-		Description: "The permission to add members to the team",
+		Description: "Indicates whether the user has permission to add new members to the team.",
 		Computed:    true,
 	},
 	"delete_team": schema.BoolAttribute{
-		Description: "The permission to delete the team",
+		Description: "Indicates whether the user has permission to delete the entire team.",
 		Computed:    true,
 	},
 	"remove_members": schema.BoolAttribute{
-		Description: "The permission to remove members from the team",
+		Description: "Indicates whether the user has permission to remove existing members from the team.",
 		Computed:    true,
 	},
 	"update_team": schema.BoolAttribute{
-		Description: "The permission to update the team",
+		Description: "Indicates whether the user has permission to modify team settings and properties.",
 		Computed:    true,
 	},
 }
 
 var TeamMemberDataSourceAttributes = map[string]schema.Attribute{
 	"account_id": schema.StringAttribute{
-		Description: "The account ID of the user",
+		Description: "The unique Atlassian account identifier for the team member.",
 		Computed:    true,
 	},
 }

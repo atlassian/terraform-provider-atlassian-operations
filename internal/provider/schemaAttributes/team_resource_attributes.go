@@ -12,47 +12,47 @@ import (
 
 var TeamResourceAttributes = map[string]schema.Attribute{
 	"description": schema.StringAttribute{
-		Description: "The description of the team",
+		Description: "A detailed description of the team's purpose, responsibilities, and scope of operations.",
 		Required:    true,
 	},
 	"display_name": schema.StringAttribute{
-		Description: "The display name of the team",
+		Description: "The human-readable name of the team as it appears in the Atlassian interface. This should be clear and identifiable.",
 		Required:    true,
 	},
 	"organization_id": schema.StringAttribute{
-		Description: "The organization ID of the team",
+		Description: "The unique identifier of the organization this team belongs to. This determines the team's organizational context.",
 		Required:    true,
 	},
 	"id": schema.StringAttribute{
-		Description: "The ID of the team",
+		Description: "The unique identifier of the team. This is automatically generated when the team is created.",
 		Computed:    true,
 		PlanModifiers: []planmodifier.String{
 			stringplanmodifier.UseStateForUnknown(),
 		},
 	},
 	"site_id": schema.StringAttribute{
-		Description: "The site ID of the team",
+		Description: "The identifier of the Atlassian site where this team is configured. Must be between 1 and 255 characters.",
 		Optional:    true,
 		Validators: []validator.String{
 			stringvalidator.LengthBetween(1, 255),
 		},
 	},
 	"team_type": schema.StringAttribute{
-		Description: "The type of the team",
+		Description: "The type of team that determines access and invitation policies. Valid values are 'open' (anyone can join), 'member_invite' (members can invite others), or 'external' (managed externally).",
 		Required:    true,
 		Validators: []validator.String{
 			stringvalidator.OneOf(string(dto.OPEN), string(dto.MEMBER_INVITE), string(dto.EXTERNAL)),
 		},
 	},
 	"user_permissions": schema.SingleNestedAttribute{
-		Description: "The user permissions of the team",
+		Description: "The set of permissions that define what operations users can perform on this team. These are computed based on team type and user roles.",
 		Computed:    true,
 		Optional:    false,
 		Required:    false,
 		Attributes:  PublicApiUserPermissionsResourceAttributes,
 	},
 	"member": schema.SetNestedAttribute{
-		Description: "The members of the team",
+		Description: "The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID.",
 		Required:    true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: TeamMemberResourceAttributes,
@@ -65,25 +65,25 @@ var TeamResourceAttributes = map[string]schema.Attribute{
 
 var PublicApiUserPermissionsResourceAttributes = map[string]schema.Attribute{
 	"add_members": schema.BoolAttribute{
-		Description: "The permission to add members to the team",
+		Description: "Whether the user has permission to add new members to the team. This is computed based on the user's role and team type.",
 		Computed:    true,
 		Optional:    false,
 		Required:    false,
 	},
 	"delete_team": schema.BoolAttribute{
-		Description: "The permission to delete the team",
+		Description: "Whether the user has permission to delete the entire team. This is typically restricted to team administrators.",
 		Computed:    true,
 		Optional:    false,
 		Required:    false,
 	},
 	"remove_members": schema.BoolAttribute{
-		Description: "The permission to remove members from the team",
+		Description: "Whether the user has permission to remove existing members from the team. This is computed based on the user's role and team type.",
 		Computed:    true,
 		Optional:    false,
 		Required:    false,
 	},
 	"update_team": schema.BoolAttribute{
-		Description: "The permission to update the team",
+		Description: "Whether the user has permission to modify team settings and properties. This includes changing the team name, description, and other configurations.",
 		Computed:    true,
 		Optional:    false,
 		Required:    false,
@@ -92,7 +92,7 @@ var PublicApiUserPermissionsResourceAttributes = map[string]schema.Attribute{
 
 var TeamMemberResourceAttributes = map[string]schema.Attribute{
 	"account_id": schema.StringAttribute{
-		Description: "The account ID of the user",
+		Description: "The unique Atlassian account identifier for the team member. This is used to uniquely identify users across Atlassian products.",
 		Required:    true,
 	},
 }
