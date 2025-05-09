@@ -15,7 +15,7 @@ type NotificationRuleDto struct {
 }
 
 type NotificationRuleStep struct {
-	SendAfter int                 `json:"sendAfter"`
+	SendAfter *int64              `json:"sendAfter,omitempty"`
 	Contact   NotificationContact `json:"contact"`
 	Enabled   bool                `json:"enabled"`
 }
