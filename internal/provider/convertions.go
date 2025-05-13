@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
@@ -1204,4 +1205,388 @@ func UserContactReadDtoToModel(dto *dto.UserContactDataReadResponseDto) *dataMod
 		To:      types.StringValue(dto.To),
 		Enabled: types.BoolValue(dto.Status.Enabled),
 	}
+}
+
+func AlertPolicyModelToDto(ctx context.Context, model *dataModels.AlertPolicyModel) (*dto.AlertPolicyDto, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if model == nil {
+		return nil, diags
+	}
+
+	// Convert Filter
+	var filter *dto.AlertFilterDto
+	if !(model.Filter.IsNull() || model.Filter.IsUnknown()) {
+		var filterModel dataModels.AlertFilterModel
+		diags.Append(model.Filter.As(ctx, &filterModel, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		filter = &dto.AlertFilterDto{
+			Type: filterModel.Type.ValueString(),
+		}
+
+		// Convert Conditions
+		if !(filterModel.Conditions.IsNull() || filterModel.Conditions.IsUnknown()) {
+			var conditions []dataModels.AlertConditionModel
+			diags.Append(filterModel.Conditions.ElementsAs(ctx, &conditions, false)...)
+			if diags.HasError() {
+				return nil, diags
+			}
+
+			filter.Conditions = make([]dto.AlertConditionDto, len(conditions))
+			for i, condition := range conditions {
+				filter.Conditions[i] = dto.AlertConditionDto{
+					Field:         condition.Field.ValueString(),
+					Key:           condition.Key.ValueString(),
+					Not:           condition.Not.ValueBool(),
+					Operation:     condition.Operation.ValueString(),
+					ExpectedValue: condition.ExpectedValue.ValueString(),
+					Order:         int(condition.Order.ValueInt64()),
+				}
+			}
+		}
+	}
+
+	// Convert TimeRestriction
+	var timeRestriction *dto.TimeRestrictionDto
+	if !(model.TimeRestriction.IsNull() || model.TimeRestriction.IsUnknown()) {
+		var trModel dataModels.AlertTimeRestrictionModel
+		diags.Append(model.TimeRestriction.As(ctx, &trModel, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		timeRestriction = &dto.TimeRestrictionDto{
+			Enabled: trModel.Enabled.ValueBool(),
+		}
+
+		if !(trModel.TimeRestrictions.IsNull() || trModel.TimeRestrictions.IsUnknown()) {
+			var periods []dataModels.AlertTimeRestrictionPeriodModel
+			diags.Append(trModel.TimeRestrictions.ElementsAs(ctx, &periods, false)...)
+			if diags.HasError() {
+				return nil, diags
+			}
+
+			timeRestriction.TimeRestrictions = make([]dto.TimeRestrictionPeriodDto, len(periods))
+			for i, period := range periods {
+				timeRestriction.TimeRestrictions[i] = dto.TimeRestrictionPeriodDto{
+					StartHour:   int(period.StartHour.ValueInt64()),
+					StartMinute: int(period.StartMinute.ValueInt64()),
+					EndHour:     int(period.EndHour.ValueInt64()),
+					EndMinute:   int(period.EndMinute.ValueInt64()),
+				}
+			}
+		}
+	}
+
+	// Convert Responders
+	var responders []dto.ResponderDto
+	if !(model.Responders.IsNull() || model.Responders.IsUnknown()) {
+		var responderModels []dataModels.AlertResponderModel
+		diags.Append(model.Responders.ElementsAs(ctx, &responderModels, false)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		responders = make([]dto.ResponderDto, len(responderModels))
+		for i, responder := range responderModels {
+			responders[i] = dto.ResponderDto{
+				Type: responder.Type.ValueString(),
+				ID:   responder.ID.ValueString(),
+			}
+		}
+	}
+
+	// Convert Actions
+	var actions []string
+	if !(model.Actions.IsNull() || model.Actions.IsUnknown()) {
+		var actionModels []types.String
+		diags.Append(model.Actions.ElementsAs(ctx, &actionModels, false)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		actions = make([]string, len(actionModels))
+		for i, tag := range actionModels {
+			actions[i] = tag.ValueString()
+		}
+	}
+
+	// Convert Tags
+	var tags []string
+	if !(model.Tags.IsNull() || model.Tags.IsUnknown()) {
+		var tagValues []types.String
+		diags.Append(model.Tags.ElementsAs(ctx, &tagValues, false)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		tags = make([]string, len(tagValues))
+		for i, tag := range tagValues {
+			tags[i] = tag.ValueString()
+		}
+	}
+
+	// Convert Details
+	details := make(map[string]interface{})
+	if !(model.Details.IsNull() || model.Details.IsUnknown()) {
+		for k, v := range model.Details.Elements() {
+			if strVal, ok := v.(basetypes.StringValue); ok {
+				details[k] = strVal.ValueString()
+			}
+		}
+	}
+
+	return &dto.AlertPolicyDto{
+		ID:                     model.ID.ValueString(),
+		Type:                   model.Type.ValueString(),
+		Name:                   model.Name.ValueString(),
+		Description:            model.Description.ValueString(),
+		TeamID:                 model.TeamID.ValueString(),
+		Enabled:                model.Enabled.ValueBool(),
+		Filter:                 filter,
+		TimeRestriction:        timeRestriction,
+		Alias:                  model.Alias.ValueString(),
+		Message:                model.Message.ValueString(),
+		AlertDescription:       model.AlertDescription.ValueString(),
+		Source:                 model.Source.ValueString(),
+		Entity:                 model.Entity.ValueString(),
+		Responders:             responders,
+		Actions:                actions,
+		Tags:                   tags,
+		Details:                details,
+		Continue:               model.Continue.ValueBool(),
+		UpdatePriority:         model.UpdatePriority.ValueBool(),
+		PriorityValue:          model.PriorityValue.ValueString(),
+		KeepOriginalResponders: model.KeepOriginalResponders.ValueBool(),
+		KeepOriginalDetails:    model.KeepOriginalDetails.ValueBool(),
+		KeepOriginalActions:    model.KeepOriginalActions.ValueBool(),
+		KeepOriginalTags:       model.KeepOriginalTags.ValueBool(),
+	}, diags
+}
+
+func AlertPolicyDtoToModel(ctx context.Context, dto *dto.AlertPolicyDto) (*dataModels.AlertPolicyModel, error) {
+
+	if dto == nil {
+		return nil, errors.New("dto can not be nil")
+	}
+
+	// Convert Filter
+	var filter types.Object
+	if dto.Filter != nil {
+		conditions := make([]attr.Value, len(dto.Filter.Conditions))
+		for i, condition := range dto.Filter.Conditions {
+			conditionCustomKey := types.StringNull()
+			if condition.Key != "" {
+				conditionCustomKey = types.StringValue(condition.Key)
+			}
+			conditions[i] = types.ObjectValueMust(
+				map[string]attr.Type{
+					"field":          types.StringType,
+					"key":            types.StringType,
+					"not":            types.BoolType,
+					"operation":      types.StringType,
+					"expected_value": types.StringType,
+					"order":          types.Int64Type,
+				},
+				map[string]attr.Value{
+					"field":          types.StringValue(condition.Field),
+					"key":            conditionCustomKey,
+					"not":            types.BoolValue(condition.Not),
+					"operation":      types.StringValue(condition.Operation),
+					"expected_value": types.StringValue(condition.ExpectedValue),
+					"order":          types.Int64Value(int64(condition.Order)),
+				},
+			)
+		}
+
+		filter = types.ObjectValueMust(
+			map[string]attr.Type{
+				"type": types.StringType,
+				"conditions": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+					"field":          types.StringType,
+					"key":            types.StringType,
+					"not":            types.BoolType,
+					"operation":      types.StringType,
+					"expected_value": types.StringType,
+					"order":          types.Int64Type,
+				}}},
+			},
+			map[string]attr.Value{
+				"type": types.StringValue(dto.Filter.Type),
+				"conditions": types.ListValueMust(types.ObjectType{AttrTypes: map[string]attr.Type{
+					"field":          types.StringType,
+					"key":            types.StringType,
+					"not":            types.BoolType,
+					"operation":      types.StringType,
+					"expected_value": types.StringType,
+					"order":          types.Int64Type,
+				}}, conditions),
+			},
+		)
+	} else {
+		filter = types.ObjectNull(map[string]attr.Type{
+			"type": types.StringType,
+			"conditions": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+				"field":          types.StringType,
+				"key":            types.StringType,
+				"not":            types.BoolType,
+				"operation":      types.StringType,
+				"expected_value": types.StringType,
+				"order":          types.Int64Type,
+			}}},
+		})
+	}
+
+	// Convert TimeRestriction
+	var timeRestriction types.Object
+	if dto.TimeRestriction != nil {
+		periods := make([]attr.Value, len(dto.TimeRestriction.TimeRestrictions))
+		for i, period := range dto.TimeRestriction.TimeRestrictions {
+			periods[i] = types.ObjectValueMust(
+				map[string]attr.Type{
+					"start_hour":   types.Int64Type,
+					"start_minute": types.Int64Type,
+					"end_hour":     types.Int64Type,
+					"end_minute":   types.Int64Type,
+				},
+				map[string]attr.Value{
+					"start_hour":   types.Int64Value(int64(period.StartHour)),
+					"start_minute": types.Int64Value(int64(period.StartMinute)),
+					"end_hour":     types.Int64Value(int64(period.EndHour)),
+					"end_minute":   types.Int64Value(int64(period.EndMinute)),
+				},
+			)
+		}
+
+		timeRestriction = types.ObjectValueMust(
+			map[string]attr.Type{
+				"enabled": types.BoolType,
+				"time_restrictions": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+					"start_hour":   types.Int64Type,
+					"start_minute": types.Int64Type,
+					"end_hour":     types.Int64Type,
+					"end_minute":   types.Int64Type,
+				}}},
+			},
+			map[string]attr.Value{
+				"enabled": types.BoolValue(dto.TimeRestriction.Enabled),
+				"time_restrictions": types.ListValueMust(types.ObjectType{AttrTypes: map[string]attr.Type{
+					"start_hour":   types.Int64Type,
+					"start_minute": types.Int64Type,
+					"end_hour":     types.Int64Type,
+					"end_minute":   types.Int64Type,
+				}}, periods),
+			},
+		)
+	} else {
+		timeRestriction = types.ObjectNull(map[string]attr.Type{
+			"enabled": types.BoolType,
+			"time_restrictions": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+				"start_hour":   types.Int64Type,
+				"start_minute": types.Int64Type,
+				"end_hour":     types.Int64Type,
+				"end_minute":   types.Int64Type,
+			}}},
+		})
+	}
+
+	// Convert Responders
+	var responders types.List
+	if len(dto.Responders) > 0 {
+		responderValues := make([]attr.Value, len(dto.Responders))
+		for i, responder := range dto.Responders {
+			responderValues[i] = types.ObjectValueMust(
+				map[string]attr.Type{
+					"type": types.StringType,
+					"id":   types.StringType,
+				},
+				map[string]attr.Value{
+					"type": types.StringValue(responder.Type),
+					"id":   types.StringValue(responder.ID),
+				},
+			)
+		}
+		responders = types.ListValueMust(types.ObjectType{AttrTypes: map[string]attr.Type{
+			"type": types.StringType,
+			"id":   types.StringType,
+		}}, responderValues)
+	} else {
+		responders = types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+			"type": types.StringType,
+			"id":   types.StringType,
+		}})
+	}
+
+	// Convert Actions
+	var actions types.List
+	if len(dto.Actions) > 0 {
+		actionValue := make([]attr.Value, len(dto.Actions))
+		for i, tag := range dto.Actions {
+			actionValue[i] = types.StringValue(tag)
+		}
+		actions = types.ListValueMust(types.StringType, actionValue)
+	} else {
+		actions = types.ListNull(types.StringType)
+	}
+
+	// Convert Tags
+	var tags types.List
+	if len(dto.Tags) > 0 {
+		tagValues := make([]attr.Value, len(dto.Tags))
+		for i, tag := range dto.Tags {
+			tagValues[i] = types.StringValue(tag)
+		}
+		tags = types.ListValueMust(types.StringType, tagValues)
+	} else {
+		tags = types.ListNull(types.StringType)
+	}
+
+	// Convert Details
+	var details types.Map
+	if len(dto.Details) > 0 {
+		detailValues := make(map[string]attr.Value)
+		for k, v := range dto.Details {
+			if str, ok := v.(string); ok {
+				detailValues[k] = types.StringValue(str)
+			}
+		}
+		details = types.MapValueMust(types.StringType, detailValues)
+	} else {
+		details = types.MapNull(types.StringType)
+	}
+
+	priorityValue := types.StringNull()
+	if dto.PriorityValue != "" {
+		priorityValue = types.StringValue(dto.PriorityValue)
+	}
+
+	return &dataModels.AlertPolicyModel{
+		ID:                     types.StringValue(dto.ID),
+		Type:                   types.StringValue(strings.ToLower(dto.Type)),
+		Name:                   types.StringValue(dto.Name),
+		Description:            types.StringValue(dto.Description),
+		TeamID:                 types.StringValue(dto.TeamID),
+		Enabled:                types.BoolValue(dto.Enabled),
+		Filter:                 filter,
+		TimeRestriction:        timeRestriction,
+		Alias:                  types.StringValue(dto.Alias),
+		Message:                types.StringValue(dto.Message),
+		AlertDescription:       types.StringValue(dto.AlertDescription),
+		Source:                 types.StringValue(dto.Source),
+		Entity:                 types.StringValue(dto.Entity),
+		Responders:             responders,
+		Actions:                actions,
+		Tags:                   tags,
+		Details:                details,
+		Continue:               types.BoolValue(dto.Continue),
+		UpdatePriority:         types.BoolValue(dto.UpdatePriority),
+		PriorityValue:          priorityValue,
+		KeepOriginalResponders: types.BoolValue(dto.KeepOriginalResponders),
+		KeepOriginalDetails:    types.BoolValue(dto.KeepOriginalDetails),
+		KeepOriginalActions:    types.BoolValue(dto.KeepOriginalActions),
+		KeepOriginalTags:       types.BoolValue(dto.KeepOriginalTags),
+	}, nil
 }
