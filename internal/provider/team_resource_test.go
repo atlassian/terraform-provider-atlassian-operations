@@ -36,6 +36,7 @@ func TestAccTeamResource(t *testing.T) {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {
@@ -80,10 +81,12 @@ resource "atlassian-operations_team" "example" {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 data "atlassian-operations_user" "test2" {
 	email_address = "` + emailSecondary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {
@@ -119,6 +122,7 @@ resource "atlassian-operations_team" "example" {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {

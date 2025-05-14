@@ -31,6 +31,7 @@ func TestAccTeamDataSource(t *testing.T) {
 					`
 						data "atlassian-operations_user" "test1" {
 							email_address = "` + emailPrimary + `"
+							organization_id = "` + organizationId + `"
 						}
 
 						resource "atlassian-operations_team" "example" {

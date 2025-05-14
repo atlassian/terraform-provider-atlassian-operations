@@ -6,12 +6,14 @@ import (
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
 )
 
-func GenerateJsmOpsClientRequest(providerModel dto.JsmopsProviderModel) *httpClient.Request {
+func GenerateJsmOpsClientRequest(providerModel dto.AtlassianOpsProviderModel) *httpClient.Request {
 	req := httpClient.NewRequest()
-	if providerModel.GetIsStaging() {
-		req.SetUrl(fmt.Sprintf("https://api.stg.atlassian.com/jsm/ops/api/%s", providerModel.GetCloudId()))
-	} else {
-		req.SetUrl(fmt.Sprintf("https://api.atlassian.com/jsm/ops/api/%s", providerModel.GetCloudId()))
+
+	switch providerModel.GetProductType() {
+	case "jira-service-desk":
+		req.SetUrl(fmt.Sprintf("%s/jsm/ops/api/%s", getAtlassianApiDomain(providerModel.GetIsStaging()), providerModel.GetCloudId()))
+	case "compass":
+		req.SetUrl(fmt.Sprintf("%s/compass/cloud/%s/ops", getAtlassianApiDomain(providerModel.GetIsStaging()), providerModel.GetCloudId()))
 	}
 
 	req.SetRetryCount(providerModel.GetApiRetryCount())
@@ -21,7 +23,7 @@ func GenerateJsmOpsClientRequest(providerModel dto.JsmopsProviderModel) *httpCli
 	return req
 }
 
-func GenerateTeamsClientRequest(providerModel dto.JsmopsProviderModel) *httpClient.Request {
+func GenerateTeamsClientRequest(providerModel dto.AtlassianOpsProviderModel) *httpClient.Request {
 	req := httpClient.NewRequest()
 	req.SetUrl(fmt.Sprintf("https://%s/gateway/api/public/teams/v1/org/", providerModel.GetDomainName()))
 	req.SetRetryCount(providerModel.GetApiRetryCount())
@@ -31,12 +33,26 @@ func GenerateTeamsClientRequest(providerModel dto.JsmopsProviderModel) *httpClie
 	return req
 }
 
-func GenerateUserClientRequest(providerModel dto.JsmopsProviderModel) *httpClient.Request {
+func GenerateUserClientRequest(providerModel dto.AtlassianOpsProviderModel) *httpClient.Request {
 	req := httpClient.NewRequest()
-	req.SetUrl(fmt.Sprintf("https://%s/rest/api/3/user/", providerModel.GetDomainName()))
+	switch providerModel.GetProductType() {
+	case "jira-service-desk":
+		req.SetUrl(fmt.Sprintf("https://%s/rest/api/3/user/", providerModel.GetDomainName()))
+		req.SetBasicAuth(providerModel.GetEmailAddress(), providerModel.GetToken())
+	default:
+		req.SetUrl(fmt.Sprintf("%s/admin/v2/orgs/", getAtlassianApiDomain(providerModel.GetIsStaging())))
+		req.SetBearerAuth(providerModel.GetOrgAdminToken())
+	}
+
 	req.SetRetryCount(providerModel.GetApiRetryCount())
 	req.SetRetryWaitTime(providerModel.GetApiRetryWait())
 	req.SetRetryMaxWaitTime(providerModel.GetApiRetryWaitMax())
-	req.SetBasicAuth(providerModel.GetEmailAddress(), providerModel.GetToken())
 	return req
+}
+
+func getAtlassianApiDomain(isStaging bool) string {
+	if isStaging {
+		return "https://api.stg.atlassian.com"
+	}
+	return "https://api.atlassian.com"
 }

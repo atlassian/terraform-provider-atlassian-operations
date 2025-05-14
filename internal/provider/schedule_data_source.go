@@ -27,7 +27,7 @@ func NewScheduleDataSource() datasource.DataSource {
 
 // ScheduleDataSource defines the data source implementation.
 type ScheduleDataSource struct {
-	clientConfiguration dto.JsmopsProviderModel
+	clientConfiguration dto.AtlassianOpsProviderModel
 }
 
 func (d *ScheduleDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -48,7 +48,7 @@ func (d *ScheduleDataSource) Configure(ctx context.Context, req datasource.Confi
 		return
 	}
 
-	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
+	client, ok := req.ProviderData.(dto.AtlassianOpsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Cannot configure schedule_data_source."+
@@ -84,7 +84,7 @@ func (d *ScheduleDataSource) Read(ctx context.Context, req datasource.ReadReques
 	clientResp, err := httpClientHelpers.
 		GenerateJsmOpsClientRequest(d.clientConfiguration).
 		Method("GET").
-		JoinBaseUrl("/v1/schedules/").
+		JoinBaseUrl("/v1/schedules").
 		SetQueryParams(map[string]string{
 			"query":  model.Name.ValueString(),
 			"size":   "1",
