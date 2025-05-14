@@ -36,6 +36,7 @@ func TestAccApiIntegrationResource_Api(t *testing.T) {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {
@@ -91,6 +92,7 @@ resource "atlassian-operations_api_integration" "example" {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 resource "atlassian-operations_team" "example" {
   organization_id = "` + organizationId + `"
@@ -162,6 +164,7 @@ func TestAccApiIntegrationResource_SecurityHub(t *testing.T) {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {
@@ -229,6 +232,7 @@ resource "atlassian-operations_api_integration" "example" {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 resource "atlassian-operations_team" "example" {
   organization_id = "` + organizationId + `"

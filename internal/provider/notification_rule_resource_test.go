@@ -30,6 +30,7 @@ func TestAccNotificationRuleCreateAlertResource(t *testing.T) {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {
@@ -117,6 +118,7 @@ resource "atlassian-operations_notification_rule" "example" {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {
@@ -212,6 +214,7 @@ func TestAccNotificationRuleScheduleStartResource(t *testing.T) {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {
@@ -293,6 +296,7 @@ resource "atlassian-operations_notification_rule" "example" {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {

@@ -287,6 +287,50 @@ func UserDtoToModel(dto dto.UserDto) dataModels.UserModel {
 	return model
 }
 
+func OrgUserDtoToModel(userDto dto.OrgUserDto, conf dataModels.UserModel) dataModels.UserModel {
+	model := dataModels.UserModel{
+		AccountId:        types.StringValue(userDto.AccountId),
+		AccountType:      types.StringValue(string(userDto.AccountType)),
+		ApplicationRoles: types.ListNull(types.ObjectType{AttrTypes: dataModels.ApplicationRoleModelMap}),
+		EmailAddress:     types.StringValue(userDto.Email),
+		OrganizationId:   conf.OrganizationId,
+		Expand:           types.StringNull(),
+		Groups:           types.ListNull(types.ObjectType{AttrTypes: dataModels.GroupNameModelMap}),
+		Locale:           types.StringNull(),
+		TimeZone:         types.StringNull(),
+	}
+
+	if userDto.Nickname != "" {
+		model.DisplayName = types.StringValue(userDto.Nickname)
+	} else {
+		model.DisplayName = types.StringValue(userDto.Name)
+	}
+
+	if userDto.Avatar != "" {
+		model.AvatarUrls = AvatarUrlsBeanDtoToModel(dto.AvatarUrlsBeanDto{
+			A16x16: userDto.Avatar,
+			A24x24: userDto.Avatar,
+			A32x32: userDto.Avatar,
+			A48x48: userDto.Avatar,
+		}).AsValue()
+	} else {
+		model.AvatarUrls = AvatarUrlsBeanDtoToModel(dto.AvatarUrlsBeanDto{
+			A16x16: userDto.Picture,
+			A24x24: userDto.Picture,
+			A32x32: userDto.Picture,
+			A48x48: userDto.Picture,
+		}).AsValue()
+	}
+
+	if userDto.AccountStatus == dto.OrgUserActive {
+		model.Active = types.BoolValue(true)
+	} else {
+		model.Active = types.BoolValue(false)
+	}
+
+	return model
+}
+
 func AvatarUrlsBeanDtoToModel(dto dto.AvatarUrlsBeanDto) *dataModels.AvatarUrlsBeanModel {
 	return &dataModels.AvatarUrlsBeanModel{
 		A16x16: types.StringValue(dto.A16x16),
@@ -1036,7 +1080,7 @@ func NotificationRuleModelToDto(ctx context.Context, model dataModels.Notificati
 	}, nil
 }
 
-func NotificationRuleDtoToModel(ctx context.Context, dto dto.NotificationRuleDto) dataModels.NotificationRuleModel {
+func NotificationRuleDtoToModel(_ context.Context, dto dto.NotificationRuleDto) dataModels.NotificationRuleModel {
 	var notificationTime types.Set
 	if dto.NotificationTime != nil {
 		elements := make([]attr.Value, len(dto.NotificationTime))
@@ -1367,7 +1411,7 @@ func AlertPolicyModelToDto(ctx context.Context, model *dataModels.AlertPolicyMod
 	}, diags
 }
 
-func AlertPolicyDtoToModel(ctx context.Context, dto *dto.AlertPolicyDto) (*dataModels.AlertPolicyModel, error) {
+func AlertPolicyDtoToModel(_ context.Context, dto *dto.AlertPolicyDto) (*dataModels.AlertPolicyModel, error) {
 
 	if dto == nil {
 		return nil, errors.New("dto can not be nil")

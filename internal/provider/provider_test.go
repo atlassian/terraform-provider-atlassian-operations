@@ -11,10 +11,6 @@ const (
 	// Use environment variables to configure the clientConfiguration.
 	providerConfig = `
 provider "atlassian-operations" {
-	cloud_id = ""
-	domain_name = ""
-	email_address = ""
-	token = ""
 	api_retry_count = 5
 	api_retry_wait = 15
 	api_retry_wait_max = 100

@@ -33,6 +33,7 @@ func TestAccScheduleResource_Full(t *testing.T) {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {
@@ -74,6 +75,7 @@ resource "atlassian-operations_schedule" "example" {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {
@@ -132,6 +134,7 @@ func TestAccScheduleResource_Minimal(t *testing.T) {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {
@@ -169,6 +172,7 @@ resource "atlassian-operations_schedule" "example" {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {

@@ -27,7 +27,7 @@ func NewTeamDataSource() datasource.DataSource {
 
 // teamDataSource defines the data source implementation.
 type teamDataSource struct {
-	clientConfiguration dto.JsmopsProviderModel
+	clientConfiguration dto.AtlassianOpsProviderModel
 }
 
 func (d *teamDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -48,7 +48,7 @@ func (d *teamDataSource) Configure(ctx context.Context, req datasource.Configure
 		return
 	}
 
-	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
+	client, ok := req.ProviderData.(dto.AtlassianOpsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Cannot configure team_data_source."+

@@ -38,6 +38,10 @@ var UserDataSourceAttributes = map[string]schema.Attribute{
 		Description: "The user's email address. This is used as the primary identifier for looking up user information.",
 		Required:    true,
 	},
+	"organization_id": schema.StringAttribute{
+		Description: "The unique identifier of the organization this user belongs to. This field is only required for Compass.",
+		Optional:    true,
+	},
 	"expand": schema.StringAttribute{
 		Description: "Comma-separated list of additional user details to include in the response.",
 		Computed:    true,
