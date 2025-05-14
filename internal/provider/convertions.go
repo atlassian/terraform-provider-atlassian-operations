@@ -1590,3 +1590,73 @@ func AlertPolicyDtoToModel(ctx context.Context, dto *dto.AlertPolicyDto) (*dataM
 		KeepOriginalTags:       types.BoolValue(dto.KeepOriginalTags),
 	}, nil
 }
+
+func CustomRoleModelToDto(ctx context.Context, model *dataModels.CustomRoleModel) dto.CustomRoleDto {
+	var grantedRights []string
+	if !(model.GrantedRights.IsNull() || model.GrantedRights.IsUnknown()) {
+		var rights []string
+		diags := model.GrantedRights.ElementsAs(ctx, &rights, false)
+		if diags.HasError() {
+			return dto.CustomRoleDto{}
+		}
+		grantedRights = rights
+	}
+
+	var disallowedRights []string
+	if !(model.DisallowedRights.IsNull() || model.DisallowedRights.IsUnknown()) {
+		var rights []string
+		diags := model.DisallowedRights.ElementsAs(ctx, &rights, false)
+		if diags.HasError() {
+			return dto.CustomRoleDto{}
+		}
+		disallowedRights = rights
+	}
+
+	return dto.CustomRoleDto{
+		ID:               model.ID.ValueString(),
+		Name:             model.Name.ValueString(),
+		GrantedRights:    grantedRights,
+		DisallowedRights: disallowedRights,
+	}
+}
+
+func CustomRoleDtoToModel(dto *dto.CustomRoleDto) *dataModels.CustomRoleModel {
+	var grantedRights types.Set
+	if dto.GrantedRights != nil {
+		elements := make([]attr.Value, len(dto.GrantedRights))
+		for i, time := range dto.GrantedRights {
+			elements[i] = types.StringValue(time)
+		}
+		grantedRights = types.SetValueMust(types.StringType, elements)
+	} else {
+		grantedRights = types.SetNull(types.StringType)
+	}
+
+	var disallowedRights types.Set
+	if dto.DisallowedRights != nil {
+		elements := make([]attr.Value, len(dto.DisallowedRights))
+		for i, time := range dto.DisallowedRights {
+			elements[i] = types.StringValue(time)
+		}
+		disallowedRights = types.SetValueMust(types.StringType, elements)
+	} else {
+		disallowedRights = types.SetNull(types.StringType)
+	}
+
+	return &dataModels.CustomRoleModel{
+		ID:               types.StringValue(dto.ID),
+		Name:             types.StringValue(dto.Name),
+		GrantedRights:    grantedRights,
+		DisallowedRights: disallowedRights,
+	}
+}
+
+func CustomRoleCUDDtoToModel(dto *dto.CustomRoleCUDResponseDto, data *dataModels.CustomRoleModel) *dataModels.CustomRoleModel {
+	return &dataModels.CustomRoleModel{
+		ID: types.StringValue(dto.Data.ID),
+		// JSM OPS API does not return the updated name of the custom role
+		Name:             data.Name,
+		GrantedRights:    data.GrantedRights,
+		DisallowedRights: data.DisallowedRights,
+	}
+}
