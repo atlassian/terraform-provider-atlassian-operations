@@ -2139,3 +2139,70 @@ func NotificationPolicyDtoToModel(ctx context.Context, dto *dto.NotificationPoli
 		Suppress:            types.BoolValue(dto.Suppress),
 	}, diags
 }
+
+func HeartbeatModelToDto(ctx context.Context, model *dataModels.HeartbeatModel) (*dto.HeartbeatDto, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if model == nil {
+		return nil, diags
+	}
+
+	// Convert alert tags
+	var alertTags []string
+	if !model.AlertTags.IsNull() && !model.AlertTags.IsUnknown() {
+		diags.Append(model.AlertTags.ElementsAs(ctx, &alertTags, false)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+	}
+
+	return &dto.HeartbeatDto{
+		Name:          model.Name.ValueString(),
+		Description:   model.Description.ValueString(),
+		Interval:      int(model.Interval.ValueInt64()),
+		IntervalUnit:  model.IntervalUnit.ValueString(),
+		Enabled:       model.Enabled.ValueBool(),
+		AlertMessage:  model.AlertMessage.ValueString(),
+		AlertTags:     alertTags,
+		AlertPriority: model.AlertPriority.ValueString(),
+	}, diags
+}
+
+func HeartbeatDtoToModel(ctx context.Context, dto *dto.HeartbeatDto, teamID string) (*dataModels.HeartbeatModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if dto == nil {
+		return nil, diags
+	}
+
+	// Convert alert tags
+	var alertTagsList types.Set
+	if len(dto.AlertTags) > 0 {
+		alertTagsValues := []attr.Value{}
+		for _, tag := range dto.AlertTags {
+			alertTagsValues = append(alertTagsValues, types.StringValue(tag))
+		}
+
+		var listDiags diag.Diagnostics
+		alertTagsList, listDiags = types.SetValueFrom(ctx, types.StringType, alertTagsValues)
+		diags.Append(listDiags...)
+		if diags.HasError() {
+			return nil, diags
+		}
+	} else {
+		alertTagsList = types.SetNull(types.StringType)
+	}
+
+	return &dataModels.HeartbeatModel{
+		Name:          types.StringValue(dto.Name),
+		Description:   types.StringValue(dto.Description),
+		Interval:      types.Int64Value(int64(dto.Interval)),
+		IntervalUnit:  types.StringValue(dto.IntervalUnit),
+		Enabled:       types.BoolValue(dto.Enabled),
+		Status:        types.StringValue(dto.Status),
+		TeamID:        types.StringValue(teamID),
+		AlertMessage:  types.StringValue(dto.AlertMessage),
+		AlertTags:     alertTagsList,
+		AlertPriority: types.StringValue(dto.AlertPriority),
+	}, diags
+}
