@@ -55,6 +55,7 @@ var ApiIntegrationResourceAttributes = map[string]schema.Attribute{
 			Attributes: ApiIntegrationResourceMaintenanceSourceAttributes,
 		},
 		Computed: true,
+		Required: false,
 		Optional: false,
 	},
 	"directions": schema.ListAttribute{

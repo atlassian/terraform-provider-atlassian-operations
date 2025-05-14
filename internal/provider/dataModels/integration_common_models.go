@@ -40,5 +40,6 @@ func (receiver *MaintenanceSourceModel) AsValue() types.Object {
 	return types.ObjectValueMust(IntegrationMaintenanceSourcesResponseModelMap, map[string]attr.Value{
 		"maintenance_id": receiver.MaintenanceId,
 		"enabled":        receiver.Enabled,
+		"interval":       receiver.Interval,
 	})
 }

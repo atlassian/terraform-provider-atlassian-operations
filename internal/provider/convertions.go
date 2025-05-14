@@ -2390,3 +2390,112 @@ func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationAction
 		Enabled:                enabled,
 	}, diags
 }
+
+func MaintenanceModelToDto(ctx context.Context, model *dataModels.MaintenanceModel) (*dto.MaintenanceDto, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if model == nil {
+		return nil, diags
+	}
+
+	// Convert Rules
+	var rules []dto.MaintenanceRuleDto
+	if !(model.Rules.IsNull() || model.Rules.IsUnknown()) {
+		var rulesObjects []dataModels.MaintenanceRuleModel
+		diags.Append(model.Rules.ElementsAs(ctx, &rulesObjects, false)...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		rules = make([]dto.MaintenanceRuleDto, len(rulesObjects))
+		for i, ruleObj := range rulesObjects {
+			var entityObj dataModels.MaintenanceRuleEntityModel
+			diags.Append(ruleObj.Entity.As(ctx, &entityObj, basetypes.ObjectAsOptions{})...)
+			if diags.HasError() {
+				return nil, diags
+			}
+			rules[i] = dto.MaintenanceRuleDto{
+				State: ruleObj.State.ValueString(),
+				Entity: dto.MaintenanceRuleEntityDto{
+					ID:   entityObj.ID.ValueString(),
+					Type: entityObj.Type.ValueString(),
+				},
+			}
+		}
+	}
+
+	return &dto.MaintenanceDto{
+		ID:          model.ID.ValueString(),
+		Status:      model.Status.ValueString(),
+		Description: model.Description.ValueString(),
+		StartDate:   model.StartDate.ValueString(),
+		EndDate:     model.EndDate.ValueString(),
+		TeamID:      model.TeamID.ValueString(),
+		Rules:       rules,
+	}, diags
+}
+
+func MaintenanceDtoToModel(ctx context.Context, dtoObj *dto.MaintenanceDto) (*dataModels.MaintenanceModel, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if dtoObj == nil {
+		return nil, diags
+	}
+
+	// Convert Rules
+	var rules []attr.Value
+	for _, rule := range dtoObj.Rules {
+		// Create entity object
+		entityObj, entityDiags := types.ObjectValue(
+			dataModels.MaintenanceRuleEntityObjectType.AttrTypes,
+			map[string]attr.Value{
+				"id":   types.StringValue(rule.Entity.ID),
+				"type": types.StringValue(rule.Entity.Type),
+			},
+		)
+		diags.Append(entityDiags...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		// Create rule object
+		ruleObj, ruleDiags := types.ObjectValue(
+			dataModels.MaintenanceRuleObjectType.AttrTypes,
+			map[string]attr.Value{
+				"state":  types.StringValue(rule.State),
+				"entity": entityObj,
+			},
+		)
+		diags.Append(ruleDiags...)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		rules = append(rules, ruleObj)
+	}
+
+	// Create rules list
+	rulesList, rulesDiags := types.ListValue(
+		dataModels.MaintenanceRuleObjectType,
+		rules,
+	)
+	diags.Append(rulesDiags...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	teamId := types.StringNull()
+	if dtoObj.TeamID != "" {
+		teamId = types.StringValue(dtoObj.TeamID)
+	}
+
+	return &dataModels.MaintenanceModel{
+		ID:          types.StringValue(dtoObj.ID),
+		Status:      types.StringValue(dtoObj.Status),
+		Description: types.StringValue(dtoObj.Description),
+		StartDate:   types.StringValue(dtoObj.StartDate),
+		EndDate:     types.StringValue(dtoObj.EndDate),
+		TeamID:      teamId,
+		Rules:       rulesList,
+	}, diags
+}

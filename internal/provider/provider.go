@@ -219,5 +219,6 @@ func (p *atlassianOpsProvider) Resources(_ context.Context) []func() resource.Re
 		NewNotificationPolicyResource,
 		NewHeartbeatResource,
 		NewIntegrationActionResource,
+		NewMaintenanceResource,
 	}
 }
