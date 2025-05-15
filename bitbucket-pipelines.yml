@@ -11,12 +11,23 @@ definitions:
         name: Build
         script:
           - go build .
-    - step: &test
-        name: Test
+    - step: &jsmTest
+        name: JSM Test
         script:
-          - mkdir test-reports
+          - mkdir -p test-reports
           - go install github.com/jstemmer/go-junit-report/v2@latest
-          - go test -v 2>&1 ./... | go-junit-report -set-exit-code > test-reports/report.xml
+          - export ATLASSIAN_OPS_PRODUCT_TYPE="jira-service-desk"
+          - go test -v 2>&1 ./... | go-junit-report -set-exit-code > test-reports/report-jsm.xml
+        artifacts: # defining the artifacts to be passed to each future step.
+          - test-reports/**
+          - reports/*.txt
+    - step: &compassTest
+        name: Compass Test
+        script:
+          - mkdir -p test-reports
+          - go install github.com/jstemmer/go-junit-report/v2@latest
+          - export ATLASSIAN_OPS_PRODUCT_TYPE="compass"
+          - go test -v 2>&1 ./... | go-junit-report -set-exit-code > test-reports/report-compass.xml
         artifacts: # defining the artifacts to be passed to each future step.
           - test-reports/**
           - reports/*.txt
@@ -44,5 +55,6 @@ pipelines:
         - step: *replicate-to-github
   pull-requests:
     '**':
-      - step: *test
-#      - step: *lint
+      - step: *jsmTest
+      - step: *compassTest
+#     - step: *lint
