@@ -156,7 +156,7 @@ func (p *atlassianOpsProvider) Configure(ctx context.Context, req provider.Confi
 				"The provider cannot create the atlassian-operations API clientConfiguration as there is an unknown configuration value for the atlassian-operations API org_admin_token. ",
 			)
 		} else {
-			orgAdminToken = config.Token.ValueString()
+			orgAdminToken = config.OrgAdminToken.ValueString()
 		}
 	}
 
