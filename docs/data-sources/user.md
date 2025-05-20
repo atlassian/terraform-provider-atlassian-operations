@@ -19,6 +19,10 @@ User data source
 
 - `email_address` (String) The user's email address. This is used as the primary identifier for looking up user information.
 
+### Optional
+
+- `organization_id` (String) The unique identifier of the organization this user belongs to. This field is only required for Compass.
+
 ### Read-Only
 
 - `account_id` (String) The unique Atlassian account identifier for the user. This is a permanent, unchangeable ID.
