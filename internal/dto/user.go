@@ -5,11 +5,17 @@ const (
 	AccountTypeApp       = AccountType("app")
 	AccountTypeCustomer  = AccountType("customer")
 	Unknown              = AccountType("unknown")
+
+	OrgUserActive   = OrgUserStatus("active")
+	OrgUserInactive = OrgUserStatus("inactive")
+	OrgUserClosed   = OrgUserStatus("closed")
 )
 
 type (
-	AccountType  string
-	GroupNameDto struct {
+	AccountType          string
+	OrgUserStatus        string
+	OrgUserPlatformRoles string
+	GroupNameDto         struct {
 		GroupId string `json:"groupId"`
 		Name    string `json:"name"`
 		Self    string `json:"self"`
@@ -52,5 +58,20 @@ type (
 		} `json:"groups"`
 		Locale   string `json:"locale"`
 		TimeZone string `json:"timeZone"`
+	}
+
+	OrgUserSearchResponseDto struct {
+		Data []OrgUserDto `json:"data"`
+	}
+
+	OrgUserDto struct {
+		AccountId     string        `json:"accountId"`
+		AccountType   AccountType   `json:"accountType"`
+		AccountStatus OrgUserStatus `json:"accountStatus"`
+		Picture       string        `json:"picture"`
+		Avatar        string        `json:"avatar"`
+		Name          string        `json:"name"`
+		Nickname      string        `json:"nickname"`
+		Email         string        `json:"email"`
 	}
 )

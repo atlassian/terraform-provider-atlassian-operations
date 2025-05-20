@@ -25,7 +25,7 @@ func NewNotificationRuleResource() resource.Resource {
 
 // NotificationRuleResource defines the resource implementation.
 type NotificationRuleResource struct {
-	clientConfiguration dto.JsmopsProviderModel
+	clientConfiguration dto.AtlassianOpsProviderModel
 }
 
 func (r *NotificationRuleResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -45,7 +45,7 @@ func (r *NotificationRuleResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
+	client, ok := req.ProviderData.(dto.AtlassianOpsProviderModel)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
