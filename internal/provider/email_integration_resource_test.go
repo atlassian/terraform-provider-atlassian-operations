@@ -35,6 +35,7 @@ func TestAccEmailIntegrationResource(t *testing.T) {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 
 resource "atlassian-operations_team" "example" {
@@ -84,6 +85,7 @@ resource "atlassian-operations_email_integration" "example" {
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
 }
 resource "atlassian-operations_team" "example" {
   organization_id = "` + organizationId + `"

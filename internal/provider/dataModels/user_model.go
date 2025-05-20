@@ -14,6 +14,7 @@ type (
 		AvatarUrls       types.Object `tfsdk:"avatar_urls"`
 		DisplayName      types.String `tfsdk:"display_name"`
 		EmailAddress     types.String `tfsdk:"email_address"`
+		OrganizationId   types.String `tfsdk:"organization_id"`
 		Expand           types.String `tfsdk:"expand"`
 		Groups           types.List   `tfsdk:"groups"`
 		Locale           types.String `tfsdk:"locale"`
@@ -54,9 +55,10 @@ var UserModelMap = map[string]attr.Type{
 	"avatar_urls": types.ObjectType{
 		AttrTypes: AvatarUrlsBeanModelMap,
 	},
-	"display_name":  types.StringType,
-	"email_address": types.StringType,
-	"expand":        types.StringType,
+	"display_name":    types.StringType,
+	"email_address":   types.StringType,
+	"organization_id": types.StringType,
+	"expand":          types.StringType,
 	"groups": types.ListType{ElemType: types.ObjectType{
 		AttrTypes: GroupNameModelMap,
 	}},
@@ -103,6 +105,7 @@ func (receiver *UserModel) AsValue() types.Object {
 		"avatar_urls":       receiver.AvatarUrls,
 		"display_name":      receiver.DisplayName,
 		"email_address":     receiver.EmailAddress,
+		"organization_id":   receiver.OrganizationId,
 		"expand":            receiver.Expand,
 		"groups":            receiver.Groups,
 		"locale":            receiver.Locale,

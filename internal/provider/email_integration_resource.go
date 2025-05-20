@@ -27,7 +27,7 @@ func NewEmailIntegrationResource() resource.Resource {
 
 // EmailIntegrationResource defines the resource implementation.
 type EmailIntegrationResource struct {
-	clientConfiguration dto.JsmopsProviderModel
+	clientConfiguration dto.AtlassianOpsProviderModel
 }
 
 func (r *EmailIntegrationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -48,7 +48,7 @@ func (r *EmailIntegrationResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
+	client, ok := req.ProviderData.(dto.AtlassianOpsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Unexpected Resource Configure Type")

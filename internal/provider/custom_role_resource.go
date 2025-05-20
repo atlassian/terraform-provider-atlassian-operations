@@ -22,7 +22,7 @@ var (
 )
 
 type CustomRoleResource struct {
-	clientConfiguration dto.JsmopsProviderModel
+	clientConfiguration dto.AtlassianOpsProviderModel
 }
 
 func NewCustomRoleResource() resource.Resource {
@@ -46,7 +46,7 @@ func (r *CustomRoleResource) Configure(ctx context.Context, req resource.Configu
 		return
 	}
 
-	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
+	client, ok := req.ProviderData.(dto.AtlassianOpsProviderModel)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",

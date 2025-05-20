@@ -24,7 +24,7 @@ var (
 )
 
 type UserContactResource struct {
-	clientConfiguration dto.JsmopsProviderModel
+	clientConfiguration dto.AtlassianOpsProviderModel
 }
 
 func NewUserContactResource() resource.Resource {
@@ -48,7 +48,7 @@ func (r *UserContactResource) Configure(ctx context.Context, req resource.Config
 		return
 	}
 
-	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
+	client, ok := req.ProviderData.(dto.AtlassianOpsProviderModel)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
@@ -242,9 +242,9 @@ func (r *UserContactResource) updateMethodFinder(ctx context.Context, data *data
 		SetBodyParseObject(&responseDto).
 		Send()
 
-	error := updateClientErrorHandler(ctx, httpResp, err, resp)
-	if error != nil {
-		return []string{}, error
+	updateError := updateClientErrorHandler(ctx, httpResp, err, resp)
+	if updateError != nil {
+		return []string{}, updateError
 	}
 
 	var changedFields []string

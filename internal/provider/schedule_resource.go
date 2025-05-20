@@ -27,7 +27,7 @@ func NewScheduleResource() resource.Resource {
 
 // ScheduleResource defines the resource implementation.
 type ScheduleResource struct {
-	clientConfiguration dto.JsmopsProviderModel
+	clientConfiguration dto.AtlassianOpsProviderModel
 }
 
 func (r *ScheduleResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -48,7 +48,7 @@ func (r *ScheduleResource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	client, ok := req.ProviderData.(dto.JsmopsProviderModel)
+	client, ok := req.ProviderData.(dto.AtlassianOpsProviderModel)
 
 	if !ok {
 		tflog.Error(ctx, "Unexpected Resource Configure Type")
