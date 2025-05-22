@@ -1,6 +1,6 @@
 # Atlassian Operations Terraform Provider
 
-This project aims to enable users to manipulate Operations resources in Atlassian(Jira Service Management), via Terraform.
+This project aims to enable users to manipulate Operations resources in Atlassian (Jira Service Management and Compass), via Terraform.
 It is a functional replication of the _now transitioned_ [Opsgenie Provider](https://github.com/opsgenie/terraform-provider-opsgenie).
 
 The provider is still under development. It currently supports the following resources:
@@ -10,19 +10,25 @@ The provider is still under development. It currently supports the following res
 * Escalation
 * Email Integration
 * API-Based Integration
+* Notification Rule
+* Routing Rule
+* Custom Role
+* Alert Policy
+* User Contact
 
 And the following data sources:
 * User\*
 * Team
 * Schedule (**excl.** Rotation)
 
-\*Due to the internal structure of Jira Service Management, _user_ is implemented solely as a data source and supports **read operations only**.
+\*Due to the internal structure of the Operations, _user_ is implemented solely as a data source and supports **read operations only**.
 
 ### Related Links
 
 - [Terraform Website](https://www.terraform.io)
 - [Jira Service Management](https://www.atlassian.com/software/jira/service-management?tab=it-operations)
 - [JSM Ops REST API](https://developer.atlassian.com/cloud/jira/service-desk-ops/rest/v2/intro/)
+- [Compass Operations API](https://developer.atlassian.com/cloud/compass/rest/v1/intro/)
 
 ## How To Run Locally
 
@@ -112,11 +118,14 @@ provider "atlassian-operations" {
    cloud_id = "<YOUR_CLOUD_ID>"
    domain_name="<YOUR_DOMAIN>"      // e.g. domain.atlassian.net
    email_address = "<YOUR_EMAIL_ADDRESS>"     // e.g. user@example.com
-   token = "<YOUR_TOKEN_HERE>"   // e.g. API token created in Atlassian account settings
+   token = "<YOUR_TOKEN_HERE>"   // API token created in Atlassian account settings
+   org_admin_token = "<YOUR_ORGANIZATION_ADMIN_TOKEN>"   // **NON-SCOPED** API Token created in Organization administration (only required for Compass)
+   product_type = "<YOUR_ATLASSIAN_OPERATIONS_PRODUCT>"   // jira-service-desk (default) or compass
 }
 
 data "atlassian-operations_user" "example" {
    email_address = "user1@example.com"
+   organization_id = "XXXXXXXXXXXXXXX"   // only required for Compass
 }
 
 output "example" {
@@ -131,10 +140,9 @@ export ATLASSIAN_OPS_CLOUD_ID=YOUR_CLOUD_ID
 export ATLASSIAN_OPS_DOMAIN_NAME=YOUR_DOMAIN
 export ATLASSIAN_OPS_API_EMAIL_ADDRESS=YOUR_EMAIL_ADDRESS
 export ATLASSIAN_OPS_API_TOKEN=YOUR_TOKEN
+export ATLASSIAN_OPS_API_ORG_ADMIN_TOKEN=YOUR_ORGANIZATION_ADMIN_TOKEN
+export ATLASSIAN_OPS_PRODUCT_TYPE=YOUR_ATLASSIAN_OPERATIONS_PRODUCT
 ```
-
-_If you do not want to debug the provider with a debugger, and would like to simply execute the Terraform file you
-just created, you can skip the next part and jump directly to [Running Without Debugging](#53-running-without-debugging)_
 
 #### 5.2. Enable Debugging
 
@@ -217,4 +225,4 @@ cd internal/provider
 go test -count=1 -v
 ```
 
-**Keep in mind that running acceptance tests will work on your existing JSM instance, which can result in notification emails being sent and extra usage fees.**
+**Keep in mind that running acceptance tests will work on your existing site, which can result in notification emails being sent and extra usage fees.**
