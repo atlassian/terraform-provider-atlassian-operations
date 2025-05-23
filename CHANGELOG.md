@@ -1,3 +1,15 @@
+## v1.1.0
+
+#### Product:
+
+- Added Compass Operations Support
+
+#### Resources:
+
+- Implemented Custom Role resource 
+- Implemented Alert Policy resource 
+- Implemented User Contact resource
+
 ## v1.0.3
 
 #### Resources:
