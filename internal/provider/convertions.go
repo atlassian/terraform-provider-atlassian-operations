@@ -672,6 +672,7 @@ func ApiIntegrationModelToDto(ctx context.Context, model dataModels.ApiIntegrati
 	dtoObj := dto.ApiIntegration{
 		Id:                     model.Id.ValueString(),
 		Name:                   model.Name.ValueString(),
+		ApiKey:                 model.ApiKey.ValueString(),
 		Type:                   model.Type.ValueString(),
 		Enabled:                model.Enabled.ValueBool(),
 		TeamId:                 model.TeamId.ValueString(),
@@ -726,6 +727,12 @@ func ApiIntegrationDtoToModel(dtoObj dto.ApiIntegration) dataModels.ApiIntegrati
 		Directions:             types.ListNull(types.StringType),
 		Domains:                types.ListNull(types.StringType),
 		TypeSpecificProperties: jsontypes.NewExactValue(string(typeSpecificProperties)),
+	}
+
+	if dtoObj.ApiKey != "" {
+		model.ApiKey = types.StringValue(dtoObj.ApiKey)
+	} else {
+		model.ApiKey = types.StringNull()
 	}
 
 	maintenanceSources := make([]attr.Value, len(dtoObj.MaintenanceSources))

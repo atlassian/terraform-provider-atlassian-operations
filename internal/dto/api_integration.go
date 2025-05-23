@@ -4,6 +4,7 @@ type (
 	ApiIntegration struct {
 		Id                     string                 `json:"id"`
 		Name                   string                 `json:"name"`
+		ApiKey                 string                 `json:"apiKey"`
 		Type                   string                 `json:"type"`
 		Enabled                bool                   `json:"enabled"`
 		TeamId                 string                 `json:"teamId"`
