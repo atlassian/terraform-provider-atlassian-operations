@@ -8,8 +8,8 @@ terraform {
 
 # Basic integration action example
 resource "atlassian-operations_integration_action" "basic" {
-  integration_id = "your-integration-id"
-  name          = "Basic Webhook Integration"
+  integration_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" # Replace with your integration ID
+  name          = "Example Integration Action"
   type          = "create"
   domain        = "alert"
   direction     = "incoming"
@@ -18,81 +18,42 @@ resource "atlassian-operations_integration_action" "basic" {
 
   filter = {
     conditions_empty = false
-    condition_match_type = "match-all"
-    conditions = [
-      {
-        field = "priority"
-        operation = "equals"
-        expected_value = "P1"
-        key = "priority_level"
-        not = false
-        order = 1
-        system_condition = false
-      }
-    ]
-  }
-
-  type_specific_properties = {
-    "url" = "https://example.com/webhook"
-    "method" = "POST"
-  }
-
-  field_mappings = {
-    "message" = "{{alert.message}}"
-    "status" = "{{alert.status}}"
-  }
-}
-
-# Advanced integration action example with multiple conditions and custom action mapping
-resource "atlassian-operations_integration_action" "advanced" {
-  integration_id = "your-integration-id"
-  name          = "Advanced Integration Action"
-  type          = "update"
-  domain        = "alert"
-  direction     = "outgoing"
-  group_type    = "updating"
-  enabled       = true
-
-  filter = {
-    conditions_empty = false
-    condition_match_type = "match-any-condition"
+    condition_match_type = "match-all-conditions"
     conditions = [
       {
         field = "message"
-        operation = "contains"
-        expected_value = "critical"
-        key = "severity"
+        operation = "matches"
+        expected_value = "critical alert"
         not = false
-        order = 1
-        system_condition = false
-      },
-      {
-        field = "tags"
-        operation = "contains-value"
-        expected_value = "production"
-        key = "environment"
-        not = false
-        order = 2
+        order = 0
         system_condition = false
       }
     ]
   }
 
-  field_mappings = {
-    "description" = "{{alert.description}}"
-    "priority" = "{{alert.priority}}"
-    "source" = "{{alert.source}}"
-    "tags" = "{{alert.tags}}"
-  }
+  type_specific_properties = jsonencode({
+    appendAttachments: true
+    keepActionsFromPayload: true
+    keepExtraPropertiesFromPayload: true
+    keepRespondersFromPayload: false
+    keepTagsFromPayload: true
+  })
 
-  action_mapping = {
-    type = "custom"
-    parameter = {
-      "alert_type" = "incident"
-      "team_id" = "{{team.id}}"
-      "responders" = "{{alert.responders}}"
-      "custom_field_1" = "custom_value_1"
-      "custom_field_2" = "custom_value_2"
-    }
-  }
-} 
+  field_mappings = jsonencode({
+    actions: []
+    alias: ""
+    description: "{{alert.description}}"
+    details: {}
+    entity: ""
+    message: "{{alert.message}}"
+    note: ""
+    responders: [{
+      id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" # Replace with your responder ID
+      type: "team"
+    }]
+    priority: "{{alert.priority}}"
+    source: ""
+    tags: []
+    user: ""
+  })
+}

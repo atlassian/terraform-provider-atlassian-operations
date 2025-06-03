@@ -1,8 +1,10 @@
 package schemaAttributes
 
 import (
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes/customValidators"
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -62,6 +64,11 @@ var IntegrationActionResourceAttributes = map[string]schema.Attribute{
 		Description: "The filter configuration for the integration action",
 		Optional:    true,
 		Computed:    true,
+		Validators: []validator.Object{
+			customValidators.ListFieldNullIfOtherField(path.MatchRelative().AtName("conditions"), path.MatchRelative().AtName("condition_match_type"), "match-all"),
+			customValidators.ListFieldNotNullIfOtherField(path.MatchRelative().AtName("conditions"), path.MatchRelative().AtName("condition_match_type"), "match-all-conditions"),
+			customValidators.ListFieldNotNullIfOtherField(path.MatchRelative().AtName("conditions"), path.MatchRelative().AtName("condition_match_type"), "match-any-condition"),
+		},
 		Attributes: map[string]schema.Attribute{
 			"conditions_empty": schema.BoolAttribute{
 				Description: "Whether the conditions list is empty",

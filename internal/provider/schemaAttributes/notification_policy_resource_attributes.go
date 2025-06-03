@@ -1,8 +1,10 @@
 package schemaAttributes
 
 import (
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes/customValidators"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
@@ -36,9 +38,11 @@ var NotificationPolicyResourceAttributes = map[string]schema.Attribute{
 		Description: "The description of the notification policy",
 	},
 	"team_id": schema.StringAttribute{
-		Optional:    true,
-		Computed:    true,
+		Required:    true,
 		Description: "The ID of the team this notification policy belongs to",
+		PlanModifiers: []planmodifier.String{
+			stringplanmodifier.RequiresReplace(),
+		},
 	},
 	"enabled": schema.BoolAttribute{
 		Required:    true,
@@ -53,6 +57,11 @@ var NotificationPolicyResourceAttributes = map[string]schema.Attribute{
 		Optional:    true,
 		Computed:    true,
 		Description: "The filter configuration for the notification policy",
+		Validators: []validator.Object{
+			customValidators.ListFieldNullIfOtherField(path.MatchRelative().AtName("conditions"), path.MatchRelative().AtName("type"), "match-all"),
+			customValidators.ListFieldNotNullIfOtherField(path.MatchRelative().AtName("conditions"), path.MatchRelative().AtName("type"), "match-all-conditions"),
+			customValidators.ListFieldNotNullIfOtherField(path.MatchRelative().AtName("conditions"), path.MatchRelative().AtName("type"), "match-any-condition"),
+		},
 		Attributes: map[string]schema.Attribute{
 			"type": schema.StringAttribute{
 				Required:    true,
