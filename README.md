@@ -26,6 +26,7 @@ And the following data sources:
 ### Related Links
 
 - [Terraform Website](https://www.terraform.io)
+- [atlassian-operations Terraform provider](https://registry.terraform.io/providers/atlassian/atlassian-operations/latest)
 - [Jira Service Management](https://www.atlassian.com/software/jira/service-management?tab=it-operations)
 - [JSM Ops REST API](https://developer.atlassian.com/cloud/jira/service-desk-ops/rest/v2/intro/)
 - [Compass Operations API](https://developer.atlassian.com/cloud/compass/rest/v1/intro/)
