@@ -26,6 +26,16 @@ var ApiIntegrationResourceAttributes = map[string]schema.Attribute{
 			stringvalidator.LengthBetween(1, 250),
 		},
 	},
+	"api_key": schema.StringAttribute{
+		Description: "The API key for the integration. Only available after the integration is created and cannot be fetch later. This key is used for authentication and should be kept secret.",
+		PlanModifiers: []planmodifier.String{
+			stringplanmodifier.UseStateForUnknown(),
+		},
+		Computed:  true,
+		Optional:  false,
+		Required:  false,
+		Sensitive: true,
+	},
 	"type": schema.StringAttribute{
 		Description: "The type of API integration.",
 		Required:    true,
@@ -40,9 +50,6 @@ var ApiIntegrationResourceAttributes = map[string]schema.Attribute{
 		Description: "The ID of the team that owns this API integration. Cannot be changed after creation.",
 		Optional:    true,
 		Computed:    true,
-		PlanModifiers: []planmodifier.String{
-			stringplanmodifier.RequiresReplace(),
-		},
 	},
 	"advanced": schema.BoolAttribute{
 		Description: "Indicates whether this is an advanced API integration with additional configuration options.",
@@ -55,6 +62,7 @@ var ApiIntegrationResourceAttributes = map[string]schema.Attribute{
 			Attributes: ApiIntegrationResourceMaintenanceSourceAttributes,
 		},
 		Computed: true,
+		Required: false,
 		Optional: false,
 	},
 	"directions": schema.ListAttribute{

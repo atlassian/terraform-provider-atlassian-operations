@@ -10,6 +10,7 @@ type (
 	ApiIntegrationModel struct {
 		Id                     types.String    `tfsdk:"id"`
 		Name                   types.String    `tfsdk:"name"`
+		ApiKey                 types.String    `tfsdk:"api_key"`
 		Type                   types.String    `tfsdk:"type"`
 		Enabled                types.Bool      `tfsdk:"enabled"`
 		TeamId                 types.String    `tfsdk:"team_id"`
@@ -24,6 +25,7 @@ type (
 var ApiIntegrationModelMap = map[string]attr.Type{
 	"id":                       types.StringType,
 	"name":                     types.StringType,
+	"api_key":                  types.StringType,
 	"type":                     types.StringType,
 	"enabled":                  types.BoolType,
 	"team_id":                  types.StringType,
@@ -38,6 +40,7 @@ func (receiver *ApiIntegrationModel) AsValue() types.Object {
 	return types.ObjectValueMust(ApiIntegrationModelMap, map[string]attr.Value{
 		"id":                       receiver.Id,
 		"name":                     receiver.Name,
+		"api_key":                  receiver.ApiKey,
 		"type":                     receiver.Type,
 		"enabled":                  receiver.Enabled,
 		"team_id":                  receiver.TeamId,

@@ -218,7 +218,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	httpResp, err = httpClientHelpers.
 		GenerateJsmOpsClientRequest(r.clientConfiguration).
 		AddRetryCondition(func(response *httpClient.Response, err error) bool {
-			if response.GetStatusCode() == 404 {
+			if response.GetStatusCode() == 404 || response.GetStatusCode() == 422 {
 				return true
 			}
 			return false

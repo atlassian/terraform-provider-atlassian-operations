@@ -17,12 +17,12 @@ description: |-
 
 ### Required
 
-- `method` (String)
-- `to` (String)
+- `method` (String) The method of contact for the user. Valid values are 'email', 'sms', 'voice', or 'mobile'.
+- `to` (String) The contact information for the user, such as an email address or phone number.
 
 ### Optional
 
-- `enabled` (Boolean)
+- `enabled` (Boolean) Whether this contact method is enabled for the user.
 
 ### Read-Only
 

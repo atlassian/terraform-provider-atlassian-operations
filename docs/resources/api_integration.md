@@ -29,6 +29,7 @@ description: |-
 ### Read-Only
 
 - `advanced` (Boolean) Indicates whether this is an advanced API integration with additional configuration options.
+- `api_key` (String, Sensitive) The API key for the integration. Only available after the integration is created and cannot be fetch later. This key is used for authentication and should be kept secret.
 - `directions` (List of String) List of supported communication directions for this integration (e.g., 'inbound', 'outbound').
 - `domains` (List of String) List of domains associated with this API integration. Used for routing and security purposes.
 - `id` (String) The unique identifier of the API integration. This is automatically generated when the integration is created.

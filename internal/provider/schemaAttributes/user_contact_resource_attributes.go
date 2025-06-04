@@ -31,12 +31,15 @@ var UserContactResourceAttributes = map[string]schema.Attribute{
 				"Force replacement since method value updated",
 				"Force replacement since method value updated"),
 		},
+		Description: "The method of contact for the user. Valid values are 'email', 'sms', 'voice', or 'mobile'.",
 	},
 	"to": schema.StringAttribute{
-		Required: true,
+		Required:    true,
+		Description: "The contact information for the user, such as an email address or phone number.",
 	},
 	"enabled": schema.BoolAttribute{
-		Optional: true,
-		Computed: true,
+		Optional:    true,
+		Computed:    true,
+		Description: "Whether this contact method is enabled for the user.",
 	},
 }

@@ -64,6 +64,7 @@ resource "atlassian-operations_api_integration" "example" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "name", apiIntegrationName),
 					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "type", "API"),
+					resource.TestCheckResourceAttrSet("atlassian-operations_api_integration.example", "api_key"),
 					resource.TestCheckResourceAttrPair("atlassian-operations_api_integration.example", "team_id", "atlassian-operations_team.example", "id"),
 					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "enabled", "true"),
 					resource.TestCheckResourceAttrWith("atlassian-operations_api_integration.example", "type_specific_properties", func(value string) error {
@@ -84,7 +85,7 @@ resource "atlassian-operations_api_integration" "example" {
 				ResourceName:            "atlassian-operations_api_integration.example",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"type_specific_properties", "directions", "domains"},
+				ImportStateVerifyIgnore: []string{"type_specific_properties", "directions", "domains", "api_key"},
 			},
 			// Update and Read testing
 			{
@@ -193,6 +194,7 @@ resource "atlassian-operations_api_integration" "example" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "name", apiIntegrationName),
 					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "type", "AmazonSecurityHub"),
+					resource.TestCheckResourceAttrSet("atlassian-operations_api_integration.example", "api_key"),
 					resource.TestCheckResourceAttrPair("atlassian-operations_api_integration.example", "team_id", "atlassian-operations_team.example", "id"),
 					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "enabled", "true"),
 					resource.TestCheckResourceAttrWith("atlassian-operations_api_integration.example", "type_specific_properties", func(value string) error {
@@ -224,7 +226,7 @@ resource "atlassian-operations_api_integration" "example" {
 				ResourceName:            "atlassian-operations_api_integration.example",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"type_specific_properties", "directions", "domains"},
+				ImportStateVerifyIgnore: []string{"type_specific_properties", "directions", "domains", "api_key"},
 			},
 			// Update and Read testing
 			{
