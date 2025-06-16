@@ -82,6 +82,8 @@ var NotificationPolicyResourceAttributes = map[string]schema.Attribute{
 						},
 						"not": schema.BoolAttribute{
 							Optional:    true,
+							Computed:    true,
+							Default:     booldefault.StaticBool(false),
 							Description: "Whether to negate the condition",
 						},
 						"operation": schema.StringAttribute{
@@ -94,6 +96,7 @@ var NotificationPolicyResourceAttributes = map[string]schema.Attribute{
 						},
 						"order": schema.Int64Attribute{
 							Optional:    true,
+							Computed:    true,
 							Description: "The order of the condition",
 						},
 					},
