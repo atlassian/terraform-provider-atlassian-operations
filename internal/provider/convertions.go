@@ -1390,12 +1390,11 @@ func AlertPolicyModelToDto(ctx context.Context, model *dataModels.AlertPolicyMod
 		}
 	}
 
-	return &dto.AlertPolicyDto{
+	alertPolicyDto := dto.AlertPolicyDto{
 		ID:                     model.ID.ValueString(),
 		Type:                   model.Type.ValueString(),
 		Name:                   model.Name.ValueString(),
 		Description:            model.Description.ValueString(),
-		TeamID:                 model.TeamID.ValueString(),
 		Enabled:                model.Enabled.ValueBool(),
 		Filter:                 filter,
 		TimeRestriction:        timeRestriction,
@@ -1415,7 +1414,13 @@ func AlertPolicyModelToDto(ctx context.Context, model *dataModels.AlertPolicyMod
 		KeepOriginalDetails:    model.KeepOriginalDetails.ValueBool(),
 		KeepOriginalActions:    model.KeepOriginalActions.ValueBool(),
 		KeepOriginalTags:       model.KeepOriginalTags.ValueBool(),
-	}, diags
+	}
+
+	if !(model.TeamID.IsNull() || model.TeamID.IsUnknown()) {
+		alertPolicyDto.TeamID = model.TeamID.ValueString()
+	}
+
+	return &alertPolicyDto, diags
 }
 
 func AlertPolicyDtoToModel(_ context.Context, dto *dto.AlertPolicyDto) (*dataModels.AlertPolicyModel, error) {
@@ -1614,12 +1619,11 @@ func AlertPolicyDtoToModel(_ context.Context, dto *dto.AlertPolicyDto) (*dataMod
 		priorityValue = types.StringValue(dto.PriorityValue)
 	}
 
-	return &dataModels.AlertPolicyModel{
+	alertPolicyModel := dataModels.AlertPolicyModel{
 		ID:                     types.StringValue(dto.ID),
 		Type:                   types.StringValue(strings.ToLower(dto.Type)),
 		Name:                   types.StringValue(dto.Name),
 		Description:            types.StringValue(dto.Description),
-		TeamID:                 types.StringValue(dto.TeamID),
 		Enabled:                types.BoolValue(dto.Enabled),
 		Filter:                 filter,
 		TimeRestriction:        timeRestriction,
@@ -1639,7 +1643,15 @@ func AlertPolicyDtoToModel(_ context.Context, dto *dto.AlertPolicyDto) (*dataMod
 		KeepOriginalDetails:    types.BoolValue(dto.KeepOriginalDetails),
 		KeepOriginalActions:    types.BoolValue(dto.KeepOriginalActions),
 		KeepOriginalTags:       types.BoolValue(dto.KeepOriginalTags),
-	}, nil
+	}
+
+	if dto.TeamID == "" {
+		alertPolicyModel.TeamID = types.StringNull()
+	} else {
+		alertPolicyModel.TeamID = types.StringValue(dto.TeamID)
+	}
+
+	return &alertPolicyModel, nil
 }
 
 func CustomRoleModelToDto(ctx context.Context, model *dataModels.CustomRoleModel) dto.CustomRoleDto {

@@ -34,8 +34,11 @@ var AlertPolicyResourceAttributes = map[string]schema.Attribute{
 		Description: "The description of the alert policy",
 	},
 	"team_id": schema.StringAttribute{
-		Optional:    true,
-		Computed:    true,
+		Optional: true,
+		Computed: true,
+		PlanModifiers: []planmodifier.String{
+			stringplanmodifier.RequiresReplace(),
+		},
 		Description: "The ID of the team this alert policy belongs to",
 	},
 	"enabled": schema.BoolAttribute{

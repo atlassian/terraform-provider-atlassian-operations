@@ -72,10 +72,17 @@ func (r *AlertPolicyResource) Create(ctx context.Context, req resource.CreateReq
 	// Convert to DTO
 	alertPolicyDto, _ := AlertPolicyModelToDto(ctx, &data)
 
+	var createBaseUrl string
+	if data.TeamID.IsUnknown() || data.TeamID.IsNull() {
+		createBaseUrl = "/v1/alerts/policies"
+	} else {
+		createBaseUrl = fmt.Sprintf("/v1/teams/%s/policies", data.TeamID.ValueString())
+	}
+
 	// Create alert policy
 	httpResp, err := httpClientHelpers.
 		GenerateJsmOpsClientRequest(r.clientConfiguration).
-		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/policies", data.TeamID.ValueString())).
+		JoinBaseUrl(createBaseUrl).
 		Method(httpClient.POST).
 		SetBody(alertPolicyDto).
 		SetBodyParseObject(&alertPolicyDto).
@@ -121,9 +128,17 @@ func (r *AlertPolicyResource) Read(ctx context.Context, req resource.ReadRequest
 	tflog.Trace(ctx, "Reading AlertPolicyResource")
 
 	var alertPolicyDto dto.AlertPolicyDto
+	var readBaseUrl string
+
+	if data.TeamID.IsUnknown() || data.TeamID.IsNull() {
+		readBaseUrl = fmt.Sprintf("/v1/alerts/policies/%s", data.ID.ValueString())
+	} else {
+		readBaseUrl = fmt.Sprintf("/v1/teams/%s/policies/%s", data.TeamID.ValueString(), data.ID.ValueString())
+	}
+
 	httpResp, err := httpClientHelpers.
 		GenerateJsmOpsClientRequest(r.clientConfiguration).
-		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/policies/%s", data.TeamID.ValueString(), data.ID.ValueString())).
+		JoinBaseUrl(readBaseUrl).
 		Method(httpClient.GET).
 		SetBodyParseObject(&alertPolicyDto).
 		Send()
@@ -167,10 +182,17 @@ func (r *AlertPolicyResource) Update(ctx context.Context, req resource.UpdateReq
 	// Convert to DTO
 	alertPolicyDto, _ := AlertPolicyModelToDto(ctx, &data)
 
+	var updateBaseUrl string
+	if data.TeamID.IsUnknown() || data.TeamID.IsNull() {
+		updateBaseUrl = fmt.Sprintf("/v1/alerts/policies/%s", data.ID.ValueString())
+	} else {
+		updateBaseUrl = fmt.Sprintf("/v1/teams/%s/policies/%s", data.TeamID.ValueString(), data.ID.ValueString())
+	}
+
 	// Update alert policy
 	httpResp, err := httpClientHelpers.
 		GenerateJsmOpsClientRequest(r.clientConfiguration).
-		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/policies/%s", data.TeamID.ValueString(), data.ID.ValueString())).
+		JoinBaseUrl(updateBaseUrl).
 		Method(httpClient.PUT).
 		SetBody(alertPolicyDto).
 		SetBodyParseObject(&alertPolicyDto).
@@ -212,9 +234,16 @@ func (r *AlertPolicyResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
+	var deleteBaseUrl string
+	if data.TeamID.IsUnknown() || data.TeamID.IsNull() {
+		deleteBaseUrl = fmt.Sprintf("/v1/alerts/policies/%s", data.ID.ValueString())
+	} else {
+		deleteBaseUrl = fmt.Sprintf("/v1/teams/%s/policies/%s", data.TeamID.ValueString(), data.ID.ValueString())
+	}
+
 	httpResp, err := httpClientHelpers.
 		GenerateJsmOpsClientRequest(r.clientConfiguration).
-		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/policies/%s", data.TeamID.ValueString(), data.ID.ValueString())).
+		JoinBaseUrl(deleteBaseUrl).
 		Method(httpClient.DELETE).
 		Send()
 
@@ -246,13 +275,15 @@ func (r *AlertPolicyResource) Delete(ctx context.Context, req resource.DeleteReq
 
 func (r *AlertPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	idParts := strings.Split(req.ID, ",")
-	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
+	if len(idParts) > 2 || idParts[0] == "" || (len(idParts) == 2 && idParts[1] == "") {
 		resp.Diagnostics.AddError(
 			"Unexpected Import Identifier",
-			fmt.Sprintf("Expected import identifier with format: id,team_id. Got: %q", req.ID),
+			fmt.Sprintf("Expected import identifier with format: id,team_id (for team policies); or: id (for global policies). Got: %q", req.ID),
 		)
 		return
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("team_id"), idParts[1])...)
+	if len(idParts) == 2 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("team_id"), idParts[1])...)
+	}
 }

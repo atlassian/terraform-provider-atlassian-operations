@@ -1,3 +1,27 @@
+## v1.1.3
+
+#### Product:
+
+- Fixed an issue where the users were unable to create global alert policies.
+
+## v1.1.2
+
+#### Product:
+
+- Fixed an issue where notification policy resources that don't specify the "not" parameter in the conditions clause caused an inconsistency error after applying. [JSDCLOUD-16983](https://jira.atlassian.com/browse/JSDCLOUD-16983)
+
+## v1.1.1
+
+#### Resources:
+
+Implemented Integration Action Resource
+Implemented Heartbeat Resource
+Implemented Maintenance Resource
+Implemented Notification Policy Resource
+
+#### Product:
+Added API Key field for API Integration Resource. **This field is only available after Create operations. Reading an existing integration will not return this field.**
+
 ## v1.1.0
 
 #### Product:
