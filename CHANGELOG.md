@@ -1,3 +1,10 @@
+## v1.1.4
+
+#### Product:
+
+- Fixed an issue where the api_key value was being removed from the state file (where it was previously present) after consecutive terraform apply runs.
+  - This does not affect the api_key field in the resource, which is still only available after Create operations. Reading an existing integration will not return this field.
+
 ## v1.1.3
 
 #### Product:

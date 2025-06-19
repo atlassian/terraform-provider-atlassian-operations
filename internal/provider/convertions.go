@@ -714,7 +714,7 @@ func ApiIntegrationMaintenanceSourceDtoToModel(dto dto.MaintenanceSource) dataMo
 	}
 }
 
-func ApiIntegrationDtoToModel(dtoObj dto.ApiIntegration) dataModels.ApiIntegrationModel {
+func ApiIntegrationDtoToModel(dtoObj dto.ApiIntegration, oldModel dataModels.ApiIntegrationModel) dataModels.ApiIntegrationModel {
 	typeSpecificProperties, _ := json.Marshal(dtoObj.TypeSpecificProperties)
 	model := dataModels.ApiIntegrationModel{
 		Id:                     types.StringValue(dtoObj.Id),
@@ -731,6 +731,8 @@ func ApiIntegrationDtoToModel(dtoObj dto.ApiIntegration) dataModels.ApiIntegrati
 
 	if dtoObj.ApiKey != "" {
 		model.ApiKey = types.StringValue(dtoObj.ApiKey)
+	} else if !(oldModel.ApiKey.IsNull() || oldModel.ApiKey.IsUnknown()) {
+		model.ApiKey = types.StringValue(oldModel.ApiKey.ValueString())
 	} else {
 		model.ApiKey = types.StringNull()
 	}
