@@ -104,7 +104,7 @@ func (r *ApiIntegrationResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	data = ApiIntegrationDtoToModel(dtoObj)
+	data = ApiIntegrationDtoToModel(dtoObj, data)
 
 	tflog.Trace(ctx, "Created the ApiIntegrationResource")
 
@@ -152,7 +152,7 @@ func (r *ApiIntegrationResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	data = ApiIntegrationDtoToModel(ApiIntegration)
+	data = ApiIntegrationDtoToModel(ApiIntegration, data)
 
 	tflog.Trace(ctx, "Read the ApiIntegrationResource")
 
@@ -201,7 +201,7 @@ func (r *ApiIntegrationResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	data = ApiIntegrationDtoToModel(dtoObj)
+	data = ApiIntegrationDtoToModel(dtoObj, data)
 
 	tflog.Trace(ctx, "Updated the ApiIntegrationResource")
 
