@@ -90,9 +90,6 @@ var IntegrationActionResourceAttributes = map[string]schema.Attribute{
 						"field": schema.StringAttribute{
 							Description: "The incident field to evaluate (e.g., 'message', 'priority', 'tags').",
 							Required:    true,
-							Validators: []validator.String{
-								stringvalidator.OneOf("message", "alias", "description", "source", "entity", "tags", "actions", "extra-properties", "priority", "details", "responders"),
-							},
 						},
 						"operation": schema.StringAttribute{
 							Description: "The comparison operation to perform (e.g., 'matches', 'contains', 'starts-with', 'ends-with', 'equals', 'contains-key', 'contains-value', 'greater-than', 'less-than', 'is-empty', 'equals-ignore-whitespace').",
