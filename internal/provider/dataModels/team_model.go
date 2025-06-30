@@ -7,14 +7,15 @@ import (
 
 type (
 	TeamModel struct {
-		Description     types.String `tfsdk:"description"`
-		DisplayName     types.String `tfsdk:"display_name"`
-		OrganizationId  types.String `tfsdk:"organization_id"`
-		Id              types.String `tfsdk:"id"`
-		SiteId          types.String `tfsdk:"site_id"`
-		TeamType        types.String `tfsdk:"team_type"`
-		UserPermissions types.Object `tfsdk:"user_permissions"`
-		Member          types.Set    `tfsdk:"member"`
+		Description            types.String `tfsdk:"description"`
+		DisplayName            types.String `tfsdk:"display_name"`
+		OrganizationId         types.String `tfsdk:"organization_id"`
+		Id                     types.String `tfsdk:"id"`
+		SiteId                 types.String `tfsdk:"site_id"`
+		TeamType               types.String `tfsdk:"team_type"`
+		UserPermissions        types.Object `tfsdk:"user_permissions"`
+		Member                 types.Set    `tfsdk:"member"`
+		DeleteDefaultResources types.Bool   `tfsdk:"delete_default_resources"`
 	}
 	PublicApiUserPermissionsModel struct {
 		AddMembers    types.Bool `tfsdk:"add_members"`

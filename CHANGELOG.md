@@ -1,3 +1,10 @@
+## v1.1.6
+
+#### Product:
+
+- Added support for the `delete_default_resources` attribute in the Team resource. This allows users to remove the default escalation and schedule for newly created teams. Be cautious, as this also changes the team routing rule to None, requiring you to define a routing rule separately.
+
+
 ## v1.1.5
 
 #### Product:

@@ -256,13 +256,150 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 	tflog.Trace(ctx, "Enabled Operations for the Team")
 
-	data = TeamDtoToModel(teamDto, membersDto)
+	if data.DeleteDefaultResources.ValueBool() {
+		tflog.Trace(ctx, "Deleting default resources for the team")
+
+		err = findAndUpdateDefaultRoutingRule(teamDto.TeamId, r.clientConfiguration)
+		if err != nil {
+			tflog.Trace(ctx, "Could not find and update default routing rule for team", map[string]interface{}{"teamId": teamDto.TeamId, "error": err.Error()})
+		}
+
+		err = findAndDeleteDefaultEscalation(teamDto.TeamId, r.clientConfiguration)
+		if err != nil {
+			tflog.Trace(ctx, "Could not find and delete default escalation for team", map[string]interface{}{"teamId": teamDto.TeamId, "error": err.Error()})
+		}
+
+		err = findAndDeleteDefaultSchedule(teamDto.TeamId, r.clientConfiguration)
+		if err != nil {
+			tflog.Trace(ctx, "Could not find and delete default schedule for team", map[string]interface{}{"teamId": teamDto.TeamId, "error": err.Error()})
+		}
+	}
+
+	data = TeamDtoToModel(teamDto, membersDto, data.DeleteDefaultResources)
 
 	tflog.Trace(ctx, "Created the TeamResource")
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	tflog.Trace(ctx, "Saved the TeamResource into Terraform state")
+}
+
+// list schedules using teamId then delete its default schedule
+func findAndDeleteDefaultSchedule(teamId string, configuration dto.AtlassianOpsProviderModel) error {
+	tflog.Trace(context.Background(), "Finding and deleting default schedule for team", map[string]interface{}{"teamId": teamId})
+
+	var listScheduleDto = dto.ListSchedule{}
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(configuration).
+		JoinBaseUrl("/v1/schedules").
+		Method(httpClient.GET).
+		SetBodyParseObject(&listScheduleDto).
+		Send()
+	if err != nil {
+		return fmt.Errorf("error fetching schedules: %w", err)
+	}
+
+	if httpResp == nil || httpResp.IsError() {
+		return fmt.Errorf("error fetching schedules: empty response")
+	}
+
+	for _, schedule := range listScheduleDto.Values {
+		if strings.EqualFold(schedule.TeamId, teamId) {
+			deleteResp, err := httpClientHelpers.
+				GenerateJsmOpsClientRequest(configuration).
+				JoinBaseUrl(fmt.Sprintf("/v1/schedules/%s", schedule.Id)).
+				Method(httpClient.DELETE).
+				Send()
+
+			if err != nil || deleteResp.IsError() {
+				return fmt.Errorf("error deleting schedule: %w", err)
+			}
+			tflog.Trace(context.Background(), "Deleted default schedule for team", map[string]interface{}{"teamId": teamId, "scheduleId": schedule.Id})
+			break
+		}
+	}
+	return nil
+}
+
+// list escalations using teamId then delete its default escalation
+func findAndDeleteDefaultEscalation(teamId string, configuration dto.AtlassianOpsProviderModel) error {
+	tflog.Trace(context.Background(), "Finding and deleting default escalation for team", map[string]interface{}{"teamId": teamId})
+
+	var listEscalationDto = dto.ListEscalationDto{}
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(configuration).
+		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/escalations", teamId)).
+		Method(httpClient.GET).
+		SetBodyParseObject(&listEscalationDto).
+		Send()
+
+	if err != nil {
+		return fmt.Errorf("error fetching escalations: %w", err)
+	}
+
+	if httpResp == nil || httpResp.IsError() {
+		return fmt.Errorf("error fetching escalations: empty response")
+	}
+
+	for _, escalation := range listEscalationDto.Values {
+		deleteResp, err := httpClientHelpers.
+			GenerateJsmOpsClientRequest(configuration).
+			JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/escalations/%s", teamId, escalation.Id)).
+			Method(httpClient.DELETE).
+			Send()
+
+		if err != nil || deleteResp.IsError() {
+			return fmt.Errorf("error deleting escalation: %w", err)
+		}
+		tflog.Trace(context.Background(), "Deleted default escalation for team", map[string]interface{}{"teamId": teamId, "escalationId": escalation.Id})
+		break
+	}
+
+	return nil
+}
+
+// list routing rules using teamId then update its Notify to None
+func findAndUpdateDefaultRoutingRule(teamId string, configuration dto.AtlassianOpsProviderModel) error {
+	tflog.Trace(context.Background(), "Finding and updating default routing rule for team", map[string]interface{}{"teamId": teamId})
+
+	var listRoutingRuleDto = dto.ListRoutingRuleDto{}
+	httpResp, err := httpClientHelpers.
+		GenerateJsmOpsClientRequest(configuration).
+		JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/routing-rules", teamId)).
+		Method(httpClient.GET).
+		SetBodyParseObject(&listRoutingRuleDto).
+		Send()
+
+	if err != nil {
+		return fmt.Errorf("error fetching routing rules: %w", err)
+	}
+
+	if httpResp == nil || httpResp.IsError() {
+		return fmt.Errorf("error fetching routing rules: empty response")
+	}
+
+	for _, rule := range listRoutingRuleDto.Values {
+		if rule.IsDefault {
+			rule.Notify = &dto.RoutingRuleNotifyDto{
+				Type: "none",
+				ID:   "",
+			}
+			updateResp, err := httpClientHelpers.
+				GenerateJsmOpsClientRequest(configuration).
+				JoinBaseUrl(fmt.Sprintf("/v1/teams/%s/routing-rules/%s", teamId, rule.ID)).
+				Method(httpClient.PATCH).
+				SetBody(rule).
+				Send()
+
+			if err != nil || updateResp.IsError() {
+				return fmt.Errorf("error updating routing rule: %w", err)
+			}
+			tflog.Trace(context.Background(), "Updated default routing rule for team", map[string]interface{}{"teamId": teamId, "ruleId": rule.ID})
+			break
+		}
+	}
+
+	return nil
 }
 
 func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -318,7 +455,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	tflog.Trace(ctx, "Converting Team Data into Terraform Model")
 
-	data = TeamDtoToModel(teamDto, memberData)
+	data = TeamDtoToModel(teamDto, memberData, data.DeleteDefaultResources)
 
 	tflog.Trace(ctx, "Read the TeamResource")
 
@@ -457,7 +594,7 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 	}
 
-	newData = TeamDtoToModel(newTeamDto, newUsersDto)
+	newData = TeamDtoToModel(newTeamDto, newUsersDto, newData.DeleteDefaultResources)
 
 	tflog.Trace(ctx, "Updated the TeamResource")
 

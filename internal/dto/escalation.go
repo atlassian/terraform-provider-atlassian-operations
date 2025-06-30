@@ -28,4 +28,9 @@ type (
 		Enabled     bool                 `json:"enabled"`
 		Repeat      *EscalationRepeatDto `json:"repeat"`
 	}
+
+	ListEscalationDto struct {
+		Values []EscalationDto `json:"values"`
+		Links  LinksDto        `json:"links"`
+	}
 )

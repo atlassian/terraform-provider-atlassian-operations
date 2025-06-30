@@ -211,16 +211,17 @@ func EmailIntegrationDtoToModel(dto dto.EmailIntegration) dataModels.EmailIntegr
 	return model
 }
 
-func TeamDtoToModel(dto dto.TeamDto, membersDto []dto.TeamMember) dataModels.TeamModel {
+func TeamDtoToModel(dto dto.TeamDto, membersDto []dto.TeamMember, deleteDefaultResources types.Bool) dataModels.TeamModel {
 	model := dataModels.TeamModel{
-		Description:     types.StringValue(dto.Description),
-		DisplayName:     types.StringValue(dto.DisplayName),
-		OrganizationId:  types.StringValue(dto.OrganizationId),
-		Id:              types.StringValue(dto.TeamId),
-		SiteId:          types.StringNull(),
-		TeamType:        types.StringValue(string(dto.TeamType)),
-		UserPermissions: types.ObjectNull(dataModels.PublicApiUserPermissionsModelMap),
-		Member:          types.SetNull(types.ObjectType{AttrTypes: dataModels.TeamMemberModelMap}),
+		Description:            types.StringValue(dto.Description),
+		DisplayName:            types.StringValue(dto.DisplayName),
+		OrganizationId:         types.StringValue(dto.OrganizationId),
+		Id:                     types.StringValue(dto.TeamId),
+		SiteId:                 types.StringNull(),
+		TeamType:               types.StringValue(string(dto.TeamType)),
+		UserPermissions:        types.ObjectNull(dataModels.PublicApiUserPermissionsModelMap),
+		Member:                 types.SetNull(types.ObjectType{AttrTypes: dataModels.TeamMemberModelMap}),
+		DeleteDefaultResources: deleteDefaultResources,
 	}
 
 	if dto.SiteId != nil {

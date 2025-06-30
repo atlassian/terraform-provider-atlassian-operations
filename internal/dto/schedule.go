@@ -9,4 +9,9 @@ type (
 		Enabled     bool   `json:"enabled"`
 		TeamId      string `json:"teamId"`
 	}
+
+	ListSchedule struct {
+		Values []Schedule `json:"values"`
+		Links  LinksDto   `json:"links"`
+	}
 )
