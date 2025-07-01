@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"net/url"
 	"strings"
 )
 
@@ -288,34 +289,64 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 func findAndDeleteDefaultSchedule(teamId string, configuration dto.AtlassianOpsProviderModel) error {
 	tflog.Trace(context.Background(), "Finding and deleting default schedule for team", map[string]interface{}{"teamId": teamId})
 
-	var listScheduleDto = dto.ListSchedule{}
-	httpResp, err := httpClientHelpers.
-		GenerateJsmOpsClientRequest(configuration).
-		JoinBaseUrl("/v1/schedules").
-		Method(httpClient.GET).
-		SetBodyParseObject(&listScheduleDto).
-		Send()
-	if err != nil {
-		return fmt.Errorf("error fetching schedules: %w", err)
-	}
+	baseURL := "/v1/schedules"
+	queryParams := map[string]string{}
 
-	if httpResp == nil || httpResp.IsError() {
-		return fmt.Errorf("error fetching schedules: empty response")
-	}
+	doneLooping := false
+	deleted := false
 
-	for _, schedule := range listScheduleDto.Values {
-		if strings.EqualFold(schedule.TeamId, teamId) {
-			deleteResp, err := httpClientHelpers.
-				GenerateJsmOpsClientRequest(configuration).
-				JoinBaseUrl(fmt.Sprintf("/v1/schedules/%s", schedule.Id)).
-				Method(httpClient.DELETE).
-				Send()
+	for !doneLooping && !deleted {
+		var listScheduleDto = dto.ListSchedule{}
+		req := httpClientHelpers.
+			GenerateJsmOpsClientRequest(configuration).
+			JoinBaseUrl(baseURL).
+			Method(httpClient.GET).
+			SetQueryParams(queryParams).
+			SetBodyParseObject(&listScheduleDto)
 
-			if err != nil || deleteResp.IsError() {
-				return fmt.Errorf("error deleting schedule: %w", err)
+		httpResp, err := req.Send()
+
+		if err != nil {
+			return fmt.Errorf("error fetching schedules: %w", err)
+		}
+
+		if httpResp == nil || httpResp.IsError() {
+			return fmt.Errorf("error fetching schedules: empty response")
+		}
+
+		for _, schedule := range listScheduleDto.Values {
+			if strings.EqualFold(schedule.TeamId, teamId) {
+				deleteResp, err := httpClientHelpers.
+					GenerateJsmOpsClientRequest(configuration).
+					JoinBaseUrl(fmt.Sprintf("/v1/schedules/%s", schedule.Id)).
+					Method(httpClient.DELETE).
+					Send()
+
+				if err != nil || deleteResp.IsError() {
+					return fmt.Errorf("error deleting schedule: %w", err)
+				}
+				tflog.Trace(context.Background(), "Deleted default schedule for team", map[string]interface{}{"teamId": teamId, "scheduleId": schedule.Id})
+				deleted = true
+				break
 			}
-			tflog.Trace(context.Background(), "Deleted default schedule for team", map[string]interface{}{"teamId": teamId, "scheduleId": schedule.Id})
-			break
+		}
+
+		if deleted || listScheduleDto.Links.Next == "" {
+			doneLooping = true
+		} else {
+			nextURL := listScheduleDto.Links.Next
+			parsedURL, err := url.Parse(nextURL)
+			if err != nil {
+				return fmt.Errorf("error parsing next URL: %w", err)
+			}
+			urlValues := parsedURL.Query()
+			queryParams = make(map[string]string)
+			for key, values := range urlValues {
+				if len(values) > 0 {
+					queryParams[key] = values[0]
+				}
+			}
+			baseURL = parsedURL.Path
 		}
 	}
 	return nil
