@@ -12,6 +12,7 @@ import (
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -145,7 +146,7 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	tflog.Trace(ctx, "Converting Team Data into Terraform Model")
 	// Convert the fetched data into the model
-	model = TeamDtoToModel(data, memberData.Results)
+	model = TeamDtoToModel(data, memberData.Results, basetypes.NewBoolValue(false))
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -60,6 +61,13 @@ var TeamResourceAttributes = map[string]schema.Attribute{
 		Validators: []validator.Set{
 			setvalidator.SizeAtLeast(1),
 		},
+	},
+	"delete_default_resources": schema.BoolAttribute{
+		Description: "Set to true to remove default escalation and schedule for newly created team. Be careful its also changes that team routing rule to None. That means you have to define routing rule as well. Defaults to false.",
+		Optional:    true,
+		Required:    false,
+		Computed:    true,
+		Default:     booldefault.StaticBool(false),
 	},
 }
 

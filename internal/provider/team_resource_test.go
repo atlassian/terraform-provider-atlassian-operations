@@ -66,9 +66,10 @@ resource "atlassian-operations_team" "example" {
 			},
 			// ImportState testing
 			{
-				ResourceName:      "atlassian-operations_team.example",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "atlassian-operations_team.example",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"delete_default_resources"},
 				ImportStateIdFunc: func(state *terraform.State) (string, error) {
 					return state.RootModule().Resources["atlassian-operations_team.example"].Primary.ID +
 							"," +

@@ -47,6 +47,12 @@ var TeamDataSourceAttributes = map[string]schema.Attribute{
 			Attributes: TeamMemberDataSourceAttributes,
 		},
 	},
+	"delete_default_resources": schema.BoolAttribute{
+		Description: "Set to true to remove default escalation and schedule for newly created team. Be careful its also changes that team routing rule to None. That means you have to define routing rule as well. Defaults to false.",
+		Optional:    false,
+		Required:    false,
+		Computed:    true,
+	},
 }
 
 var PublicApiUserPermissionsDataSourceAttributes = map[string]schema.Attribute{

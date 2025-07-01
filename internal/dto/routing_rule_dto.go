@@ -19,6 +19,15 @@ type RoutingRuleDto struct {
 	Notify          *RoutingRuleNotifyDto `json:"notify"`
 }
 
+type ListRoutingRuleDto struct {
+	Values []RoutingRuleDto `json:"values"`
+	Links  LinksDto         `json:"links"`
+}
+
+type LinksDto struct {
+	Next string `json:"next"`
+}
+
 type TimeRestrictionEntry struct {
 	StartHour int    `json:"startHour"`
 	EndHour   int    `json:"endHour"`

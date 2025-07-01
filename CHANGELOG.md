@@ -1,3 +1,16 @@
+## v1.1.6
+
+#### Product:
+
+- Added support for the `delete_default_resources` attribute in the Team resource. This allows users to remove the default escalation and schedule for newly created teams. Be cautious, as this also changes the team routing rule to None, requiring you to define a routing rule separately.
+
+
+## v1.1.5
+
+#### Product:
+
+- Fixed an issue where the "field" attribute of an Integration Action's Conditions attribute had an invalid validator, causing Terraform not to accept valid values.
+
 ## v1.1.4
 
 #### Product:
