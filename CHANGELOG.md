@@ -1,3 +1,8 @@
+## v1.1.7
+
+#### Product:
+
+- Bug fix `delete_default_resources` attribute in the Team resource. List Schedules in paginated manner to find the default schedule and delete it if `delete_default_resources` is set to true. This ensures that the default schedule is removed when the team is created with this attribute set to true.
 ## v1.1.6
 
 #### Product:
