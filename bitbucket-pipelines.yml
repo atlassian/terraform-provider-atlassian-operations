@@ -39,12 +39,13 @@ definitions:
     - step: &replicate-to-github
         name: Replicate main branch to GitHub
         script:
-          - git fetch --unshallow && git checkout main && git pull
           - git remote rename origin bitbucket
-          - git remote add origin git@github.com:atlassian/terraform-provider-atlassian-operations.git
-          - git pull --rebase
-          - git checkout -b release-from-bitbucket
-          - git push --set-upstream origin release-from-bitbucket --force
+          - git remote add github git@github.com:atlassian/terraform-provider-atlassian-operations.git
+          - git fetch --unshallow --all
+          - git switch -c main github/main
+          - git switch -c release-from-bitbucket bitbucket/main
+          - git rebase -X ours main release-from-bitbucket
+          - git push --set-upstream github release-from-bitbucket --force
 
 pipelines:
   default:
