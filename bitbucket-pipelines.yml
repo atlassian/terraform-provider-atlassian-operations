@@ -42,8 +42,8 @@ definitions:
           - git remote rename origin bitbucket
           - git remote add github git@github.com:atlassian/terraform-provider-atlassian-operations.git
           - git fetch --unshallow --all
-          - git switch -c main github/main
-          - git switch -c release-from-bitbucket bitbucket/main
+          - git checkout -f -B main github/main
+          - git checkout -f -B release-from-bitbucket bitbucket/main
           - git rebase -X ours main release-from-bitbucket
           - git push --set-upstream github release-from-bitbucket --force
 
