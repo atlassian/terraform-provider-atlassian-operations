@@ -114,6 +114,16 @@ func (r *AlertPolicyResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	if !data.Order.IsUnknown() && !data.Order.IsNull() {
+		requestedOrder := int32(data.Order.ValueInt64())
+		var teamId string
+		if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
+			teamId = data.TeamID.ValueString()
+		}
+		
+		r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder)
+	}
+
 	order := getAlertPolicyOrder(ctx, r.clientConfiguration, data.TeamID.ValueString(), alertPolicyDto.ID)
 	// Update state with response
 	result, _ := AlertPolicyDtoToModel(ctx, order, alertPolicyDto)
@@ -232,6 +242,17 @@ func (r *AlertPolicyResource) Update(ctx context.Context, req resource.UpdateReq
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update alert policy, got error: %s", err))
 		return
 	}
+	
+	if !data.Order.IsUnknown() && !data.Order.IsNull() {
+		requestedOrder := int32(data.Order.ValueInt64())
+		var teamId string
+		if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
+			teamId = data.TeamID.ValueString()
+		}
+		
+		r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder)
+	}
+	
 	order := getAlertPolicyOrder(ctx, r.clientConfiguration, data.TeamID.ValueString(), alertPolicyDto.ID)
 	result, _ := AlertPolicyDtoToModel(ctx, order, alertPolicyDto)
 	resp.Diagnostics.Append(resp.State.Set(ctx, result)...)
@@ -365,4 +386,35 @@ func getAlertPolicyOrder(ctx context.Context, configuration dto.AtlassianOpsProv
 		}
 	}
 	return order
+}
+
+func (r *AlertPolicyResource) updatePolicyOrder(ctx context.Context, teamId string, policyId string, requestedOrder int32) {
+	var orderBaseUrl string
+	if teamId == "" {
+		orderBaseUrl = fmt.Sprintf("/v1/alerts/policies/%s/change-order", policyId)
+	} else {
+		orderBaseUrl = fmt.Sprintf("/v1/teams/%s/policies/%s/change-order", teamId, policyId)
+	}
+	
+	orderDto := map[string]int32{"order": requestedOrder}
+
+	orderResp, orderErr := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
+		JoinBaseUrl(orderBaseUrl).
+		Method(httpClient.POST).
+		SetBody(orderDto).
+		Send()
+
+	if orderResp.IsError() {
+		statusCode := orderResp.GetStatusCode()
+		errorResponse := orderResp.GetErrorBody()
+		if errorResponse != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to set order for alert policy, status code: %d. Got response: %s", statusCode, *errorResponse))
+		} else {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to set order for alert policy, got http response: %d", statusCode))
+		}
+	}
+	if orderErr != nil {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to set order for alert policy, got error: %s", orderErr))
+	}
 }
