@@ -30,7 +30,7 @@ Team data source
 - `description` (String) A detailed description of the team's purpose, responsibilities, and scope of operations.
 - `display_name` (String) The human-readable name of the team as it appears in the Atlassian interface.
 - `member` (Attributes Set) The set of users who are members of this team. Each member has their own role and permissions. (see [below for nested schema](#nestedatt--member))
-- `team_type` (String) The type of team (e.g., 'open', 'member_invite', 'external'). Determines team access and invitation policies.
+- `team_type` (String) The type of team (e.g., `OPEN`, `MEMBER_INVITE`, `EXTERNAL`). Determines team access and invitation policies.
 - `user_permissions` (Attributes) The set of permissions that define what operations users can perform on this team. (see [below for nested schema](#nestedatt--user_permissions))
 
 <a id="nestedatt--member"></a>

@@ -21,7 +21,7 @@ description: |-
 - `display_name` (String) The human-readable name of the team as it appears in the Atlassian interface. This should be clear and identifiable.
 - `member` (Attributes Set) The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID. (see [below for nested schema](#nestedatt--member))
 - `organization_id` (String) The unique identifier of the organization this team belongs to. This determines the team's organizational context.
-- `team_type` (String) The type of team that determines access and invitation policies. Valid values are 'open' (anyone can join), 'member_invite' (members can invite others), or 'external' (managed externally).
+- `team_type` (String) The type of team that determines access and invitation policies. Valid values are `OPEN` (anyone can join), `MEMBER_INVITE` (members can invite others), or `EXTERNAL` (managed externally).
 
 ### Optional
 

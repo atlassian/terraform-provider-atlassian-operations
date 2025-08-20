@@ -32,7 +32,7 @@ var TeamDataSourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"team_type": schema.StringAttribute{
-		Description: "The type of team (e.g., 'open', 'member_invite', 'external'). Determines team access and invitation policies.",
+		Description: "The type of team (e.g., 'OPEN', 'MEMBER_INVITE', 'EXTERNAL'). Determines team access and invitation policies.",
 		Computed:    true,
 	},
 	"user_permissions": schema.SingleNestedAttribute{
