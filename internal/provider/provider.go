@@ -85,6 +85,7 @@ func (p *atlassianOpsProvider) Configure(ctx context.Context, req provider.Confi
 	productType := os.Getenv("ATLASSIAN_OPS_PRODUCT_TYPE")
 	cloudId := os.Getenv("ATLASSIAN_OPS_CLOUD_ID")
 	domainName := os.Getenv("ATLASSIAN_OPS_DOMAIN_NAME")
+	apiDomainName := os.Getenv("ATLASSIAN_OPS_API_DOMAIN_NAME")
 	emailAddress := os.Getenv("ATLASSIAN_OPS_API_EMAIL_ADDRESS")
 	if emailAddress == "" {
 		emailAddress = os.Getenv("ATLASSIAN_OPS_API_USERNAME")
@@ -121,6 +122,14 @@ func (p *atlassianOpsProvider) Configure(ctx context.Context, req provider.Confi
 			)
 		} else {
 			domainName = config.DomainName.ValueString()
+		}
+	}
+
+	if apiDomainName == "" {
+		if config.ApiDomainName.IsNull() {
+			apiDomainName = "https://api.atlassian.com"
+		} else {
+			apiDomainName = config.ApiDomainName.ValueString()
 		}
 	}
 
@@ -163,6 +172,7 @@ func (p *atlassianOpsProvider) Configure(ctx context.Context, req provider.Confi
 	ctx = tflog.SetField(ctx, "atlassian-operations_product_type", productType)
 	ctx = tflog.SetField(ctx, "atlassian-operations_cloud_id", cloudId)
 	ctx = tflog.SetField(ctx, "atlassian-operations_domain_name", domainName)
+	ctx = tflog.SetField(ctx, "atlassian-operations_api_domain_name", apiDomainName)
 	ctx = tflog.SetField(ctx, "atlassian-operations_email_address", emailAddress)
 	ctx = tflog.SetField(ctx, "atlassian-operations_org_admin_token", orgAdminToken)
 	ctx = tflog.SetField(ctx, "atlassian-operations_token", token)
@@ -176,6 +186,7 @@ func (p *atlassianOpsProvider) Configure(ctx context.Context, req provider.Confi
 		productType,
 		cloudId,
 		domainName,
+		apiDomainName,
 		emailAddress,
 		token,
 		orgAdminToken,

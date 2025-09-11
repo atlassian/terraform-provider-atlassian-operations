@@ -22,6 +22,10 @@ var ProviderAttributes = map[string]schema.Attribute{
 		Description: "The domain name of your Atlassian Cloud instance (e.g., 'your-domain.atlassian.net').",
 		Optional:    true,
 	},
+	"api_domain_name": schema.StringAttribute{
+		Description: "The API domain name of your Atlassian Cloud instance (e.g., 'api.your-domain.atlassian.net').",
+		Optional:    true,
+	},
 	"email_address": schema.StringAttribute{
 		Description: "The email address associated with your Atlassian Cloud account. This must be an admin account.",
 		Optional:    true,
