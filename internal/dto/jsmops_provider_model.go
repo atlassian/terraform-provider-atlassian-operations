@@ -6,7 +6,6 @@ type AtlassianOpsProviderModel struct {
 	productType     string
 	cloudId         string
 	domainName      string
-	apiDomainName   string
 	emailAddress    string
 	token           string
 	orgAdminToken   string
@@ -20,7 +19,6 @@ func NewAtlassianOpsProviderModel(
 	productType string,
 	cloudId string,
 	domainName string,
-	apiDomainName string,
 	emailAddress string,
 	token string,
 	orgAdminToken string,
@@ -33,7 +31,6 @@ func NewAtlassianOpsProviderModel(
 		productType:     productType,
 		cloudId:         cloudId,
 		domainName:      domainName,
-		apiDomainName:   apiDomainName,
 		emailAddress:    emailAddress,
 		token:           token,
 		orgAdminToken:   orgAdminToken,
@@ -54,10 +51,6 @@ func (receiver AtlassianOpsProviderModel) GetCloudId() string {
 
 func (receiver AtlassianOpsProviderModel) GetDomainName() string {
 	return receiver.domainName
-}
-
-func (receiver AtlassianOpsProviderModel) GetApiDomainName() string {
-	return receiver.apiDomainName
 }
 
 func (receiver AtlassianOpsProviderModel) GetEmailAddress() string {

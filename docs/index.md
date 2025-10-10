@@ -14,11 +14,10 @@ description: |-
 
 ```terraform
 provider "atlassian-operations" {
-  cloud_id          = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-  domain_name       = "xxxx.atlassian.net"
-  api_domain_name   = "api.xxxx.atlassian.net"
-  email_address     = "email@example.com"
-  token             = "<YOUR_TOKEN_HERE>"
+  cloud_id      = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  domain_name   = "xxxx.atlassian.net"
+  email_address = "email@example.com"
+  token         = "<YOUR_TOKEN_HERE>"
 }
 ```
 
@@ -32,7 +31,6 @@ provider "atlassian-operations" {
 - `api_retry_wait_max` (Number) The maximum wait time in seconds between API retries. Defaults to 30.
 - `cloud_id` (String) The unique identifier of your Atlassian Cloud instance. This can be found in your Atlassian Cloud URL.
 - `domain_name` (String) The domain name of your Atlassian Cloud instance (e.g., 'your-domain.atlassian.net').
-- `api_domain_name` (String) The domain name of your API Atlassian Cloud instance (e.g., 'api.your-domain.atlassian.net').
 - `email_address` (String) The email address associated with your Atlassian Cloud account. This must be an admin account.
 - `org_admin_token` (String, Sensitive) The API token of the organization admin, to be able to use User APIs. This field is only required & used for Compass.
 - `product_type` (String) The type of Atlassian Operations product you are using. This can be 'jira-service-desk' or 'compass'. Defaults to 'jira-service-desk'.
