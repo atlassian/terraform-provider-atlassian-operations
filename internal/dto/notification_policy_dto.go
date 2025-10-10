@@ -24,10 +24,12 @@ type NotificationPolicyTimeRestrictionDto struct {
 }
 
 type NotificationPolicyTimeRestrictionSettingsDto struct {
-	StartHour   int `json:"startHour"`
-	EndHour     int `json:"endHour"`
-	StartMinute int `json:"startMinute"`
-	EndMinute   int `json:"endMinute"`
+	StartDay    *int64 `json:"startDay,omitempty"`
+	StartHour   int    `json:"startHour"`
+	EndDay      *int64 `json:"endDay,omitempty"`
+	EndHour     int    `json:"endHour"`
+	StartMinute int    `json:"startMinute"`
+	EndMinute   int    `json:"endMinute"`
 }
 
 type AutoRestartActionDto struct {
