@@ -118,6 +118,15 @@ var NotificationPolicyResourceAttributes = map[string]schema.Attribute{
 				Description: "List of time restriction periods",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
+						"start_day": schema.Int64Attribute{
+							Required:    false,
+							Optional:    true,
+							Description: "Start day of the restriction period",
+							Validators: []validator.Int64{
+								int64validator.AtLeast(0),
+								int64validator.AtMost(7),
+							},
+						},
 						"start_hour": schema.Int64Attribute{
 							Required:    true,
 							Description: "Start hour of the restriction period",
@@ -125,6 +134,15 @@ var NotificationPolicyResourceAttributes = map[string]schema.Attribute{
 						"start_minute": schema.Int64Attribute{
 							Required:    true,
 							Description: "Start minute of the restriction period",
+						},
+						"end_day": schema.Int64Attribute{
+							Required:    false,
+							Optional:    true,
+							Description: "End day of the restriction period",
+							Validators: []validator.Int64{
+								int64validator.AtLeast(0),
+								int64validator.AtMost(7),
+							},
 						},
 						"end_hour": schema.Int64Attribute{
 							Required:    true,

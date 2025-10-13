@@ -31,6 +31,8 @@ type NotificationPolicyTimeRestrictionSettingsModel struct {
 	EndHour     types.Int64 `tfsdk:"end_hour"`
 	StartMinute types.Int64 `tfsdk:"start_minute"`
 	EndMinute   types.Int64 `tfsdk:"end_minute"`
+	StartDay    types.Int64 `tfsdk:"start_day"`
+	EndDay      types.Int64 `tfsdk:"end_day"`
 }
 
 type NotificationConditionModel struct {

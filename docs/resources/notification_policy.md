@@ -140,3 +140,8 @@ Required:
 - `end_minute` (Number) End minute of the restriction period
 - `start_hour` (Number) Start hour of the restriction period
 - `start_minute` (Number) Start minute of the restriction period
+
+Optional:
+
+- `end_day` (Number) End day of the restriction period
+- `start_day` (Number) Start day of the restriction period
