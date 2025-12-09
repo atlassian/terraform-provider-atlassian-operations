@@ -114,17 +114,17 @@ func (r *AlertPolicyResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	var teamId string
+	if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
+		teamId = data.TeamID.ValueString()
+	}
+
 	if !data.Order.IsUnknown() && !data.Order.IsNull() {
 		requestedOrder := int32(data.Order.ValueInt64())
-		var teamId string
-		if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
-			teamId = data.TeamID.ValueString()
-		}
-		
 		r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder)
 	}
 
-	order := getAlertPolicyOrder(ctx, r.clientConfiguration, data.TeamID.ValueString(), alertPolicyDto.ID)
+	order := getAlertPolicyOrder(ctx, r.clientConfiguration, teamId, alertPolicyDto.ID)
 	// Update state with response
 	result, _ := AlertPolicyDtoToModel(ctx, order, alertPolicyDto)
 	resp.Diagnostics.Append(resp.State.Set(ctx, result)...)
@@ -186,7 +186,11 @@ func (r *AlertPolicyResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	order := getAlertPolicyOrder(ctx, r.clientConfiguration, data.TeamID.ValueString(), alertPolicyDto.ID)
+	var teamId string
+	if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
+		teamId = data.TeamID.ValueString()
+	}
+	order := getAlertPolicyOrder(ctx, r.clientConfiguration, teamId, alertPolicyDto.ID)
 
 	result, _ := AlertPolicyDtoToModel(ctx, order, &alertPolicyDto)
 	resp.Diagnostics.Append(resp.State.Set(ctx, result)...)
@@ -243,17 +247,17 @@ func (r *AlertPolicyResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 	
+	var teamId string
+	if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
+		teamId = data.TeamID.ValueString()
+	}
+
 	if !data.Order.IsUnknown() && !data.Order.IsNull() {
 		requestedOrder := int32(data.Order.ValueInt64())
-		var teamId string
-		if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
-			teamId = data.TeamID.ValueString()
-		}
-		
 		r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder)
 	}
-	
-	order := getAlertPolicyOrder(ctx, r.clientConfiguration, data.TeamID.ValueString(), alertPolicyDto.ID)
+
+	order := getAlertPolicyOrder(ctx, r.clientConfiguration, teamId, alertPolicyDto.ID)
 	result, _ := AlertPolicyDtoToModel(ctx, order, alertPolicyDto)
 	resp.Diagnostics.Append(resp.State.Set(ctx, result)...)
 }
@@ -322,7 +326,12 @@ func (r *AlertPolicyResource) ImportState(ctx context.Context, req resource.Impo
 func getAlertPolicyOrder(ctx context.Context, configuration dto.AtlassianOpsProviderModel, teamId string, alertPolicyId string) int64 {
 	// list alert policies find the one we just created, and get its order value
 	listAlertPoliciesResponse := &dto.AlertPolicyListDto{}
-	baseURL := fmt.Sprintf("/v1/teams/%s/policies", teamId)
+	var baseURL string
+	if teamId == "" {
+		baseURL = "/v1/alerts/policies"
+	} else {
+		baseURL = fmt.Sprintf("/v1/teams/%s/policies", teamId)
+	}
 	queryParams := map[string]string{
 		"type": "alert",
 	}

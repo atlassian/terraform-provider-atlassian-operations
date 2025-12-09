@@ -11,6 +11,7 @@ import (
 
 func TestAccHeartbeatResource(t *testing.T) {
 	teamName := uuid.NewString()
+	heartbeatName := uuid.NewString()
 
 	organizationId := os.Getenv("ATLASSIAN_ACCTEST_ORGANIZATION_ID")
 	emailPrimary := os.Getenv("ATLASSIAN_ACCTEST_EMAIL_PRIMARY")
@@ -28,9 +29,9 @@ func TestAccHeartbeatResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: providerConfig + testAccHeartbeatResourceConfig(teamName, emailPrimary, organizationId),
+				Config: providerConfig + testAccHeartbeatResourceConfig(teamName, heartbeatName, emailPrimary, organizationId),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-operations_heartbeat.test", "name", "test-heartbeat"),
+					resource.TestCheckResourceAttr("atlassian-operations_heartbeat.test", "name", heartbeatName),
 					resource.TestCheckResourceAttr("atlassian-operations_heartbeat.test", "description", "Test heartbeat"),
 					resource.TestCheckResourceAttr("atlassian-operations_heartbeat.test", "interval", "5"),
 					resource.TestCheckResourceAttr("atlassian-operations_heartbeat.test", "interval_unit", "minutes"),
@@ -57,9 +58,9 @@ func TestAccHeartbeatResource(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: providerConfig + testAccHeartbeatResourceUpdatedConfig(teamName, emailPrimary, organizationId),
+				Config: providerConfig + testAccHeartbeatResourceUpdatedConfig(teamName, heartbeatName, emailPrimary, organizationId),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("atlassian-operations_heartbeat.test", "name", "test-heartbeat"),
+					resource.TestCheckResourceAttr("atlassian-operations_heartbeat.test", "name", heartbeatName),
 					resource.TestCheckResourceAttr("atlassian-operations_heartbeat.test", "description", "Updated test heartbeat"),
 					resource.TestCheckResourceAttr("atlassian-operations_heartbeat.test", "interval", "10"),
 					resource.TestCheckResourceAttr("atlassian-operations_heartbeat.test", "interval_unit", "minutes"),
@@ -74,7 +75,7 @@ func TestAccHeartbeatResource(t *testing.T) {
 	})
 }
 
-func testAccHeartbeatResourceConfig(teamName string, emailPrimary string, organizationId string) string {
+func testAccHeartbeatResourceConfig(teamName string, heartbeatName string, emailPrimary string, organizationId string) string {
 	return `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
@@ -94,7 +95,7 @@ resource "atlassian-operations_team" "example" {
 }
 
 resource "atlassian-operations_heartbeat" "test" {
-  name          = "test-heartbeat"
+  name          = "` + heartbeatName + `"
   description   = "Test heartbeat"
   interval      = 5
   interval_unit = "minutes"
@@ -107,7 +108,7 @@ resource "atlassian-operations_heartbeat" "test" {
 `
 }
 
-func testAccHeartbeatResourceUpdatedConfig(teamName string, emailPrimary string, organizationId string) string {
+func testAccHeartbeatResourceUpdatedConfig(teamName string, heartbeatName string, emailPrimary string, organizationId string) string {
 	return `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + emailPrimary + `"
@@ -127,7 +128,7 @@ resource "atlassian-operations_team" "example" {
 }
 
 resource "atlassian-operations_heartbeat" "test" {
-  name          = "test-heartbeat"
+  name          = "` + heartbeatName + `"
   description   = "Updated test heartbeat"
   interval      = 10
   interval_unit = "minutes"

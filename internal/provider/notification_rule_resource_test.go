@@ -45,10 +45,18 @@ resource "atlassian-operations_team" "example" {
   ]
 }
 
+resource "atlassian-operations_user_contact" "example" {
+  method  = "email"
+  to      = "` + emailPrimary + `"
+  enabled = true
+}
+
 resource "atlassian-operations_notification_rule" "example" {
   name        = "Critical Incident Alert"
   action_type = "create-alert"
   enabled     = true
+
+  depends_on = [atlassian-operations_user_contact.example]
 
   time_restriction = {
     type = "weekday-and-time-of-day"
@@ -133,10 +141,18 @@ resource "atlassian-operations_team" "example" {
   ]
 }
 
+resource "atlassian-operations_user_contact" "example" {
+  method  = "email"
+  to      = "` + emailPrimary + `"
+  enabled = true
+}
+
 resource "atlassian-operations_notification_rule" "example" {
   name        = "Updated Critical Incident Alert"
   action_type = "create-alert"
   enabled     = false
+
+  depends_on = [atlassian-operations_user_contact.example]
 
   time_restriction = {
     type = "time-of-day"
@@ -229,10 +245,18 @@ resource "atlassian-operations_team" "example" {
   ]
 }
 
+resource "atlassian-operations_user_contact" "example" {
+  method  = "email"
+  to      = "` + emailPrimary + `"
+  enabled = true
+}
+
 resource "atlassian-operations_notification_rule" "example" {
   name        = "Critical Incident Alert"
   action_type = "schedule-start"
   enabled     = true
+
+  depends_on = [atlassian-operations_user_contact.example]
 
   time_restriction = {
     type = "weekday-and-time-of-day"
@@ -311,10 +335,18 @@ resource "atlassian-operations_team" "example" {
   ]
 }
 
+resource "atlassian-operations_user_contact" "example" {
+  method  = "email"
+  to      = "` + emailPrimary + `"
+  enabled = true
+}
+
 resource "atlassian-operations_notification_rule" "example" {
   name        = "Updated Critical Incident Alert"
   action_type = "schedule-start"
   enabled     = false
+
+  depends_on = [atlassian-operations_user_contact.example]
 
   time_restriction = {
     type = "time-of-day"
