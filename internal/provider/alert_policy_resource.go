@@ -126,7 +126,11 @@ func (r *AlertPolicyResource) Create(ctx context.Context, req resource.CreateReq
 		if requestedOrder < 0 {
 			requestedOrder = 0
 		}
-		r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder)
+		if err := r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Failed to set order for alert policy: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to set order for alert policy: %s", err))
+			return
+		}
 	}
 
 	order := getAlertPolicyOrder(ctx, r.clientConfiguration, teamId, alertPolicyDto.ID)
@@ -264,7 +268,11 @@ func (r *AlertPolicyResource) Update(ctx context.Context, req resource.UpdateReq
 		if requestedOrder < 0 {
 			requestedOrder = 0
 		}
-		r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder)
+		if err := r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Failed to set order for alert policy: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to set order for alert policy: %s", err))
+			return
+		}
 	}
 
 	order := getAlertPolicyOrder(ctx, r.clientConfiguration, teamId, alertPolicyDto.ID)
@@ -407,7 +415,7 @@ func getAlertPolicyOrder(ctx context.Context, configuration dto.AtlassianOpsProv
 	return order
 }
 
-func (r *AlertPolicyResource) updatePolicyOrder(ctx context.Context, teamId string, policyId string, requestedOrder int32) {
+func (r *AlertPolicyResource) updatePolicyOrder(ctx context.Context, teamId string, policyId string, requestedOrder int32) error {
 	var orderBaseUrl string
 	if teamId == "" {
 		orderBaseUrl = fmt.Sprintf("/v1/alerts/policies/%s/change-order", policyId)
@@ -424,16 +432,22 @@ func (r *AlertPolicyResource) updatePolicyOrder(ctx context.Context, teamId stri
 		SetBody(orderDto).
 		Send()
 
+	if orderResp == nil {
+		return fmt.Errorf("unable to set order for alert policy, got nil response")
+	}
+
 	if orderResp.IsError() {
 		statusCode := orderResp.GetStatusCode()
 		errorResponse := orderResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to set order for alert policy, status code: %d. Got response: %s", statusCode, *errorResponse))
-		} else {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to set order for alert policy, got http response: %d", statusCode))
+			return fmt.Errorf("unable to set order for alert policy, status code: %d. Got response: %s", statusCode, *errorResponse)
 		}
+		return fmt.Errorf("unable to set order for alert policy, got http response: %d", statusCode)
 	}
+
 	if orderErr != nil {
-		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to set order for alert policy, got error: %s", orderErr))
+		return fmt.Errorf("unable to set order for alert policy, got error: %s", orderErr)
 	}
+
+	return nil
 }
