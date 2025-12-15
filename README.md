@@ -14,6 +14,7 @@ The provider is still under development. It currently supports the following res
 * Routing Rule
 * Custom Role
 * Alert Policy
+* Notification Policy
 * User Contact
 
 And the following data sources:
@@ -22,6 +23,54 @@ And the following data sources:
 * Schedule (**excl.** Rotation)
 
 \*Due to the internal structure of the Operations, _user_ is implemented solely as a data source and supports **read operations only**.
+
+## Important Notes
+
+### Policy Ordering
+
+Both Alert Policies and Notification Policies support an optional `order` attribute to control the execution order of policies. However, due to how the Atlassian Operations API handles policy ordering, there are important constraints:
+
+#### Requirements for Using `order`
+
+1. **Must be >= 1**: The order attribute accepts values starting from 1 (first position), 2 (second position), etc.
+2. **Requires `depends_on`**: To ensure reliable ordering, you **must** use Terraform's `depends_on` to create policies sequentially.
+
+**Example:**
+```hcl
+resource "atlassian-operations_notification_policy" "policy_1" {
+  name    = "First Policy"
+  order   = 1
+  team_id = var.team_id
+  # ... other attributes
+}
+
+resource "atlassian-operations_notification_policy" "policy_2" {
+  name    = "Second Policy"
+  order   = 2
+  team_id = var.team_id
+  # ... other attributes
+  
+  depends_on = [atlassian-operations_notification_policy.policy_1]
+}
+
+resource "atlassian-operations_notification_policy" "policy_3" {
+  name    = "Third Policy"
+  order   = 3
+  team_id = var.team_id
+  # ... other attributes
+  
+  depends_on = [atlassian-operations_notification_policy.policy_2]
+}
+```
+
+#### Alternative: Skip `order` and Use UI
+
+If managing `depends_on` chains is too complex, you can:
+1. Omit the `order` attribute entirely
+2. Let Terraform create policies in any order
+3. Manually reorder policies in the Atlassian Operations UI
+
+This approach is simpler and still allows you to manage policy configurations via Terraform while handling ordering through the UI.
 
 ### Related Links
 

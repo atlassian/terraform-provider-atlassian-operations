@@ -107,6 +107,17 @@ func (r *NotificationPolicyResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
+	// Set the order if specified by user
+	if !data.Order.IsUnknown() && !data.Order.IsNull() {
+		// Convert from 1-indexed (user input) to 0-indexed (API expects)
+		// User provides: 1, 2, 3... → API expects: 0, 1, 2...
+		requestedOrder := int32(data.Order.ValueFloat64() - 1)
+		if requestedOrder < 0 {
+			requestedOrder = 0
+		}
+		r.updatePolicyOrder(ctx, data.TeamID.ValueString(), notificationPolicyDto.ID, requestedOrder)
+	}
+
 	// list notification policies find the one we just created, and get its order value
 	order := getNotificationPolicyOrder(ctx, r.clientConfiguration, data.TeamID.ValueString(), notificationPolicyDto.ID)
 
@@ -211,6 +222,17 @@ func (r *NotificationPolicyResource) Update(ctx context.Context, req resource.Up
 		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update notification policy, got error: %s", err))
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update notification policy, got error: %s", err))
 		return
+	}
+
+	// Set the order if specified by user
+	if !data.Order.IsUnknown() && !data.Order.IsNull() {
+		// Convert from 1-indexed (user input) to 0-indexed (API expects)
+		// User provides: 1, 2, 3... → API expects: 0, 1, 2...
+		requestedOrder := int32(data.Order.ValueFloat64() - 1)
+		if requestedOrder < 0 {
+			requestedOrder = 0
+		}
+		r.updatePolicyOrder(ctx, data.TeamID.ValueString(), notificationPolicyDto.ID, requestedOrder)
 	}
 
 	order := getNotificationPolicyOrder(ctx, r.clientConfiguration, data.TeamID.ValueString(), notificationPolicyDto.ID)
@@ -337,4 +359,37 @@ func getNotificationPolicyOrder(ctx context.Context, configuration dto.Atlassian
 		}
 	}
 	return order
+}
+
+func (r *NotificationPolicyResource) updatePolicyOrder(ctx context.Context, teamId string, policyId string, requestedOrder int32) {
+	orderBaseUrl := fmt.Sprintf("/v1/teams/%s/policies/%s/change-order", teamId, policyId)
+	orderDto := map[string]int32{"order": requestedOrder}
+
+	orderResp, orderErr := httpClientHelpers.
+		GenerateJsmOpsClientRequest(r.clientConfiguration).
+		JoinBaseUrl(orderBaseUrl).
+		Method(httpClient.POST).
+		SetBody(orderDto).
+		Send()
+
+	if orderResp == nil {
+		tflog.Error(ctx, "Client Error. Unable to set order for notification policy, got nil response")
+		return
+	}
+
+	if orderResp.IsError() {
+		statusCode := orderResp.GetStatusCode()
+		errorResponse := orderResp.GetErrorBody()
+		if errorResponse != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to set order for notification policy, status code: %d. Got response: %s", statusCode, *errorResponse))
+		} else {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to set order for notification policy, got http response: %d", statusCode))
+		}
+		return
+	}
+
+	if orderErr != nil {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to set order for notification policy, got error: %s", orderErr))
+		return
+	}
 }

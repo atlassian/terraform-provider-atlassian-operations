@@ -120,7 +120,12 @@ func (r *AlertPolicyResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	if !data.Order.IsUnknown() && !data.Order.IsNull() {
-		requestedOrder := int32(data.Order.ValueInt64())
+		// Convert from 1-indexed (user input) to 0-indexed (API expects)
+		// User provides: 1, 2, 3... → API expects: 0, 1, 2...
+		requestedOrder := int32(data.Order.ValueInt64() - 1)
+		if requestedOrder < 0 {
+			requestedOrder = 0
+		}
 		r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder)
 	}
 
@@ -246,14 +251,19 @@ func (r *AlertPolicyResource) Update(ctx context.Context, req resource.UpdateReq
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update alert policy, got error: %s", err))
 		return
 	}
-	
+
 	var teamId string
 	if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
 		teamId = data.TeamID.ValueString()
 	}
 
 	if !data.Order.IsUnknown() && !data.Order.IsNull() {
-		requestedOrder := int32(data.Order.ValueInt64())
+		// Convert from 1-indexed (user input) to 0-indexed (API expects)
+		// User provides: 1, 2, 3... → API expects: 0, 1, 2...
+		requestedOrder := int32(data.Order.ValueInt64() - 1)
+		if requestedOrder < 0 {
+			requestedOrder = 0
+		}
 		r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder)
 	}
 
@@ -404,7 +414,7 @@ func (r *AlertPolicyResource) updatePolicyOrder(ctx context.Context, teamId stri
 	} else {
 		orderBaseUrl = fmt.Sprintf("/v1/teams/%s/policies/%s/change-order", teamId, policyId)
 	}
-	
+
 	orderDto := map[string]int32{"order": requestedOrder}
 
 	orderResp, orderErr := httpClientHelpers.

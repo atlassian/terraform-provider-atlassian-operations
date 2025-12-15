@@ -1,6 +1,7 @@
 package schemaAttributes
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -48,7 +49,10 @@ var AlertPolicyResourceAttributes = map[string]schema.Attribute{
 	"order": schema.Int64Attribute{
 		Optional:    true,
 		Computed:    true,
-		Description: "The order of the alert policy",
+		Description: "The order of the alert policy. Must be >= 1 (1 means first position, 2 means second, etc.). Requires explicit depends_on to ensure sequential creation.",
+		Validators: []validator.Int64{
+			int64validator.AtLeast(1),
+		},
 	},
 	"filter": schema.SingleNestedAttribute{
 		Optional:    true,
