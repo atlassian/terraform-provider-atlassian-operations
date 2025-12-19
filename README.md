@@ -3,6 +3,27 @@
 This project aims to enable users to manipulate Operations resources in Atlassian (Jira Service Management and Compass), via Terraform.
 It is a functional replication of the _now transitioned_ [Opsgenie Provider](https://github.com/opsgenie/terraform-provider-opsgenie).
 
+## Contact Support
+
+We don’t track or manage Terraform Provider issues via GitHub. Instead, we use Atlassian’s public issue tracker and support portal so that all requests can be properly triaged and followed up.
+
+Check existing bug reports and suggestions
+Please first check whether your request has already been reported here:
+
+👉 [Atlassian Operations Terraform Provider Existing Issues](https://jira.atlassian.com/browse/JSDCLOUD-17980?jql=project%3D%22Jira%20Service%20Management%20Cloud%22%20%20AND%20component%20in%20(%22Operations%20-%20Terraform%20Provider%22)%20and%20resolution%20is%20EMPTY)
+
+If you find an issue that matches what you’re seeing, please vote for it and watch it for updates. This helps us prioritise and keeps you informed.
+
+If you don’t find a matching issue
+If nothing there matches your bug or feature request, please create a ticket with our Support team here:
+
+👉 [Atlassian Support](https://support.atlassian.com/contact/#/)
+
+Thank you again for your feedback and for helping us improve the Terraform Provider.
+
+
+## Provider Resources
+
 The provider is still under development. It currently supports the following resources:
 
 * Team
