@@ -3,6 +3,27 @@
 This project aims to enable users to manipulate Operations resources in Atlassian (Jira Service Management and Compass), via Terraform.
 It is a functional replication of the _now transitioned_ [Opsgenie Provider](https://github.com/opsgenie/terraform-provider-opsgenie).
 
+## Contact Support
+
+We don’t track or manage Terraform Provider issues via GitHub. Instead, we use Atlassian’s public issue tracker and support portal so that all requests can be properly triaged and followed up.
+
+Check existing bug reports and suggestions
+Please first check whether your request has already been reported here:
+
+👉 [Atlassian Operations Terraform Provider Existing Issues](https://jira.atlassian.com/browse/JSDCLOUD-17980?jql=project%3D%22Jira%20Service%20Management%20Cloud%22%20%20AND%20component%20in%20(%22Operations%20-%20Terraform%20Provider%22)%20and%20resolution%20is%20EMPTY)
+
+If you find an issue that matches what you’re seeing, please vote for it and watch it for updates. This helps us prioritise and keeps you informed.
+
+If you don’t find a matching issue
+If nothing there matches your bug or feature request, please create a ticket with our Support team here:
+
+👉 [Atlassian Support](https://support.atlassian.com/contact/#/)
+
+Thank you again for your feedback and for helping us improve the Terraform Provider.
+
+
+## Provider Resources
+
 The provider is still under development. It currently supports the following resources:
 
 * Team
@@ -14,6 +35,7 @@ The provider is still under development. It currently supports the following res
 * Routing Rule
 * Custom Role
 * Alert Policy
+* Notification Policy
 * User Contact
 
 And the following data sources:
@@ -22,6 +44,54 @@ And the following data sources:
 * Schedule (**excl.** Rotation)
 
 \*Due to the internal structure of the Operations, _user_ is implemented solely as a data source and supports **read operations only**.
+
+## Important Notes
+
+### Policy Ordering
+
+Both Alert Policies and Notification Policies support an optional `order` attribute to control the execution order of policies. However, due to how the Atlassian Operations API handles policy ordering, there are important constraints:
+
+#### Requirements for Using `order`
+
+1. **Must be >= 1**: The order attribute accepts values starting from 1 (first position), 2 (second position), etc.
+2. **Requires `depends_on`**: To ensure reliable ordering, you **must** use Terraform's `depends_on` to create policies sequentially.
+
+**Example:**
+```hcl
+resource "atlassian-operations_notification_policy" "policy_1" {
+  name    = "First Policy"
+  order   = 1
+  team_id = var.team_id
+  # ... other attributes
+}
+
+resource "atlassian-operations_notification_policy" "policy_2" {
+  name    = "Second Policy"
+  order   = 2
+  team_id = var.team_id
+  # ... other attributes
+  
+  depends_on = [atlassian-operations_notification_policy.policy_1]
+}
+
+resource "atlassian-operations_notification_policy" "policy_3" {
+  name    = "Third Policy"
+  order   = 3
+  team_id = var.team_id
+  # ... other attributes
+  
+  depends_on = [atlassian-operations_notification_policy.policy_2]
+}
+```
+
+#### Alternative: Skip `order` and Use UI
+
+If managing `depends_on` chains is too complex, you can:
+1. Omit the `order` attribute entirely
+2. Let Terraform create policies in any order
+3. Manually reorder policies in the Atlassian Operations UI
+
+This approach is simpler and still allows you to manage policy configurations via Terraform while handling ordering through the UI.
 
 ### Related Links
 

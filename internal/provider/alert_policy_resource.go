@@ -114,17 +114,26 @@ func (r *AlertPolicyResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	if !data.Order.IsUnknown() && !data.Order.IsNull() {
-		requestedOrder := int32(data.Order.ValueInt64())
-		var teamId string
-		if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
-			teamId = data.TeamID.ValueString()
-		}
-		
-		r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder)
+	var teamId string
+	if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
+		teamId = data.TeamID.ValueString()
 	}
 
-	order := getAlertPolicyOrder(ctx, r.clientConfiguration, data.TeamID.ValueString(), alertPolicyDto.ID)
+	if !data.Order.IsUnknown() && !data.Order.IsNull() {
+		// Convert from 1-indexed (user input) to 0-indexed (API expects)
+		// User provides: 1, 2, 3... → API expects: 0, 1, 2...
+		requestedOrder := int32(data.Order.ValueInt64() - 1)
+		if requestedOrder < 0 {
+			requestedOrder = 0
+		}
+		if err := r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Failed to set order for alert policy: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to set order for alert policy: %s", err))
+			return
+		}
+	}
+
+	order := getAlertPolicyOrder(ctx, r.clientConfiguration, teamId, alertPolicyDto.ID)
 	// Update state with response
 	result, _ := AlertPolicyDtoToModel(ctx, order, alertPolicyDto)
 	resp.Diagnostics.Append(resp.State.Set(ctx, result)...)
@@ -186,7 +195,11 @@ func (r *AlertPolicyResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	order := getAlertPolicyOrder(ctx, r.clientConfiguration, data.TeamID.ValueString(), alertPolicyDto.ID)
+	var teamId string
+	if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
+		teamId = data.TeamID.ValueString()
+	}
+	order := getAlertPolicyOrder(ctx, r.clientConfiguration, teamId, alertPolicyDto.ID)
 
 	result, _ := AlertPolicyDtoToModel(ctx, order, &alertPolicyDto)
 	resp.Diagnostics.Append(resp.State.Set(ctx, result)...)
@@ -242,18 +255,27 @@ func (r *AlertPolicyResource) Update(ctx context.Context, req resource.UpdateReq
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update alert policy, got error: %s", err))
 		return
 	}
-	
-	if !data.Order.IsUnknown() && !data.Order.IsNull() {
-		requestedOrder := int32(data.Order.ValueInt64())
-		var teamId string
-		if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
-			teamId = data.TeamID.ValueString()
-		}
-		
-		r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder)
+
+	var teamId string
+	if !data.TeamID.IsUnknown() && !data.TeamID.IsNull() {
+		teamId = data.TeamID.ValueString()
 	}
-	
-	order := getAlertPolicyOrder(ctx, r.clientConfiguration, data.TeamID.ValueString(), alertPolicyDto.ID)
+
+	if !data.Order.IsUnknown() && !data.Order.IsNull() {
+		// Convert from 1-indexed (user input) to 0-indexed (API expects)
+		// User provides: 1, 2, 3... → API expects: 0, 1, 2...
+		requestedOrder := int32(data.Order.ValueInt64() - 1)
+		if requestedOrder < 0 {
+			requestedOrder = 0
+		}
+		if err := r.updatePolicyOrder(ctx, teamId, alertPolicyDto.ID, requestedOrder); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Failed to set order for alert policy: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to set order for alert policy: %s", err))
+			return
+		}
+	}
+
+	order := getAlertPolicyOrder(ctx, r.clientConfiguration, teamId, alertPolicyDto.ID)
 	result, _ := AlertPolicyDtoToModel(ctx, order, alertPolicyDto)
 	resp.Diagnostics.Append(resp.State.Set(ctx, result)...)
 }
@@ -322,7 +344,12 @@ func (r *AlertPolicyResource) ImportState(ctx context.Context, req resource.Impo
 func getAlertPolicyOrder(ctx context.Context, configuration dto.AtlassianOpsProviderModel, teamId string, alertPolicyId string) int64 {
 	// list alert policies find the one we just created, and get its order value
 	listAlertPoliciesResponse := &dto.AlertPolicyListDto{}
-	baseURL := fmt.Sprintf("/v1/teams/%s/policies", teamId)
+	var baseURL string
+	if teamId == "" {
+		baseURL = "/v1/alerts/policies"
+	} else {
+		baseURL = fmt.Sprintf("/v1/teams/%s/policies", teamId)
+	}
 	queryParams := map[string]string{
 		"type": "alert",
 	}
@@ -388,14 +415,14 @@ func getAlertPolicyOrder(ctx context.Context, configuration dto.AtlassianOpsProv
 	return order
 }
 
-func (r *AlertPolicyResource) updatePolicyOrder(ctx context.Context, teamId string, policyId string, requestedOrder int32) {
+func (r *AlertPolicyResource) updatePolicyOrder(ctx context.Context, teamId string, policyId string, requestedOrder int32) error {
 	var orderBaseUrl string
 	if teamId == "" {
 		orderBaseUrl = fmt.Sprintf("/v1/alerts/policies/%s/change-order", policyId)
 	} else {
 		orderBaseUrl = fmt.Sprintf("/v1/teams/%s/policies/%s/change-order", teamId, policyId)
 	}
-	
+
 	orderDto := map[string]int32{"order": requestedOrder}
 
 	orderResp, orderErr := httpClientHelpers.
@@ -405,16 +432,22 @@ func (r *AlertPolicyResource) updatePolicyOrder(ctx context.Context, teamId stri
 		SetBody(orderDto).
 		Send()
 
+	if orderResp == nil {
+		return fmt.Errorf("unable to set order for alert policy, got nil response")
+	}
+
 	if orderResp.IsError() {
 		statusCode := orderResp.GetStatusCode()
 		errorResponse := orderResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to set order for alert policy, status code: %d. Got response: %s", statusCode, *errorResponse))
-		} else {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to set order for alert policy, got http response: %d", statusCode))
+			return fmt.Errorf("unable to set order for alert policy, status code: %d. Got response: %s", statusCode, *errorResponse)
 		}
+		return fmt.Errorf("unable to set order for alert policy, got http response: %d", statusCode)
 	}
+
 	if orderErr != nil {
-		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to set order for alert policy, got error: %s", orderErr))
+		return fmt.Errorf("unable to set order for alert policy, got error: %s", orderErr)
 	}
+
+	return nil
 }

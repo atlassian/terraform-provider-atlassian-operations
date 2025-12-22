@@ -2,6 +2,7 @@ package schemaAttributes
 
 import (
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes/customValidators"
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -51,7 +52,10 @@ var NotificationPolicyResourceAttributes = map[string]schema.Attribute{
 	"order": schema.Float64Attribute{
 		Optional:    true,
 		Computed:    true,
-		Description: "Order of the notification policy",
+		Description: "Order of the notification policy. Must be >= 1 (1 means first position, 2 means second, etc.). Requires explicit depends_on to ensure sequential creation.",
+		Validators: []validator.Float64{
+			float64validator.AtLeast(1),
+		},
 	},
 	"filter": schema.SingleNestedAttribute{
 		Optional:    true,
