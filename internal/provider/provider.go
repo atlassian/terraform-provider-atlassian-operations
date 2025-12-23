@@ -1,3 +1,5 @@
+// Copyright (c) HashiCorp, Inc.
+
 package provider
 
 import (
@@ -208,6 +210,7 @@ func (p *atlassianOpsProvider) Resources(_ context.Context) []func() resource.Re
 		NewScheduleRotationResource,
 		NewScheduleResource,
 		NewTeamResource,
+		NewTeamRoleResource,
 		NewEscalationResource,
 		NewEmailIntegrationResource,
 		NewApiIntegrationResource,

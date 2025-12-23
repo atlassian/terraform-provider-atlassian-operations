@@ -1,3 +1,5 @@
+// Copyright (c) HashiCorp, Inc.
+
 package provider
 
 import (
@@ -2769,4 +2771,139 @@ func ServiceDtoToModel(ctx context.Context, dto *dto.ServiceDto) (*dataModels.Se
 		Stakeholders:    stakeholders,
 		Projects:        projects,
 	}, diags
+}
+
+func TeamRoleModelToDto(ctx context.Context, model *dataModels.TeamRoleModel) dto.TeamRoleDto {
+	// All possible rights that the API supports
+	allRights := []string{
+		"access-reports",
+		"delete-escalations",
+		"delete-heartbeats",
+		"delete-integrations",
+		"delete-maintenance",
+		"delete-policies",
+		"delete-routing-rules",
+		"delete-schedules",
+		"delete-team-roles",
+		"edit-escalations",
+		"edit-heartbeats",
+		"edit-integrations",
+		"edit-maintenance",
+		"edit-policies",
+		"edit-routing-rules",
+		"edit-schedules",
+		"edit-team-roles",
+	}
+
+	// Build maps of configured rights
+	grantedMap := make(map[string]bool)
+	if !model.GrantedRights.IsNull() && !model.GrantedRights.IsUnknown() {
+		var grantedRights []string
+		model.GrantedRights.ElementsAs(ctx, &grantedRights, false)
+		for _, right := range grantedRights {
+			grantedMap[right] = true
+		}
+	}
+
+	disallowedMap := make(map[string]bool)
+	if !model.DisallowedRights.IsNull() && !model.DisallowedRights.IsUnknown() {
+		var disallowedRights []string
+		model.DisallowedRights.ElementsAs(ctx, &disallowedRights, false)
+		for _, right := range disallowedRights {
+			disallowedMap[right] = true
+		}
+	}
+
+	// Build the rights array - send ALL rights to the API
+	rights := make([]dto.TeamRoleRight, len(allRights))
+	for i, right := range allRights {
+		// Granted if in granted_rights, otherwise false
+		granted := grantedMap[right]
+		rights[i] = dto.TeamRoleRight{
+			Right:   right,
+			Granted: granted,
+		}
+	}
+
+	return dto.TeamRoleDto{
+		Name:   model.Name.ValueString(),
+		Rights: rights,
+	}
+}
+
+func TeamRoleDtoToModel(dto *dto.TeamRoleResponseDto, teamId string, configuredGrantedRights types.Set, configuredDisallowedRights types.Set) *dataModels.TeamRoleModel {
+	// Build maps of configured rights for filtering
+	var configuredGrantedMap map[string]bool
+	var configuredDisallowedMap map[string]bool
+
+	if !configuredGrantedRights.IsNull() && !configuredGrantedRights.IsUnknown() {
+		configuredGrantedMap = make(map[string]bool)
+		var grantedSlice []string
+		configuredGrantedRights.ElementsAs(context.Background(), &grantedSlice, false)
+		for _, right := range grantedSlice {
+			configuredGrantedMap[right] = true
+		}
+	}
+
+	if !configuredDisallowedRights.IsNull() && !configuredDisallowedRights.IsUnknown() {
+		configuredDisallowedMap = make(map[string]bool)
+		var disallowedSlice []string
+		configuredDisallowedRights.ElementsAs(context.Background(), &disallowedSlice, false)
+		for _, right := range disallowedSlice {
+			configuredDisallowedMap[right] = true
+		}
+	}
+
+	// Separate granted and disallowed rights from API response
+	grantedRights := make([]string, 0)
+	disallowedRights := make([]string, 0)
+
+	for _, right := range dto.Rights {
+		if right.Granted {
+			// Only include if it was in configured granted rights
+			if configuredGrantedMap != nil {
+				if _, exists := configuredGrantedMap[right.Right]; exists {
+					grantedRights = append(grantedRights, right.Right)
+				}
+			}
+		} else {
+			// Only include if it was in configured disallowed rights
+			if configuredDisallowedMap != nil {
+				if _, exists := configuredDisallowedMap[right.Right]; exists {
+					disallowedRights = append(disallowedRights, right.Right)
+				}
+			}
+		}
+	}
+
+	// Convert to Terraform sets - always use empty set, never null
+	var grantedRightsSet types.Set
+	if len(grantedRights) > 0 {
+		elements := make([]attr.Value, len(grantedRights))
+		for i, right := range grantedRights {
+			elements[i] = types.StringValue(right)
+		}
+		grantedRightsSet = types.SetValueMust(types.StringType, elements)
+	} else {
+		grantedRightsSet = types.SetValueMust(types.StringType, []attr.Value{})
+	}
+
+	var disallowedRightsSet types.Set
+	if len(disallowedRights) > 0 {
+		elements := make([]attr.Value, len(disallowedRights))
+		for i, right := range disallowedRights {
+			elements[i] = types.StringValue(right)
+		}
+		disallowedRightsSet = types.SetValueMust(types.StringType, elements)
+	} else {
+		disallowedRightsSet = types.SetValueMust(types.StringType, []attr.Value{})
+	}
+
+	return &dataModels.TeamRoleModel{
+		ID:               types.StringValue(dto.ID),
+		TeamId:           types.StringValue(teamId),
+		Name:             types.StringValue(dto.Name),
+		GrantedRights:    grantedRightsSet,
+		DisallowedRights: disallowedRightsSet,
+	}
 }
