@@ -129,6 +129,7 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		GenerateTeamsClientRequest(d.clientConfiguration).
 		Method("POST").
 		JoinBaseUrl(teamMembersFetchUrl).
+		SetQueryParam("siteId", model.SiteId.ValueString()).
 		SetBodyParseObject(&memberData).
 		Send()
 
