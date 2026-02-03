@@ -73,6 +73,8 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
+	plannedSiteId := data.SiteId
+
 	teamDto, membersDto := TeamModelToDto(ctx, data)
 
 	tflog.Trace(ctx, "Creating the Team")
@@ -276,7 +278,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		}
 	}
 
-	data = TeamDtoToModel(teamDto, membersDto, data.DeleteDefaultResources)
+	data = TeamDtoToModel(teamDto, membersDto, data.DeleteDefaultResources, plannedSiteId.ValueString())
 
 	tflog.Trace(ctx, "Created the TeamResource")
 
@@ -446,6 +448,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		GenerateTeamsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.GET).
+		SetQueryParam("siteId", data.SiteId.ValueString()).
 		SetBodyParseObject(&teamDto).
 		Send()
 
@@ -490,7 +493,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	tflog.Trace(ctx, "Converting Team Data into Terraform Model")
 
-	data = TeamDtoToModel(teamDto, memberData, data.DeleteDefaultResources)
+	data = TeamDtoToModel(teamDto, memberData, data.DeleteDefaultResources, data.SiteId.ValueString())
 
 	tflog.Trace(ctx, "Read the TeamResource")
 
@@ -629,7 +632,7 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 	}
 
-	newData = TeamDtoToModel(newTeamDto, newUsersDto, newData.DeleteDefaultResources)
+	newData = TeamDtoToModel(newTeamDto, newUsersDto, newData.DeleteDefaultResources, newData.SiteId.ValueString())
 
 	tflog.Trace(ctx, "Updated the TeamResource")
 
