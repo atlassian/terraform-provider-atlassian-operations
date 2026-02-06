@@ -70,3 +70,61 @@ func TestAccTeamDataSource(t *testing.T) {
 		},
 	})
 }
+
+func TestAccTeamDataSource_withSiteId(t *testing.T) {
+	teamName := uuid.NewString()
+
+	organizationId := os.Getenv("ATLASSIAN_ACCTEST_ORGANIZATION_ID")
+	emailPrimary := os.Getenv("ATLASSIAN_ACCTEST_EMAIL_PRIMARY")
+	siteId := os.Getenv("ATLASSIAN_ACCTEST_SITE_ID")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		PreCheck: func() {
+			if siteId == "" {
+				t.Skip("ATLASSIAN_ACCTEST_SITE_ID must be set for site_id acceptance tests")
+			}
+			if organizationId == "" {
+				t.Fatal("ATLASSIAN_ACCTEST_ORGANIZATION_ID must be set for acceptance tests")
+			}
+			if emailPrimary == "" {
+				t.Fatal("ATLASSIAN_ACCTEST_EMAIL_PRIMARY must be set for acceptance tests")
+			}
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig +
+					`
+						data "atlassian-operations_user" "test1" {
+							email_address = "` + emailPrimary + `"
+							organization_id = "` + organizationId + `"
+						}
+
+						resource "atlassian-operations_team" "example" {
+						  organization_id = "` + organizationId + `"
+						  site_id = "` + siteId + `"
+						  description = "This is a team created by Terraform"
+						  display_name = "` + teamName + `"
+						  team_type = "MEMBER_INVITE"
+						  member = [
+						    {
+						      account_id = data.atlassian-operations_user.test1.account_id
+						    }
+						  ]
+						}
+
+						data "atlassian-operations_team" "test" {
+							organization_id = "` + organizationId + `"
+							site_id = "` + siteId + `"
+							id = atlassian-operations_team.example.id
+						}
+					`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("data.atlassian-operations_team.test", "site_id", siteId),
+					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "member.#", "atlassian-operations_team.example", "member.#"),
+				),
+			},
+		},
+	})
+}

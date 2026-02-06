@@ -129,6 +129,7 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		GenerateTeamsClientRequest(d.clientConfiguration).
 		Method("POST").
 		JoinBaseUrl(teamMembersFetchUrl).
+		SetQueryParam("siteId", model.SiteId.ValueString()).
 		SetBodyParseObject(&memberData).
 		Send()
 
@@ -146,7 +147,7 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	tflog.Trace(ctx, "Converting Team Data into Terraform Model")
 	// Convert the fetched data into the model
-	model = TeamDtoToModel(data, memberData.Results, basetypes.NewBoolValue(false))
+	model = TeamDtoToModel(data, memberData.Results, basetypes.NewBoolValue(false), model.SiteId.ValueString())
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

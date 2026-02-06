@@ -212,7 +212,12 @@ func EmailIntegrationDtoToModel(dto dto.EmailIntegration) dataModels.EmailIntegr
 	return model
 }
 
-func TeamDtoToModel(dto dto.TeamDto, membersDto []dto.TeamMember, deleteDefaultResources types.Bool) dataModels.TeamModel {
+// TeamDtoToModel converts API DTO + members list to Terraform model.
+//
+// If explicitSiteId is non-empty, it will be set on the returned model regardless of whether
+// the API response includes siteId. This prevents perpetual diffs when site_id is configured
+// but not echoed by the Teams API.
+func TeamDtoToModel(dto dto.TeamDto, membersDto []dto.TeamMember, deleteDefaultResources types.Bool, explicitSiteId string) dataModels.TeamModel {
 	model := dataModels.TeamModel{
 		Description:            types.StringValue(dto.Description),
 		DisplayName:            types.StringValue(dto.DisplayName),
@@ -225,7 +230,9 @@ func TeamDtoToModel(dto dto.TeamDto, membersDto []dto.TeamMember, deleteDefaultR
 		DeleteDefaultResources: deleteDefaultResources,
 	}
 
-	if dto.SiteId != nil {
+	if explicitSiteId != "" {
+		model.SiteId = types.StringValue(explicitSiteId)
+	} else if dto.SiteId != nil {
 		model.SiteId = types.StringValue(*dto.SiteId)
 	}
 

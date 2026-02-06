@@ -73,6 +73,8 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
+	plannedSiteId := data.SiteId
+
 	teamDto, membersDto := TeamModelToDto(ctx, data)
 
 	tflog.Trace(ctx, "Creating the Team")
@@ -111,7 +113,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	tflog.Trace(ctx, "Team created")
 	tflog.Trace(ctx, "Fetch auto created members")
 
-	autoAddedMembers, err := r.fetchTeamMembers(teamDto.OrganizationId, teamDto.TeamId)
+	autoAddedMembers, err := r.fetchTeamMembers(teamDto.OrganizationId, teamDto.TeamId, data.SiteId.ValueString())
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch members for the created team, %s", err.Error()))
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch members for the created team, %s", err.Error()))
@@ -276,7 +278,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		}
 	}
 
-	data = TeamDtoToModel(teamDto, membersDto, data.DeleteDefaultResources)
+	data = TeamDtoToModel(teamDto, membersDto, data.DeleteDefaultResources, plannedSiteId.ValueString())
 
 	tflog.Trace(ctx, "Created the TeamResource")
 
@@ -446,6 +448,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		GenerateTeamsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.GET).
+		SetQueryParam("siteId", data.SiteId.ValueString()).
 		SetBodyParseObject(&teamDto).
 		Send()
 
@@ -478,7 +481,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	tflog.Trace(ctx, "Fetching team members")
 
-	memberData, err := r.fetchTeamMembers(data.OrganizationId.ValueString(), data.Id.ValueString())
+	memberData, err := r.fetchTeamMembers(data.OrganizationId.ValueString(), data.Id.ValueString(), data.SiteId.ValueString())
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch members for the created team, %s", err.Error()))
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch members for the created team, %s", err.Error()))
@@ -490,7 +493,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	tflog.Trace(ctx, "Converting Team Data into Terraform Model")
 
-	data = TeamDtoToModel(teamDto, memberData, data.DeleteDefaultResources)
+	data = TeamDtoToModel(teamDto, memberData, data.DeleteDefaultResources, data.SiteId.ValueString())
 
 	tflog.Trace(ctx, "Read the TeamResource")
 
@@ -629,7 +632,7 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		}
 	}
 
-	newData = TeamDtoToModel(newTeamDto, newUsersDto, newData.DeleteDefaultResources)
+	newData = TeamDtoToModel(newTeamDto, newUsersDto, newData.DeleteDefaultResources, newData.SiteId.ValueString())
 
 	tflog.Trace(ctx, "Updated the TeamResource")
 
@@ -694,7 +697,7 @@ func (r *TeamResource) ImportState(ctx context.Context, req resource.ImportState
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("organization_id"), idParts[1])...)
 }
 
-func (r *TeamResource) fetchTeamMembers(organizationId string, teamId string) ([]dto.TeamMember, error) {
+func (r *TeamResource) fetchTeamMembers(organizationId string, teamId string, siteId string) ([]dto.TeamMember, error) {
 	var members []dto.TeamMember
 
 	doneLooping := false
@@ -706,6 +709,7 @@ func (r *TeamResource) fetchTeamMembers(organizationId string, teamId string) ([
 			GenerateTeamsClientRequest(r.clientConfiguration).
 			JoinBaseUrl(fmt.Sprintf("/%s/teams/%s/members", organizationId, teamId)).
 			Method("POST").
+			SetQueryParam("siteId", siteId).
 			SetBody(request).
 			SetBodyParseObject(&response).
 			Send()
