@@ -204,6 +204,21 @@ func TestAccTeamResource_withSiteId(t *testing.T) {
 					resource.TestCheckResourceAttr("atlassian-operations_team.example", "member.#", "1"),
 				),
 			},
+			// ImportState testing with site_id
+			{
+				ResourceName:            "atlassian-operations_team.example",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"delete_default_resources"},
+				ImportStateIdFunc: func(state *terraform.State) (string, error) {
+					return state.RootModule().Resources["atlassian-operations_team.example"].Primary.ID +
+							"," +
+							state.RootModule().Resources["atlassian-operations_team.example"].Primary.Attributes["organization_id"] +
+							"," +
+							state.RootModule().Resources["atlassian-operations_team.example"].Primary.Attributes["site_id"],
+						nil
+				},
+			},
 		},
 	})
 }

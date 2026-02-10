@@ -686,15 +686,18 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 func (r *TeamResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	idParts := strings.Split(req.ID, ",")
-	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
+	if len(idParts) < 2 || len(idParts) > 3 || idParts[0] == "" || idParts[1] == "" || (len(idParts) == 3 && idParts[2] == "") {
 		resp.Diagnostics.AddError(
 			"Unexpected Import Identifier",
-			fmt.Sprintf("Expected import identifier with format: id,organization_id. Got: %q", req.ID),
+			fmt.Sprintf("Expected import identifier with format: id,organization_id (without site scoping); or: id,organization_id,site_id (with site scoping). Got: %q", req.ID),
 		)
 		return
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("organization_id"), idParts[1])...)
+	if len(idParts) == 3 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("site_id"), idParts[2])...)
+	}
 }
 
 func (r *TeamResource) fetchTeamMembers(organizationId string, teamId string, siteId string) ([]dto.TeamMember, error) {
