@@ -26,7 +26,7 @@ description: |-
 ### Optional
 
 - `delete_default_resources` (Boolean) Set to true to remove default escalation and schedule for newly created team. Be careful its also changes that team routing rule to None. That means you have to define routing rule as well. Defaults to false.
-- `site_id` (String) The identifier of the Atlassian site where this team is configured. Must be between 1 and 255 characters.
+- `site_id` (String) The identifier of the Atlassian site where this team is configured. Must be between 1 and 255 characters. When importing a team that is scoped to a site, include the site_id as the third parameter in the import identifier (see Import section below).
 
 ### Read-Only
 
