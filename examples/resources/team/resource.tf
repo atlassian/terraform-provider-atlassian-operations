@@ -11,6 +11,8 @@ resource "atlassian-operations_team" "example" {
   description     = "This is a team created by Terraform"
   display_name    = "Terraform Team"
   team_type       = "MEMBER_INVITE"
+  site_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  delete_default_resources = true
   member = [
     {
       account_id = "XXXXXX:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"

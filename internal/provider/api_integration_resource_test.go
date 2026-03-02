@@ -3,9 +3,10 @@ package provider
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"os"
 	"testing"
+
+	"github.com/google/uuid"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -133,6 +134,78 @@ resource "atlassian-operations_api_integration" "example" {
 						return nil
 					}),
 				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func TestAccApiIntegrationResource_DeleteDefaultActions(t *testing.T) {
+	apiIntegrationName := uuid.NewString()
+
+	teamName := uuid.NewString()
+
+	organizationId := os.Getenv("ATLASSIAN_ACCTEST_ORGANIZATION_ID")
+	apiPrimary := os.Getenv("ATLASSIAN_ACCTEST_EMAIL_PRIMARY")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		PreCheck: func() {
+			if organizationId == "" {
+				t.Fatal("ATLASSIAN_ACCTEST_ORGANIZATION_ID must be set for acceptance tests")
+			}
+			if apiPrimary == "" {
+				t.Fatal("ATLASSIAN_ACCTEST_EMAIL_PRIMARY must be set for acceptance tests")
+			}
+		},
+		Steps: []resource.TestStep{
+			// Create with delete_default_actions = true
+			{
+				ExpectNonEmptyPlan: true,
+				Config: providerConfig + `
+data "atlassian-operations_user" "test1" {
+	email_address = "` + apiPrimary + `"
+	organization_id = "` + organizationId + `"
+}
+
+resource "atlassian-operations_team" "example" {
+  display_name = "` + teamName + `"
+  description = "team description"
+  organization_id = "` + organizationId + `"
+  team_type = "MEMBER_INVITE"
+  member = [
+    {
+       account_id = data.atlassian-operations_user.test1.account_id
+    }
+  ]
+}
+
+resource "atlassian-operations_api_integration" "example" {
+  name    = "` + apiIntegrationName + `"
+  team_id = atlassian-operations_team.example.id
+  type = "API"
+  enabled = true
+  delete_default_actions = true
+  type_specific_properties = jsonencode({
+    suppressNotifications: false
+  })
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "name", apiIntegrationName),
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "type", "API"),
+					resource.TestCheckResourceAttrSet("atlassian-operations_api_integration.example", "api_key"),
+					resource.TestCheckResourceAttrPair("atlassian-operations_api_integration.example", "team_id", "atlassian-operations_team.example", "id"),
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "enabled", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_api_integration.example", "delete_default_actions", "true"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName:            "atlassian-operations_api_integration.example",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"type_specific_properties", "directions", "domains", "api_key", "delete_default_actions", "advanced"},
 			},
 			// Delete testing automatically occurs in TestCase
 		},
