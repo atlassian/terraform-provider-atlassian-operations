@@ -15,8 +15,8 @@ const (
 	providerConfig = `
 provider "atlassian-operations" {
 	api_retry_count = 5
-	api_retry_wait = 15
-	api_retry_wait_max = 100
+	api_retry_wait = 2
+	api_retry_wait_max = 10
 }
 `
 )
