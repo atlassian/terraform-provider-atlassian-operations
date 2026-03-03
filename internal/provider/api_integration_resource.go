@@ -6,6 +6,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
@@ -106,7 +108,8 @@ func (r *ApiIntegrationResource) Create(ctx context.Context, req resource.Create
 
 	if data.DeleteDefaultActions.ValueBool() {
 		// List default actions using the API Integration ID then using delete action endpoint delete each action
-		err = listDefaultActionsAndDelete(r.clientConfiguration, dtoObj.Id)
+		tflog.Debug(ctx, fmt.Sprintf("Attempting to delete default actions for API integration: %s", dtoObj.Id))
+		err = listDefaultActionsAndDelete(ctx, r.clientConfiguration, dtoObj.Id)
 		if err != nil {
 			tflog.Warn(ctx, fmt.Sprintf("Error deleting default actions for API integration: %s", err))
 			resp.Diagnostics.AddWarning("Error Deleting Default Actions", fmt.Sprintf("Unable to delete default actions for API integration: %s", err))
@@ -122,33 +125,83 @@ func (r *ApiIntegrationResource) Create(ctx context.Context, req resource.Create
 	tflog.Trace(ctx, "Saved the ApiIntegrationResource into Terraform state")
 }
 
-func listDefaultActionsAndDelete(configuration dto.AtlassianOpsProviderModel, integrationId string) error {
-	defaultActions := dto.IntegrationActionListDto{}
-	httpResp, err := httpClientHelpers.
-		GenerateJsmOpsClientRequest(configuration).
-		JoinBaseUrl(fmt.Sprintf("v1/integrations/%s/actions", integrationId)).
-		Method(httpClient.GET).
-		SetBodyParseObject(&defaultActions).
-		Send()
-	if err != nil {
-		return fmt.Errorf("unable to list default actions, got error: %s couldn't delete default actions automatically. Please delete it through UI", err)
+func listDefaultActionsAndDelete(ctx context.Context, configuration dto.AtlassianOpsProviderModel, integrationId string) error {
+	// Retry configuration for handling race condition where default actions
+	// may not be immediately available after integration creation.
+	// We use a manual retry loop because the HTTP client's AddRetryCondition
+	// cannot read the response body without closing it (which breaks subsequent reads).
+	const maxRetries = 5
+	const retryDelaySeconds = 2
+
+	var defaultActions dto.IntegrationActionListDto
+	var lastErr error
+	var lastHttpResp *httpClient.Response
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			tflog.Debug(ctx, fmt.Sprintf("Default actions list is empty for integration %s, retrying in %d seconds (attempt %d/%d)", integrationId, retryDelaySeconds, attempt+1, maxRetries))
+			time.Sleep(time.Duration(retryDelaySeconds) * time.Second)
+		}
+
+		defaultActions = dto.IntegrationActionListDto{}
+		httpResp, err := httpClientHelpers.
+			GenerateJsmOpsClientRequest(configuration).
+			JoinBaseUrl(fmt.Sprintf("v1/integrations/%s/actions", integrationId)).
+			Method(httpClient.GET).
+			SetBodyParseObject(&defaultActions).
+			Send()
+
+		lastHttpResp = httpResp
+		lastErr = err
+
+		if err != nil {
+			tflog.Debug(ctx, fmt.Sprintf("Error listing default actions for integration %s: %s", integrationId, err))
+			continue
+		}
+		if httpResp.IsError() {
+			tflog.Debug(ctx, fmt.Sprintf("HTTP error listing default actions for integration %s: %d", integrationId, httpResp.GetStatusCode()))
+			continue
+		}
+
+		// If we found actions, break out of retry loop
+		if len(defaultActions.Values) > 0 {
+			break
+		}
 	}
-	if httpResp.IsError() {
-		return fmt.Errorf("unable to list default actions, couldn't delete default actions automatically, got http response: %d. Please delete it through UI", httpResp.GetStatusCode())
+
+	if lastErr != nil {
+		return fmt.Errorf("unable to list default actions, got error: %s. Couldn't delete default actions automatically. Please delete it through UI", lastErr)
 	}
+	if lastHttpResp != nil && lastHttpResp.IsError() {
+		return fmt.Errorf("unable to list default actions, got http response: %d. Couldn't delete default actions automatically. Please delete it through UI", lastHttpResp.GetStatusCode())
+	}
+
+	// If no actions found after retries, it's normal for some integration types
+	if len(defaultActions.Values) == 0 {
+		tflog.Debug(ctx, fmt.Sprintf("No default actions found for integration %s after retries, nothing to delete", integrationId))
+		return nil
+	}
+
+	tflog.Debug(ctx, fmt.Sprintf("Found %d default actions to delete for integration %s", len(defaultActions.Values), integrationId))
+
+	// Delete all found default actions
 	for _, action := range defaultActions.Values {
+		tflog.Debug(ctx, fmt.Sprintf("Deleting default action %s (%s) for integration %s", action.Name, action.ID, integrationId))
 		httpResp, err := httpClientHelpers.
 			GenerateJsmOpsClientRequest(configuration).
 			JoinBaseUrl(fmt.Sprintf("v1/integrations/%s/actions/%s", integrationId, action.ID)).
 			Method(httpClient.DELETE).
 			Send()
 		if err != nil {
-			return fmt.Errorf("unable to delete default action %s, got error: %s couldn't delete default actions automatically. Please delete it through UI", action.ID, err)
+			return fmt.Errorf("unable to delete default action %s, got error: %s. Couldn't delete default actions automatically. Please delete it through UI", action.ID, err)
 		}
 		if httpResp.IsError() {
-			return fmt.Errorf("unable to delete default action %s, couldn't delete default actions automatically, got http response: %d. Please delete it through UI", action.Name, httpResp.GetStatusCode())
+			return fmt.Errorf("unable to delete default action %s, got http response: %d. Couldn't delete default actions automatically. Please delete it through UI", action.Name, httpResp.GetStatusCode())
 		}
+		tflog.Debug(ctx, fmt.Sprintf("Successfully deleted default action %s (%s) for integration %s", action.Name, action.ID, integrationId))
 	}
+
+	tflog.Debug(ctx, fmt.Sprintf("Successfully deleted all %d default actions for integration %s", len(defaultActions.Values), integrationId))
 	return nil
 }
 
