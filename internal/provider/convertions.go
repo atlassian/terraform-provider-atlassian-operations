@@ -1561,70 +1561,10 @@ func AlertPolicyDtoToModel(_ context.Context, order int64, dto *dto.AlertPolicyD
 		})
 	}
 
-	// Convert Responders
-	var responders types.List
-	if len(dto.Responders) > 0 {
-		responderValues := make([]attr.Value, len(dto.Responders))
-		for i, responder := range dto.Responders {
-			responderValues[i] = types.ObjectValueMust(
-				map[string]attr.Type{
-					"type": types.StringType,
-					"id":   types.StringType,
-				},
-				map[string]attr.Value{
-					"type": types.StringValue(responder.Type),
-					"id":   types.StringValue(responder.ID),
-				},
-			)
-		}
-		responders = types.ListValueMust(types.ObjectType{AttrTypes: map[string]attr.Type{
-			"type": types.StringType,
-			"id":   types.StringType,
-		}}, responderValues)
-	} else {
-		responders = types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
-			"type": types.StringType,
-			"id":   types.StringType,
-		}})
-	}
-
-	// Convert Actions
-	var actions types.List
-	if len(dto.Actions) > 0 {
-		actionValue := make([]attr.Value, len(dto.Actions))
-		for i, tag := range dto.Actions {
-			actionValue[i] = types.StringValue(tag)
-		}
-		actions = types.ListValueMust(types.StringType, actionValue)
-	} else {
-		actions = types.ListNull(types.StringType)
-	}
-
-	// Convert Tags
-	var tags types.List
-	if len(dto.Tags) > 0 {
-		tagValues := make([]attr.Value, len(dto.Tags))
-		for i, tag := range dto.Tags {
-			tagValues[i] = types.StringValue(tag)
-		}
-		tags = types.ListValueMust(types.StringType, tagValues)
-	} else {
-		tags = types.ListNull(types.StringType)
-	}
-
-	// Convert Details
-	var details types.Map
-	if len(dto.Details) > 0 {
-		detailValues := make(map[string]attr.Value)
-		for k, v := range dto.Details {
-			if str, ok := v.(string); ok {
-				detailValues[k] = types.StringValue(str)
-			}
-		}
-		details = types.MapValueMust(types.StringType, detailValues)
-	} else {
-		details = types.MapNull(types.StringType)
-	}
+	responders := alertPolicyRespondersToState(dto.Responders)
+	actions := alertPolicyActionsToState(dto.Actions)
+	tags := alertPolicyTagsToState(dto.Tags)
+	details := alertPolicyDetailsToState(dto.Details)
 
 	priorityValue := types.StringNull()
 	if dto.PriorityValue != "" {
@@ -2776,4 +2716,72 @@ func ServiceDtoToModel(ctx context.Context, dto *dto.ServiceDto) (*dataModels.Se
 		Stakeholders:    stakeholders,
 		Projects:        projects,
 	}, diags
+}
+
+// alertPolicyRespondersToState converts a slice of [dto.ResponderDto] from the API into a
+// [types.List] of responder objects suitable for Terraform state. An empty slice produces an
+// empty (non-null) list so that subsequent reads never produce a null-vs-[] diff.
+func alertPolicyRespondersToState(responders []dto.ResponderDto) types.List {
+	responderObjType := types.ObjectType{AttrTypes: map[string]attr.Type{
+		"type": types.StringType,
+		"id":   types.StringType,
+	}}
+	if len(responders) == 0 {
+		return types.ListValueMust(responderObjType, []attr.Value{})
+	}
+	values := make([]attr.Value, len(responders))
+	for i, r := range responders {
+		values[i] = types.ObjectValueMust(
+			map[string]attr.Type{"type": types.StringType, "id": types.StringType},
+			map[string]attr.Value{"type": types.StringValue(r.Type), "id": types.StringValue(r.ID)},
+		)
+	}
+	return types.ListValueMust(responderObjType, values)
+}
+
+// alertPolicyActionsToState converts a slice of action strings from the API into a [types.List]
+// suitable for Terraform state. An empty slice produces an empty (non-null) list so that
+// subsequent reads never produce a null-vs-[] diff.
+func alertPolicyActionsToState(actions []string) types.List {
+	if len(actions) == 0 {
+		return types.ListValueMust(types.StringType, []attr.Value{})
+	}
+	values := make([]attr.Value, len(actions))
+	for i, a := range actions {
+		values[i] = types.StringValue(a)
+	}
+	return types.ListValueMust(types.StringType, values)
+}
+
+// alertPolicyTagsToState converts a slice of tag strings from the API into a [types.Set]
+// suitable for Terraform state. A Set is used instead of a List because the API does not
+// guarantee a stable tag order; using a Set means Terraform treats the collection as unordered
+// and never diffs on insertion-order changes alone. An empty slice produces an empty (non-null)
+// set to avoid null-vs-{} drift.
+func alertPolicyTagsToState(tags []string) types.Set {
+	if len(tags) == 0 {
+		return types.SetValueMust(types.StringType, []attr.Value{})
+	}
+	values := make([]attr.Value, len(tags))
+	for i, t := range tags {
+		values[i] = types.StringValue(t)
+	}
+	return types.SetValueMust(types.StringType, values)
+}
+
+// alertPolicyDetailsToState converts the API details map (map[string]interface{}) into a
+// [types.Map] of strings suitable for Terraform state. Non-string values are silently skipped
+// as the schema declares details as map(string). An empty map produces an empty (non-null) map
+// to avoid null-vs-{} drift on subsequent reads.
+func alertPolicyDetailsToState(details map[string]interface{}) types.Map {
+	if len(details) == 0 {
+		return types.MapValueMust(types.StringType, map[string]attr.Value{})
+	}
+	values := make(map[string]attr.Value)
+	for k, v := range details {
+		if str, ok := v.(string); ok {
+			values[k] = types.StringValue(str)
+		}
+	}
+	return types.MapValueMust(types.StringType, values)
 }

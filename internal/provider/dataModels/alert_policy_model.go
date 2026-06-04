@@ -21,7 +21,7 @@ type AlertPolicyModel struct {
 	Entity                 types.String `tfsdk:"entity"`
 	Responders             types.List   `tfsdk:"responders"`
 	Actions                types.List   `tfsdk:"actions"`
-	Tags                   types.List   `tfsdk:"tags"`
+	Tags                   types.Set    `tfsdk:"tags"`
 	Details                types.Map    `tfsdk:"details"`
 	Continue               types.Bool   `tfsdk:"continue"`
 	UpdatePriority         types.Bool   `tfsdk:"update_priority"`
