@@ -22,6 +22,10 @@ definitions:
         script:
           - mkdir -p test-reports
           - go install github.com/jstemmer/go-junit-report/v2@latest
+          - apt-get update -qq && apt-get install -y -qq unzip curl
+          - curl -fsSL https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip -o terraform.zip
+          - unzip -q terraform.zip && mv terraform /usr/local/bin/terraform && rm terraform.zip
+          - export TF_CLI_PATH=/usr/local/bin/terraform
           - export ATLASSIAN_OPS_PRODUCT_TYPE="jira-service-desk"
           - go test -v 2>&1 ./... | go-junit-report -set-exit-code > test-reports/report-jsm.xml
         artifacts: # defining the artifacts to be passed to each future step.
@@ -32,6 +36,10 @@ definitions:
         script:
           - mkdir -p test-reports
           - go install github.com/jstemmer/go-junit-report/v2@latest
+          - apt-get update -qq && apt-get install -y -qq unzip curl
+          - curl -fsSL https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip -o terraform.zip
+          - unzip -q terraform.zip && mv terraform /usr/local/bin/terraform && rm terraform.zip
+          - export TF_CLI_PATH=/usr/local/bin/terraform
           - export ATLASSIAN_OPS_PRODUCT_TYPE="compass"
           - go test -v 2>&1 ./... | go-junit-report -set-exit-code > test-reports/report-compass.xml
         artifacts: # defining the artifacts to be passed to each future step.
