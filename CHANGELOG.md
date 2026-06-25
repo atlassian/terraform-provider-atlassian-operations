@@ -1,3 +1,40 @@
+## v2.0.4
+
+#### Product:
+
+- Fixed a perpetual state drift bug on every alert policy update. The bug was causing Terraform to show redundant changes even though nothing had changed in the alert policy configuration.
+
+## v2.0.3
+
+#### Product:
+
+- Added retry logic for `delete_default_resources`: if an empty list is received, Terraform will retry multiple times to fetch actions before discarding directly.
+- Added more detailed logs for the `delete_default_resources` flow.
+
+## v2.0.2
+
+#### Product:
+
+- Support optional `site_id` in team resource import for site-scoped teams.
+
+## v2.0.1
+
+#### Product:
+
+- Added `siteId` parameter to the fetch team members API call, which was failing during team creation due to the missing parameter.
+
+## v2.0.0
+
+#### Product:
+
+- Fixed an issue where policy order updates were failing silently, causing Terraform drift and potential resources to be created with incorrect order values.
+
+## v1.1.10
+
+#### Product:
+
+- Added `StartDay` and `EndDay` configuration for the Notification Policy resource.
+
 ## v1.1.9
 
 #### Resources:
