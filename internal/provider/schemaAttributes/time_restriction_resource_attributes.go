@@ -33,8 +33,8 @@ var TimeRestrictionResourceAttributes = map[string]schema.Attribute{
 		Optional:    true,
 		Attributes:  TimeOfDayTimeRestrictionResourceAttributes,
 	},
-	"restrictions": schema.ListNestedAttribute{
-		Description: "List of weekly time windows. Used when type is 'weekday-and-time-of-day'. Allows different time windows for different days of the week.",
+	"restrictions": schema.SetNestedAttribute{
+		Description: "Set of weekly time windows. Used when type is 'weekday-and-time-of-day'. Allows different time windows for different days of the week. Window order is not significant.",
 		Optional:    true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: WeekdayTimeRestrictionResourceAttributes,

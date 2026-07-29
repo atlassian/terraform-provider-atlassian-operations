@@ -9,7 +9,7 @@ type (
 	TimeRestrictionModel struct {
 		Type         types.String `tfsdk:"type"`
 		Restriction  types.Object `tfsdk:"restriction"`
-		Restrictions types.List   `tfsdk:"restrictions"`
+		Restrictions types.Set    `tfsdk:"restrictions"`
 	}
 	TimeOfDayTimeRestrictionSettingsModel struct {
 		StartHour types.Int32 `tfsdk:"start_hour"`
@@ -32,7 +32,7 @@ var TimeRestrictionModelMap = map[string]attr.Type{
 	"restriction": types.ObjectType{
 		AttrTypes: TimeOfDayTimeRestrictionSettingsModelMap,
 	},
-	"restrictions": types.ListType{ElemType: types.ObjectType{
+	"restrictions": types.SetType{ElemType: types.ObjectType{
 		AttrTypes: WeekdayTimeRestrictionSettingsModelMap,
 	}},
 }

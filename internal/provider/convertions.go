@@ -66,7 +66,7 @@ func RotationDtoToModel(scheduleId string, dto dto.Rotation) dataModels.Rotation
 		attributes := map[string]attr.Value{
 			"type":        types.StringValue(string(dto.TimeRestriction.Type)),
 			"restriction": types.ObjectNull(dataModels.TimeOfDayTimeRestrictionSettingsModelMap),
-			"restrictions": types.ListNull(
+			"restrictions": types.SetNull(
 				types.ObjectType{AttrTypes: dataModels.WeekdayTimeRestrictionSettingsModelMap},
 			),
 		}
@@ -99,7 +99,7 @@ func RotationDtoToModel(scheduleId string, dto dto.Rotation) dataModels.Rotation
 				)
 			}
 
-			attributes["restrictions"] = types.ListValueMust(
+			attributes["restrictions"] = types.SetValueMust(
 				types.ObjectType{AttrTypes: dataModels.WeekdayTimeRestrictionSettingsModelMap},
 				restrictions,
 			)
@@ -909,7 +909,7 @@ func RoutingRuleDtoToModel(teamId string, dto dto.RoutingRuleDto) dataModels.Rou
 		attributes := map[string]attr.Value{
 			"type":        types.StringValue(string(dto.TimeRestriction.Type)),
 			"restriction": types.ObjectNull(dataModels.TimeOfDayTimeRestrictionSettingsModelMap),
-			"restrictions": types.ListNull(
+			"restrictions": types.SetNull(
 				types.ObjectType{AttrTypes: dataModels.WeekdayTimeRestrictionSettingsModelMap},
 			),
 		}
@@ -942,7 +942,7 @@ func RoutingRuleDtoToModel(teamId string, dto dto.RoutingRuleDto) dataModels.Rou
 				)
 			}
 
-			attributes["restrictions"] = types.ListValueMust(
+			attributes["restrictions"] = types.SetValueMust(
 				types.ObjectType{AttrTypes: dataModels.WeekdayTimeRestrictionSettingsModelMap},
 				restrictions,
 			)
@@ -1127,7 +1127,7 @@ func NotificationRuleDtoToModel(_ context.Context, dto dto.NotificationRuleDto) 
 		attributes := map[string]attr.Value{
 			"type":        types.StringValue(string(dto.TimeRestriction.Type)),
 			"restriction": types.ObjectNull(dataModels.TimeOfDayTimeRestrictionSettingsModelMap),
-			"restrictions": types.ListNull(
+			"restrictions": types.SetNull(
 				types.ObjectType{AttrTypes: dataModels.WeekdayTimeRestrictionSettingsModelMap},
 			),
 		}
@@ -1159,7 +1159,7 @@ func NotificationRuleDtoToModel(_ context.Context, dto dto.NotificationRuleDto) 
 					},
 				)
 			}
-			attributes["restrictions"] = types.ListValueMust(
+			attributes["restrictions"] = types.SetValueMust(
 				types.ObjectType{AttrTypes: dataModels.WeekdayTimeRestrictionSettingsModelMap},
 				restrictions,
 			)
