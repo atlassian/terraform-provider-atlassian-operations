@@ -140,7 +140,14 @@ func (r *ScheduleRotationResource) Create(ctx context.Context, req resource.Crea
 	if endDateRequest.Equal(endDateResponse) {
 		rotationDto.EndDate = data.EndDate.ValueString()
 	}
-	//
+
+	// Normalize restrictions order to match the planned order, since the API may return them reordered.
+	if plannedDto.TimeRestriction != nil && rotationDto.TimeRestriction != nil && rotationDto.TimeRestriction.WeekAndTimeOfDayRestriction != nil {
+		rotationDto.TimeRestriction.WeekAndTimeOfDayRestriction = normalizeRestrictionsOrder(
+			plannedDto.TimeRestriction.WeekAndTimeOfDayRestriction,
+			rotationDto.TimeRestriction.WeekAndTimeOfDayRestriction,
+		)
+	}
 
 	data = RotationDtoToModel(data.ScheduleId.ValueString(), rotationDto)
 
@@ -208,7 +215,17 @@ func (r *ScheduleRotationResource) Read(ctx context.Context, req resource.ReadRe
 	if endDateRequest.Equal(endDateResponse) {
 		rotationDto.EndDate = data.EndDate.ValueString()
 	}
-	//
+
+	// Normalize restrictions order to match the state order, since the API may return them reordered.
+	if rotationDto.TimeRestriction != nil && rotationDto.TimeRestriction.WeekAndTimeOfDayRestriction != nil {
+		stateDto := RotationModelToDto(ctx, data)
+		if stateDto.TimeRestriction != nil {
+			rotationDto.TimeRestriction.WeekAndTimeOfDayRestriction = normalizeRestrictionsOrder(
+				stateDto.TimeRestriction.WeekAndTimeOfDayRestriction,
+				rotationDto.TimeRestriction.WeekAndTimeOfDayRestriction,
+			)
+		}
+	}
 
 	data = RotationDtoToModel(data.ScheduleId.ValueString(), rotationDto)
 
@@ -295,7 +312,14 @@ func (r *ScheduleRotationResource) Update(ctx context.Context, req resource.Upda
 	if endDateRequest.Equal(endDateResponse) {
 		newDto.EndDate = data.EndDate.ValueString()
 	}
-	//
+
+	// Normalize restrictions order to match the planned order, since the API may return them reordered.
+	if plannedDto.TimeRestriction != nil && newDto.TimeRestriction != nil && newDto.TimeRestriction.WeekAndTimeOfDayRestriction != nil {
+		newDto.TimeRestriction.WeekAndTimeOfDayRestriction = normalizeRestrictionsOrder(
+			plannedDto.TimeRestriction.WeekAndTimeOfDayRestriction,
+			newDto.TimeRestriction.WeekAndTimeOfDayRestriction,
+		)
+	}
 
 	data = RotationDtoToModel(data.ScheduleId.ValueString(), newDto)
 
@@ -356,6 +380,38 @@ func (r *ScheduleRotationResource) ImportState(ctx context.Context, req resource
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("schedule_id"), idParts[1])...)
+}
+
+// normalizeRestrictionsOrder reorders the server-returned restrictions to match the planned order.
+// The API may return restrictions in a different order than sent, causing a Terraform state mismatch.
+// If both lists have the same entries (regardless of order), the planned order is preserved.
+func normalizeRestrictionsOrder(planned *[]dto.WeekdayTimeRestrictionSettings, received *[]dto.WeekdayTimeRestrictionSettings) *[]dto.WeekdayTimeRestrictionSettings {
+	if planned == nil || received == nil || len(*planned) != len(*received) {
+		return received
+	}
+
+	reordered := make([]dto.WeekdayTimeRestrictionSettings, len(*planned))
+	usedIndices := make([]bool, len(*received))
+
+	for i, p := range *planned {
+		matched := false
+		for j, r := range *received {
+			if !usedIndices[j] && p.StartDay == r.StartDay && p.EndDay == r.EndDay &&
+				p.StartHour == r.StartHour && p.EndHour == r.EndHour &&
+				p.StartMin == r.StartMin && p.EndMin == r.EndMin {
+				reordered[i] = r
+				usedIndices[j] = true
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			// The sets differ - return server order as-is
+			return received
+		}
+	}
+
+	return &reordered
 }
 
 func areUserListsEqual(givenUserList []dto.ResponderInfo, receivedUserList []dto.ResponderInfo) bool {

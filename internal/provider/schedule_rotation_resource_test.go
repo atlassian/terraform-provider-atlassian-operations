@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"os"
@@ -488,4 +489,170 @@ resource "atlassian-operations_schedule_rotation" "example" {
 			// Delete testing automatically occurs in TestCase
 		},
 	})
+}
+
+func makeRestriction(startDay, endDay dto.Weekday, startHour, endHour, startMin, endMin int32) dto.WeekdayTimeRestrictionSettings {
+	return dto.WeekdayTimeRestrictionSettings{
+		StartDay:  startDay,
+		EndDay:    endDay,
+		StartHour: startHour,
+		EndHour:   endHour,
+		StartMin:  startMin,
+		EndMin:    endMin,
+	}
+}
+
+func TestNormalizeRestrictionsOrder_SameOrder(t *testing.T) {
+	planned := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+		makeRestriction(dto.Wednesday, dto.Thursday, 10, 18, 0, 0),
+	}
+	received := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+		makeRestriction(dto.Wednesday, dto.Thursday, 10, 18, 0, 0),
+	}
+
+	result := normalizeRestrictionsOrder(planned, received)
+
+	if len(*result) != 2 {
+		t.Fatalf("expected 2 restrictions, got %d", len(*result))
+	}
+	if (*result)[0].StartDay != dto.Monday {
+		t.Errorf("expected restrictions[0].start_day=monday, got %s", (*result)[0].StartDay)
+	}
+	if (*result)[1].StartDay != dto.Wednesday {
+		t.Errorf("expected restrictions[1].start_day=wednesday, got %s", (*result)[1].StartDay)
+	}
+}
+
+func TestNormalizeRestrictionsOrder_ReorderedByServer(t *testing.T) {
+	planned := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+		makeRestriction(dto.Wednesday, dto.Thursday, 10, 18, 0, 0),
+		makeRestriction(dto.Friday, dto.Saturday, 19, 9, 0, 0),
+	}
+	// Server returns them in a different order
+	received := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Friday, dto.Saturday, 19, 9, 0, 0),
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+		makeRestriction(dto.Wednesday, dto.Thursday, 10, 18, 0, 0),
+	}
+
+	result := normalizeRestrictionsOrder(planned, received)
+
+	if len(*result) != 3 {
+		t.Fatalf("expected 3 restrictions, got %d", len(*result))
+	}
+	if (*result)[0].StartDay != dto.Monday {
+		t.Errorf("expected restrictions[0].start_day=monday, got %s", (*result)[0].StartDay)
+	}
+	if (*result)[1].StartDay != dto.Wednesday {
+		t.Errorf("expected restrictions[1].start_day=wednesday, got %s", (*result)[1].StartDay)
+	}
+	if (*result)[2].StartDay != dto.Friday {
+		t.Errorf("expected restrictions[2].start_day=friday, got %s", (*result)[2].StartDay)
+	}
+}
+
+func TestNormalizeRestrictionsOrder_NilPlanned(t *testing.T) {
+	received := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+	}
+
+	result := normalizeRestrictionsOrder(nil, received)
+
+	if result != received {
+		t.Error("expected received to be returned as-is when planned is nil")
+	}
+}
+
+func TestNormalizeRestrictionsOrder_NilReceived(t *testing.T) {
+	planned := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+	}
+
+	result := normalizeRestrictionsOrder(planned, nil)
+
+	if result != nil {
+		t.Error("expected nil to be returned when received is nil")
+	}
+}
+
+func TestNormalizeRestrictionsOrder_DifferentLengths(t *testing.T) {
+	planned := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+	}
+	received := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+		makeRestriction(dto.Wednesday, dto.Thursday, 10, 18, 0, 0),
+	}
+
+	result := normalizeRestrictionsOrder(planned, received)
+
+	if result != received {
+		t.Error("expected received to be returned as-is when lengths differ")
+	}
+}
+
+func TestNormalizeRestrictionsOrder_DifferentContent(t *testing.T) {
+	planned := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+	}
+	// Server returns a genuinely different restriction
+	received := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Friday, dto.Saturday, 10, 18, 0, 0),
+	}
+
+	result := normalizeRestrictionsOrder(planned, received)
+
+	if result != received {
+		t.Error("expected received to be returned as-is when content differs")
+	}
+}
+
+func TestNormalizeRestrictionsOrder_EmptyLists(t *testing.T) {
+	planned := &[]dto.WeekdayTimeRestrictionSettings{}
+	received := &[]dto.WeekdayTimeRestrictionSettings{}
+
+	result := normalizeRestrictionsOrder(planned, received)
+
+	if len(*result) != 0 {
+		t.Errorf("expected empty result, got %d items", len(*result))
+	}
+}
+
+func TestNormalizeRestrictionsOrder_PreservesAllFields(t *testing.T) {
+	planned := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Monday, dto.Friday, 9, 17, 30, 45),
+	}
+	received := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Monday, dto.Friday, 9, 17, 30, 45),
+	}
+
+	result := normalizeRestrictionsOrder(planned, received)
+
+	r := (*result)[0]
+	if r.StartDay != dto.Monday || r.EndDay != dto.Friday ||
+		r.StartHour != 9 || r.EndHour != 17 ||
+		r.StartMin != 30 || r.EndMin != 45 {
+		t.Errorf("fields not preserved correctly: %+v", r)
+	}
+}
+
+func TestNormalizeRestrictionsOrder_DuplicateEntries(t *testing.T) {
+	// Each duplicate in planned should match a distinct entry in received
+	planned := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+	}
+	received := &[]dto.WeekdayTimeRestrictionSettings{
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+		makeRestriction(dto.Monday, dto.Tuesday, 9, 17, 0, 0),
+	}
+
+	result := normalizeRestrictionsOrder(planned, received)
+
+	if len(*result) != 2 {
+		t.Fatalf("expected 2 restrictions, got %d", len(*result))
+	}
 }
