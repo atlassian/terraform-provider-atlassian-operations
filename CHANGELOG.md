@@ -1,3 +1,9 @@
+## v2.0.5
+
+#### Product:
+
+- Fixed schedule rotation restrictions order mismatch by normalizing the response
+
 ## v2.0.4
 
 #### Product:
