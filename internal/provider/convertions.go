@@ -2484,6 +2484,65 @@ func MaintenanceDtoToModel(ctx context.Context, dtoObj *dto.MaintenanceDto) (*da
 	}, diags
 }
 
+// Team references in the JSM service registry.
+//
+// The unified-services rollout changed POST/PATCH /jsm/api/{cloudId}/v1/services
+// to reject bare team ids in `owner` and `responders.teams` with
+// `400 {"errors":[{"type":"BAD_REQUEST","message":"Bad request"}]}`; those fields
+// must now carry ARIs. The responses (and GET) still report bare ids, so a
+// provider that sent what the practitioner configured would store something else
+// and fail the apply with "Provider produced inconsistent result after apply".
+//
+// The provider therefore converts to an ARI on the way out and back to a bare id
+// on the way in, so the documented schema — a plain team id — keeps working and
+// state round-trips regardless of which format the API reports.
+//
+// Only `ari:cloud:identity::team/<platformTeamId>` and
+// `ari:cloud:opsgenie:<cloudId>:team/<id>` are recognised downstream; other ARI
+// forms pass validation but are dropped by the service registry's read path.
+const (
+	identityTeamAriPrefix = "ari:cloud:identity::team/"
+	opsgenieTeamAriPrefix = "ari:cloud:opsgenie:"
+	opsgenieTeamIdPrefix  = "og-"
+	ariPrefix             = "ari:"
+)
+
+// teamIdToAri renders a JSM team id as the ARI the service registry expects.
+// Empty values (used to clear an owner) and values that are already ARIs are
+// returned untouched.
+func teamIdToAri(teamId string, cloudId string) string {
+	if teamId == "" || strings.HasPrefix(teamId, ariPrefix) {
+		return teamId
+	}
+	// Opsgenie-native teams have no platform team id, so they cannot be
+	// addressed as identity teams.
+	if strings.HasPrefix(teamId, opsgenieTeamIdPrefix) {
+		return opsgenieTeamAriPrefix + cloudId + ":team/" + teamId
+	}
+	return identityTeamAriPrefix + teamId
+}
+
+// teamAriToId reduces a team ARI back to the bare team id held in state.
+// Values that are not ARIs are returned untouched, so the conversion is safe
+// whichever format the API reports.
+func teamAriToId(value string) string {
+	if !strings.HasPrefix(value, ariPrefix) {
+		return value
+	}
+	if idx := strings.LastIndex(value, "/"); idx >= 0 {
+		return value[idx+1:]
+	}
+	return value
+}
+
+func teamIdsToAris(teamIds []string, cloudId string) []string {
+	aris := make([]string, 0, len(teamIds))
+	for _, teamId := range teamIds {
+		aris = append(aris, teamIdToAri(teamId, cloudId))
+	}
+	return aris
+}
+
 func ServiceModelToDto(ctx context.Context, model *dataModels.ServiceModel, cloudId string) (*dto.ServiceDto, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
@@ -2491,8 +2550,8 @@ func ServiceModelToDto(ctx context.Context, model *dataModels.ServiceModel, clou
 		return nil, diags
 	}
 
-	// Owner is already a string (team ID)
-	owner := model.Owner.ValueString()
+	// Owner is a team ID in the schema; the API wants it as an ARI.
+	owner := teamIdToAri(model.Owner.ValueString(), cloudId)
 
 	// Convert change approvers
 	var changeApprovers *dto.ChangeApproversDto
@@ -2547,7 +2606,7 @@ func ServiceModelToDto(ctx context.Context, model *dataModels.ServiceModel, clou
 		if len(users) > 0 || len(teams) > 0 {
 			responders = &dto.RespondersDto{
 				Users: users,
-				Teams: teams,
+				Teams: teamIdsToAris(teams, cloudId),
 			}
 		}
 	}
@@ -2621,8 +2680,8 @@ func ServiceDtoToModel(ctx context.Context, dto *dto.ServiceDto) (*dataModels.Se
 		return nil, diags
 	}
 
-	// Owner is already a string (team ID)
-	owner := types.StringValue(dto.Owner)
+	// The API may report the owner as an ARI; state holds the bare team ID.
+	owner := types.StringValue(teamAriToId(dto.Owner))
 
 	// Convert change approvers
 	var changeApprovers types.Object
@@ -2653,7 +2712,7 @@ func ServiceDtoToModel(ctx context.Context, dto *dto.ServiceDto) (*dataModels.Se
 
 		teams := make([]attr.Value, 0, len(dto.Responders.Teams))
 		for _, team := range dto.Responders.Teams {
-			teams = append(teams, types.StringValue(team))
+			teams = append(teams, types.StringValue(teamAriToId(team)))
 		}
 		teamsList := types.ListValueMust(types.StringType, teams)
 
