@@ -81,6 +81,11 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
+	siteId := model.SiteId.ValueString()
+	if siteId == "" {
+		siteId = d.clientConfiguration.GetCloudId()
+	}
+
 	tflog.Trace(ctx, "Preparing HTTP Request to fetch team data from JSM Teams API")
 
 	teamFetchUrl := fmt.Sprintf("/%s/teams/%s",
@@ -99,7 +104,7 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		GenerateTeamsClientRequest(d.clientConfiguration).
 		Method("GET").
 		JoinBaseUrl(teamFetchUrl).
-		SetQueryParam("siteId", model.SiteId.ValueString()).
+		SetQueryParam("siteId", siteId).
 		SetBodyParseObject(&data).
 		Send()
 
@@ -129,7 +134,7 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		GenerateTeamsClientRequest(d.clientConfiguration).
 		Method("POST").
 		JoinBaseUrl(teamMembersFetchUrl).
-		SetQueryParam("siteId", model.SiteId.ValueString()).
+		SetQueryParam("siteId", siteId).
 		SetBodyParseObject(&memberData).
 		Send()
 
@@ -147,7 +152,7 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	tflog.Trace(ctx, "Converting Team Data into Terraform Model")
 	// Convert the fetched data into the model
-	model = TeamDtoToModel(data, memberData.Results, basetypes.NewBoolValue(false), model.SiteId.ValueString())
+	model = TeamDtoToModel(data, memberData.Results, basetypes.NewBoolValue(false), siteId)
 
 	// Write logs using the tflog package
 	// Documentation: https://terraform.io/plugin/log

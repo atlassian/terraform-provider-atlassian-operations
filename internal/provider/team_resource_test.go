@@ -53,6 +53,7 @@ resource "atlassian-operations_team" "example" {
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("atlassian-operations_team.example", "display_name", teamName),
+					resource.TestCheckNoResourceAttr("atlassian-operations_team.example", "site_id"),
 					resource.TestCheckResourceAttr("atlassian-operations_team.example", "description", "team description"),
 					resource.TestCheckResourceAttr("atlassian-operations_team.example", "organization_id", organizationId),
 					resource.TestCheckResourceAttr("atlassian-operations_team.example", "team_type", "MEMBER_INVITE"),
@@ -115,6 +116,7 @@ resource "atlassian-operations_team" "example" {
 					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.update_team", "true"),
 					resource.TestCheckResourceAttr("atlassian-operations_team.example", "user_permissions.delete_team", "true"),
 					resource.TestCheckResourceAttr("atlassian-operations_team.example", "member.#", "2"),
+					resource.TestCheckNoResourceAttr("atlassian-operations_team.example", "site_id"),
 					resource.TestCheckTypeSetElemAttrPair("atlassian-operations_team.example", "member.*.account_id", "data.atlassian-operations_user.test1", "account_id"),
 					resource.TestCheckTypeSetElemAttrPair("atlassian-operations_team.example", "member.*.account_id", "data.atlassian-operations_user.test2", "account_id"),
 				),
