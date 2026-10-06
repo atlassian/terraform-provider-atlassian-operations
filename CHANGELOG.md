@@ -1,3 +1,9 @@
+## v2.0.6
+
+#### Product:
+
+- Fixed team creation failing with `SITE_ID_REQUIRED_FOR_TEAM_API` when `site_id` is omitted by using the provider's `cloud_id` in the create request and subsequent team/member lookups. Explicit `site_id` values are preserved, and omitted resource `site_id` values remain unset in Terraform state.
+
 ## v2.0.5
 
 #### Product:

@@ -76,6 +76,10 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	plannedSiteId := data.SiteId
 
 	teamDto, membersDto := TeamModelToDto(ctx, data)
+	if teamDto.SiteId == nil {
+		siteId := r.clientConfiguration.GetCloudId()
+		teamDto.SiteId = &siteId
+	}
 
 	tflog.Trace(ctx, "Creating the Team")
 
@@ -443,12 +447,16 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	tflog.Trace(ctx, "Reading the TeamResource")
 
 	teamDto := dto.TeamDto{}
+	siteId := data.SiteId.ValueString()
+	if siteId == "" {
+		siteId = r.clientConfiguration.GetCloudId()
+	}
 
 	httpResp, err := httpClientHelpers.
 		GenerateTeamsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
 		Method(httpClient.GET).
-		SetQueryParam("siteId", data.SiteId.ValueString()).
+		SetQueryParam("siteId", siteId).
 		SetBodyParseObject(&teamDto).
 		Send()
 
@@ -701,6 +709,9 @@ func (r *TeamResource) ImportState(ctx context.Context, req resource.ImportState
 }
 
 func (r *TeamResource) fetchTeamMembers(organizationId string, teamId string, siteId string) ([]dto.TeamMember, error) {
+	if siteId == "" {
+		siteId = r.clientConfiguration.GetCloudId()
+	}
 	var members []dto.TeamMember
 
 	doneLooping := false

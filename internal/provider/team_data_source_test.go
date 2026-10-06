@@ -54,6 +54,7 @@ func TestAccTeamDataSource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Verify the data source
 					// Verify all attributes are set
+					resource.TestCheckResourceAttr("data.atlassian-operations_team.test", "site_id", os.Getenv("ATLASSIAN_OPS_CLOUD_ID")),
 					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "id", "atlassian-operations_team.example", "id"),
 					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "organization_id", "atlassian-operations_team.example", "organization_id"),
 					resource.TestCheckResourceAttrPair("data.atlassian-operations_team.test", "description", "atlassian-operations_team.example", "description"),
