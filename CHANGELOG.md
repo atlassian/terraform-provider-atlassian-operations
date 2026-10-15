@@ -1,3 +1,9 @@
+## Unreleased
+
+#### Product:
+
+- Fixed `atlassian-operations_integration_action` failing apply with "Provider produced inconsistent result after apply" and showing perpetual plan drift (JSDCLOUD-19687, JSDCLOUD-19666): a known planned `field_mappings`, `type_specific_properties`, `filter` or `action_mapping` value is now preserved through apply instead of being replaced with the server-normalized copy, `Read` preserves prior state for attributes the API response omits, and the computed attributes carry `UseStateForUnknown` so unrelated updates no longer show them as `(known after apply)`.
+
 ## v2.0.6
 
 #### Product:

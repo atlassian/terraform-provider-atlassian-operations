@@ -2286,8 +2286,19 @@ func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationAction
 		return nil, diags
 	}
 
+	// The API merges per-action-type defaults into filter, actionMapping,
+	// fieldMappings and typeSpecificProperties, and omits them from responses
+	// when defaulted, so a known prior (plan or state) value wins over the
+	// response copy.
+	var prior dataModels.IntegrationActionModel
+	if model != nil {
+		prior = *model
+	}
+
 	var filter types.Object
-	if dto.Filter != nil {
+	if !(prior.Filter.IsNull() || prior.Filter.IsUnknown()) {
+		filter = prior.Filter
+	} else if dto.Filter != nil {
 		conditions := make([]attr.Value, 0, len(dto.Filter.Conditions))
 		for _, c := range dto.Filter.Conditions {
 			conditions = append(conditions, types.ObjectValueMust(
@@ -2317,7 +2328,9 @@ func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationAction
 	}
 
 	var actionMapping types.Object
-	if dto.ActionMapping != nil {
+	if !(prior.ActionMapping.IsNull() || prior.ActionMapping.IsUnknown()) {
+		actionMapping = prior.ActionMapping
+	} else if dto.ActionMapping != nil {
 		parameterMap, _ := json.Marshal(dto.ActionMapping.Parameter)
 
 		actionMapping = types.ObjectValueMust(
@@ -2353,9 +2366,25 @@ func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationAction
 		enabled = types.BoolPointerValue(dto.Enabled)
 	}
 
-	typeSpecificPropsMap, _ := json.Marshal(dto.TypeSpecificProperties)
+	var typeSpecificProperties jsontypes.Exact
+	if !(prior.TypeSpecificProperties.IsNull() || prior.TypeSpecificProperties.IsUnknown()) {
+		typeSpecificProperties = prior.TypeSpecificProperties
+	} else if len(dto.TypeSpecificProperties) != 0 {
+		typeSpecificPropsMap, _ := json.Marshal(dto.TypeSpecificProperties)
+		typeSpecificProperties = jsontypes.NewExactValue(string(typeSpecificPropsMap))
+	} else {
+		typeSpecificProperties = jsontypes.NewExactNull()
+	}
 
-	fieldMappingsMap, _ := json.Marshal(dto.FieldMappings)
+	var fieldMappings jsontypes.Exact
+	if !(prior.FieldMappings.IsNull() || prior.FieldMappings.IsUnknown()) {
+		fieldMappings = prior.FieldMappings
+	} else if len(dto.FieldMappings) != 0 {
+		fieldMappingsMap, _ := json.Marshal(dto.FieldMappings)
+		fieldMappings = jsontypes.NewExactValue(string(fieldMappingsMap))
+	} else {
+		fieldMappings = jsontypes.NewExactNull()
+	}
 
 	return &dataModels.IntegrationActionModel{
 		ID:                     types.StringValue(dto.ID),
@@ -2366,8 +2395,8 @@ func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationAction
 		Direction:              types.StringValue(dto.Direction),
 		GroupType:              groupType,
 		Filter:                 filter,
-		TypeSpecificProperties: jsontypes.NewExactValue(string(typeSpecificPropsMap)),
-		FieldMappings:          jsontypes.NewExactValue(string(fieldMappingsMap)),
+		TypeSpecificProperties: typeSpecificProperties,
+		FieldMappings:          fieldMappings,
 		ActionMapping:          actionMapping,
 		Enabled:                enabled,
 	}, diags
