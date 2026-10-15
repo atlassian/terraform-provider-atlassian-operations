@@ -676,6 +676,11 @@ func ApiIntegrationModelToDto(ctx context.Context, model dataModels.ApiIntegrati
 		model.TypeSpecificProperties.Unmarshal(&typeSpecificProperties)
 	}
 
+	var advanced *bool
+	if !(model.Advanced.IsNull() || model.Advanced.IsUnknown()) {
+		advanced = model.Advanced.ValueBoolPointer()
+	}
+
 	dtoObj := dto.ApiIntegration{
 		Id:                     model.Id.ValueString(),
 		Name:                   model.Name.ValueString(),
@@ -683,7 +688,7 @@ func ApiIntegrationModelToDto(ctx context.Context, model dataModels.ApiIntegrati
 		Type:                   model.Type.ValueString(),
 		Enabled:                model.Enabled.ValueBool(),
 		TeamId:                 model.TeamId.ValueString(),
-		Advanced:               model.Advanced.ValueBool(),
+		Advanced:               advanced,
 		MaintenanceSources:     make([]dto.MaintenanceSource, len(maintenanceSources)),
 		Directions:             make([]string, len(directions)),
 		Domains:                make([]string, len(domains)),
@@ -722,19 +727,38 @@ func ApiIntegrationMaintenanceSourceDtoToModel(dto dto.MaintenanceSource) dataMo
 }
 
 func ApiIntegrationDtoToModel(dtoObj dto.ApiIntegration, oldModel dataModels.ApiIntegrationModel) dataModels.ApiIntegrationModel {
-	typeSpecificProperties, _ := json.Marshal(dtoObj.TypeSpecificProperties)
 	model := dataModels.ApiIntegrationModel{
-		Id:                     types.StringValue(dtoObj.Id),
-		Name:                   types.StringValue(dtoObj.Name),
-		Type:                   types.StringValue(dtoObj.Type),
-		Enabled:                types.BoolValue(dtoObj.Enabled),
-		TeamId:                 types.StringValue(dtoObj.TeamId),
-		Advanced:               types.BoolValue(dtoObj.Advanced),
-		MaintenanceSources:     types.ListNull(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}),
-		Directions:             types.ListNull(types.StringType),
-		Domains:                types.ListNull(types.StringType),
-		TypeSpecificProperties: jsontypes.NewExactValue(string(typeSpecificProperties)),
-		DeleteDefaultActions:   oldModel.DeleteDefaultActions,
+		Id:                   types.StringValue(dtoObj.Id),
+		Name:                 types.StringValue(dtoObj.Name),
+		Type:                 types.StringValue(dtoObj.Type),
+		Enabled:              types.BoolValue(dtoObj.Enabled),
+		TeamId:               types.StringValue(dtoObj.TeamId),
+		DeleteDefaultActions: oldModel.DeleteDefaultActions,
+	}
+
+	// The API merges defaulted keys into typeSpecificProperties, so a known
+	// prior (plan or state) value wins over the normalized response copy.
+	if !(oldModel.TypeSpecificProperties.IsNull() || oldModel.TypeSpecificProperties.IsUnknown()) {
+		model.TypeSpecificProperties = oldModel.TypeSpecificProperties
+	} else if len(dtoObj.TypeSpecificProperties) != 0 {
+		typeSpecificProperties, _ := json.Marshal(dtoObj.TypeSpecificProperties)
+		model.TypeSpecificProperties = jsontypes.NewExactValue(string(typeSpecificProperties))
+	} else {
+		model.TypeSpecificProperties = jsontypes.NewExactNull()
+	}
+
+	if dtoObj.TeamId == "" && !(oldModel.TeamId.IsNull() || oldModel.TeamId.IsUnknown()) {
+		model.TeamId = oldModel.TeamId
+	}
+
+	// GET responses omit fields at their server-side defaults; keep the prior
+	// state for anything the response did not include.
+	if dtoObj.Advanced != nil {
+		model.Advanced = types.BoolPointerValue(dtoObj.Advanced)
+	} else if !(oldModel.Advanced.IsNull() || oldModel.Advanced.IsUnknown()) {
+		model.Advanced = oldModel.Advanced
+	} else {
+		model.Advanced = types.BoolValue(false)
 	}
 
 	if dtoObj.ApiKey != "" {
@@ -745,30 +769,42 @@ func ApiIntegrationDtoToModel(dtoObj dto.ApiIntegration, oldModel dataModels.Api
 		model.ApiKey = types.StringNull()
 	}
 
-	maintenanceSources := make([]attr.Value, len(dtoObj.MaintenanceSources))
-	if len(dtoObj.MaintenanceSources) != 0 {
+	if dtoObj.MaintenanceSources != nil {
+		maintenanceSources := make([]attr.Value, len(dtoObj.MaintenanceSources))
 		for i, maintenanceSource := range dtoObj.MaintenanceSources {
 			maintenanceSourceModel := ApiIntegrationMaintenanceSourceDtoToModel(maintenanceSource)
 			maintenanceSources[i] = maintenanceSourceModel.AsValue()
 		}
+		model.MaintenanceSources = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}, maintenanceSources)
+	} else if !(oldModel.MaintenanceSources.IsNull() || oldModel.MaintenanceSources.IsUnknown()) {
+		model.MaintenanceSources = oldModel.MaintenanceSources
+	} else {
+		model.MaintenanceSources = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}, []attr.Value{})
 	}
-	model.MaintenanceSources = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}, maintenanceSources)
 
-	directions := make([]attr.Value, len(dtoObj.Directions))
-	if len(dtoObj.Directions) != 0 {
+	if dtoObj.Directions != nil {
+		directions := make([]attr.Value, len(dtoObj.Directions))
 		for i, direction := range dtoObj.Directions {
 			directions[i] = types.StringValue(direction)
 		}
+		model.Directions = types.ListValueMust(types.StringType, directions)
+	} else if !(oldModel.Directions.IsNull() || oldModel.Directions.IsUnknown()) {
+		model.Directions = oldModel.Directions
+	} else {
+		model.Directions = types.ListValueMust(types.StringType, []attr.Value{})
 	}
-	model.Directions = types.ListValueMust(types.StringType, directions)
 
-	domains := make([]attr.Value, len(dtoObj.Domains))
-	if len(dtoObj.Domains) != 0 {
+	if dtoObj.Domains != nil {
+		domains := make([]attr.Value, len(dtoObj.Domains))
 		for i, domain := range dtoObj.Domains {
 			domains[i] = types.StringValue(domain)
 		}
+		model.Domains = types.ListValueMust(types.StringType, domains)
+	} else if !(oldModel.Domains.IsNull() || oldModel.Domains.IsUnknown()) {
+		model.Domains = oldModel.Domains
+	} else {
+		model.Domains = types.ListValueMust(types.StringType, []attr.Value{})
 	}
-	model.Domains = types.ListValueMust(types.StringType, domains)
 
 	return model
 }

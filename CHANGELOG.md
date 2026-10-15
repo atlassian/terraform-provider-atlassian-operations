@@ -1,3 +1,9 @@
+## Unreleased
+
+#### Product:
+
+- Fixed perpetual plan drift on `atlassian-operations_api_integration` (JSDCLOUD-19666): `Read` no longer overwrites state with zero values for fields the API response omits (`advanced`, `directions`, `domains`, `maintenance_sources`), a known `type_specific_properties` value is preserved through apply and refresh instead of being replaced with the server-normalized copy, and computed attributes now use `UseStateForUnknown` so unrelated updates no longer show them as `(known after apply)`.
+
 ## v2.0.6
 
 #### Product:
