@@ -2279,6 +2279,38 @@ func IntegrationActionModelToDto(ctx context.Context, model *dataModels.Integrat
 	}, diags
 }
 
+// containsUnknownValues reports whether value, or anything nested in it, is
+// unknown.
+func containsUnknownValues(value attr.Value) bool {
+	if value.IsUnknown() {
+		return true
+	}
+	if value.IsNull() {
+		return false
+	}
+	var nested []attr.Value
+	switch v := value.(type) {
+	case types.Object:
+		for _, attribute := range v.Attributes() {
+			nested = append(nested, attribute)
+		}
+	case types.List:
+		nested = v.Elements()
+	case types.Set:
+		nested = v.Elements()
+	case types.Map:
+		for _, element := range v.Elements() {
+			nested = append(nested, element)
+		}
+	}
+	for _, element := range nested {
+		if containsUnknownValues(element) {
+			return true
+		}
+	}
+	return false
+}
+
 func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationActionDto, integrationID types.String, model *dataModels.IntegrationActionModel) (*dataModels.IntegrationActionModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
@@ -2295,8 +2327,11 @@ func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationAction
 		prior = *model
 	}
 
+	// A prior value is only reusable if it is fully known: a plan object can
+	// still carry unknown computed attributes (e.g. filter.conditions), and
+	// unknown values are not allowed in applied state.
 	var filter types.Object
-	if !(prior.Filter.IsNull() || prior.Filter.IsUnknown()) {
+	if !(prior.Filter.IsNull() || prior.Filter.IsUnknown()) && !containsUnknownValues(prior.Filter) {
 		filter = prior.Filter
 	} else if dto.Filter != nil {
 		conditions := make([]attr.Value, 0, len(dto.Filter.Conditions))
@@ -2323,12 +2358,18 @@ func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationAction
 				"conditions":           types.ListValueMust(types.ObjectType{AttrTypes: dataModels.FilterConditionModelMap}, conditions),
 			},
 		)
+	} else if !(prior.Filter.IsNull() || prior.Filter.IsUnknown()) {
+		attrs := prior.Filter.Attributes()
+		if containsUnknownValues(attrs["conditions"]) {
+			attrs["conditions"] = types.ListNull(types.ObjectType{AttrTypes: dataModels.FilterConditionModelMap})
+		}
+		filter = types.ObjectValueMust(dataModels.FilterModelMap, attrs)
 	} else {
 		filter = types.ObjectNull(dataModels.FilterModelMap)
 	}
 
 	var actionMapping types.Object
-	if !(prior.ActionMapping.IsNull() || prior.ActionMapping.IsUnknown()) {
+	if !(prior.ActionMapping.IsNull() || prior.ActionMapping.IsUnknown()) && !containsUnknownValues(prior.ActionMapping) {
 		actionMapping = prior.ActionMapping
 	} else if dto.ActionMapping != nil {
 		parameterMap, _ := json.Marshal(dto.ActionMapping.Parameter)
@@ -2340,6 +2381,12 @@ func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationAction
 				"parameter": jsontypes.NewExactValue(string(parameterMap)),
 			},
 		)
+	} else if !(prior.ActionMapping.IsNull() || prior.ActionMapping.IsUnknown()) {
+		attrs := prior.ActionMapping.Attributes()
+		if containsUnknownValues(attrs["parameter"]) {
+			attrs["parameter"] = jsontypes.NewExactNull()
+		}
+		actionMapping = types.ObjectValueMust(dataModels.ActionMappingModelMap, attrs)
 	} else {
 		actionMapping = types.ObjectNull(dataModels.ActionMappingModelMap)
 	}

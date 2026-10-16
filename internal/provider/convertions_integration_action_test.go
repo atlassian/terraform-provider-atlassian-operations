@@ -155,3 +155,70 @@ func TestIntegrationActionDtoToModel_UsesResponseWhenPriorUnknown(t *testing.T) 
 		t.Errorf("expected type_specific_properties to resolve to a known value, got %s", result.TypeSpecificProperties)
 	}
 }
+
+// A plan object can be known while still carrying unknown computed attributes
+// (e.g. filter.conditions left unset in config). Such a prior must not be
+// copied into applied state — unknown values are invalid after apply.
+func TestIntegrationActionDtoToModel_DoesNotApplyPriorWithUnknownNestedValues(t *testing.T) {
+	planFilter := types.ObjectValueMust(
+		dataModels.FilterModelMap,
+		map[string]attr.Value{
+			"conditions_empty":     types.BoolValue(false),
+			"condition_match_type": types.StringValue("match-all"),
+			"conditions":           types.ListUnknown(types.ObjectType{AttrTypes: dataModels.FilterConditionModelMap}),
+		},
+	)
+	plan := dataModels.IntegrationActionModel{
+		ID:            types.StringUnknown(),
+		IntegrationID: types.StringValue("integration-id"),
+		Type:          types.StringValue("close"),
+		Name:          types.StringValue("Close Alert"),
+		Domain:        types.StringValue("alert"),
+		Direction:     types.StringValue("incoming"),
+		Filter:        planFilter,
+	}
+
+	apiResponse := &dto.IntegrationActionDto{
+		ID:        "action-id",
+		Type:      "close",
+		Name:      "Close Alert",
+		Domain:    "alert",
+		Direction: "incoming",
+		Filter: &dto.FilterDto{
+			ConditionsEmpty:    false,
+			ConditionMatchType: "match-all",
+			Conditions:         []dto.FilterConditionDto{},
+		},
+	}
+
+	result, diags := IntegrationActionDtoToModel(context.Background(), apiResponse, plan.IntegrationID, &plan)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	if containsUnknownValues(result.Filter) {
+		t.Errorf("expected filter without unknown values, got %s", result.Filter)
+	}
+	attrs := result.Filter.Attributes()
+	if !attrs["condition_match_type"].Equal(types.StringValue("match-all")) {
+		t.Errorf("expected condition_match_type from the response, got %s", attrs["condition_match_type"])
+	}
+
+	// Same scenario when the response omits the filter entirely: known leaves
+	// are kept and the unknown attribute resolves to null.
+	apiResponse.Filter = nil
+	result, diags = IntegrationActionDtoToModel(context.Background(), apiResponse, plan.IntegrationID, &plan)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if containsUnknownValues(result.Filter) {
+		t.Errorf("expected filter without unknown values, got %s", result.Filter)
+	}
+	attrs = result.Filter.Attributes()
+	if !attrs["conditions_empty"].Equal(types.BoolValue(false)) {
+		t.Errorf("expected conditions_empty to keep the planned value, got %s", attrs["conditions_empty"])
+	}
+	if !attrs["conditions"].IsNull() {
+		t.Errorf("expected unknown conditions to resolve to null, got %s", attrs["conditions"])
+	}
+}
