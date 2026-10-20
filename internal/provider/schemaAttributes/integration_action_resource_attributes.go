@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -59,11 +60,17 @@ var IntegrationActionResourceAttributes = map[string]schema.Attribute{
 		Validators: []validator.String{
 			stringvalidator.OneOf("forwarding", "updating", "checkbox"),
 		},
+		PlanModifiers: []planmodifier.String{
+			stringplanmodifier.UseStateForUnknown(),
+		},
 	},
 	"filter": schema.SingleNestedAttribute{
 		Description: "The filter configuration for the integration action",
 		Optional:    true,
 		Computed:    true,
+		PlanModifiers: []planmodifier.Object{
+			objectplanmodifier.UseStateForUnknown(),
+		},
 		Validators: []validator.Object{
 			customValidators.ListFieldNullIfOtherField(path.MatchRelative().AtName("conditions"), path.MatchRelative().AtName("condition_match_type"), "match-all"),
 			customValidators.ListFieldNotNullIfOtherField(path.MatchRelative().AtName("conditions"), path.MatchRelative().AtName("condition_match_type"), "match-all-conditions"),
@@ -134,17 +141,26 @@ var IntegrationActionResourceAttributes = map[string]schema.Attribute{
 		Description: "Type-specific properties for the integration action",
 		Optional:    true,
 		Computed:    true,
+		PlanModifiers: []planmodifier.String{
+			stringplanmodifier.UseStateForUnknown(),
+		},
 	},
 	"field_mappings": schema.StringAttribute{
 		CustomType:  jsontypes.ExactType{},
 		Description: "Field mappings for the integration action",
 		Optional:    true,
 		Computed:    true,
+		PlanModifiers: []planmodifier.String{
+			stringplanmodifier.UseStateForUnknown(),
+		},
 	},
 	"action_mapping": schema.SingleNestedAttribute{
 		Description: "The action mapping configuration",
 		Optional:    true,
 		Computed:    true,
+		PlanModifiers: []planmodifier.Object{
+			objectplanmodifier.UseStateForUnknown(),
+		},
 		Attributes: map[string]schema.Attribute{
 			"type": schema.StringAttribute{
 				Description: "The type of action mapping",

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
+
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 
 	"strings"
@@ -676,6 +678,11 @@ func ApiIntegrationModelToDto(ctx context.Context, model dataModels.ApiIntegrati
 		model.TypeSpecificProperties.Unmarshal(&typeSpecificProperties)
 	}
 
+	var advanced *bool
+	if !(model.Advanced.IsNull() || model.Advanced.IsUnknown()) {
+		advanced = model.Advanced.ValueBoolPointer()
+	}
+
 	dtoObj := dto.ApiIntegration{
 		Id:                     model.Id.ValueString(),
 		Name:                   model.Name.ValueString(),
@@ -683,7 +690,7 @@ func ApiIntegrationModelToDto(ctx context.Context, model dataModels.ApiIntegrati
 		Type:                   model.Type.ValueString(),
 		Enabled:                model.Enabled.ValueBool(),
 		TeamId:                 model.TeamId.ValueString(),
-		Advanced:               model.Advanced.ValueBool(),
+		Advanced:               advanced,
 		MaintenanceSources:     make([]dto.MaintenanceSource, len(maintenanceSources)),
 		Directions:             make([]string, len(directions)),
 		Domains:                make([]string, len(domains)),
@@ -721,20 +728,62 @@ func ApiIntegrationMaintenanceSourceDtoToModel(dto dto.MaintenanceSource) dataMo
 	}
 }
 
+// mergeJsonExact decides between a known prior JSON value and the API copy of
+// it. The API merges server-side defaulted keys into these opaque JSON
+// attributes, so the prior (plan or state) value is kept while both documents
+// agree on every shared key; a conflicting shared key means the value changed
+// on the Atlassian side, and the API copy wins so the drift is reported.
+func mergeJsonExact(prior jsontypes.Exact, apiValue map[string]interface{}) jsontypes.Exact {
+	apiCopy := func() jsontypes.Exact {
+		marshaled, _ := json.Marshal(apiValue)
+		return jsontypes.NewExactValue(string(marshaled))
+	}
+
+	if prior.IsNull() || prior.IsUnknown() {
+		if len(apiValue) == 0 {
+			return jsontypes.NewExactNull()
+		}
+		return apiCopy()
+	}
+	if len(apiValue) == 0 {
+		return prior
+	}
+
+	var priorMap map[string]interface{}
+	if err := json.Unmarshal([]byte(prior.ValueString()), &priorMap); err != nil {
+		return apiCopy()
+	}
+	for key, value := range apiValue {
+		if priorValue, ok := priorMap[key]; ok && !reflect.DeepEqual(priorValue, value) {
+			return apiCopy()
+		}
+	}
+	return prior
+}
+
 func ApiIntegrationDtoToModel(dtoObj dto.ApiIntegration, oldModel dataModels.ApiIntegrationModel) dataModels.ApiIntegrationModel {
-	typeSpecificProperties, _ := json.Marshal(dtoObj.TypeSpecificProperties)
 	model := dataModels.ApiIntegrationModel{
 		Id:                     types.StringValue(dtoObj.Id),
 		Name:                   types.StringValue(dtoObj.Name),
 		Type:                   types.StringValue(dtoObj.Type),
 		Enabled:                types.BoolValue(dtoObj.Enabled),
 		TeamId:                 types.StringValue(dtoObj.TeamId),
-		Advanced:               types.BoolValue(dtoObj.Advanced),
-		MaintenanceSources:     types.ListNull(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}),
-		Directions:             types.ListNull(types.StringType),
-		Domains:                types.ListNull(types.StringType),
-		TypeSpecificProperties: jsontypes.NewExactValue(string(typeSpecificProperties)),
 		DeleteDefaultActions:   oldModel.DeleteDefaultActions,
+		TypeSpecificProperties: mergeJsonExact(oldModel.TypeSpecificProperties, dtoObj.TypeSpecificProperties),
+	}
+
+	if dtoObj.TeamId == "" && !(oldModel.TeamId.IsNull() || oldModel.TeamId.IsUnknown()) {
+		model.TeamId = oldModel.TeamId
+	}
+
+	// GET responses omit fields at their server-side defaults; keep the prior
+	// state for anything the response did not include.
+	if dtoObj.Advanced != nil {
+		model.Advanced = types.BoolPointerValue(dtoObj.Advanced)
+	} else if !(oldModel.Advanced.IsNull() || oldModel.Advanced.IsUnknown()) {
+		model.Advanced = oldModel.Advanced
+	} else {
+		model.Advanced = types.BoolValue(false)
 	}
 
 	if dtoObj.ApiKey != "" {
@@ -745,30 +794,42 @@ func ApiIntegrationDtoToModel(dtoObj dto.ApiIntegration, oldModel dataModels.Api
 		model.ApiKey = types.StringNull()
 	}
 
-	maintenanceSources := make([]attr.Value, len(dtoObj.MaintenanceSources))
-	if len(dtoObj.MaintenanceSources) != 0 {
+	if dtoObj.MaintenanceSources != nil {
+		maintenanceSources := make([]attr.Value, len(dtoObj.MaintenanceSources))
 		for i, maintenanceSource := range dtoObj.MaintenanceSources {
 			maintenanceSourceModel := ApiIntegrationMaintenanceSourceDtoToModel(maintenanceSource)
 			maintenanceSources[i] = maintenanceSourceModel.AsValue()
 		}
+		model.MaintenanceSources = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}, maintenanceSources)
+	} else if !(oldModel.MaintenanceSources.IsNull() || oldModel.MaintenanceSources.IsUnknown()) {
+		model.MaintenanceSources = oldModel.MaintenanceSources
+	} else {
+		model.MaintenanceSources = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}, []attr.Value{})
 	}
-	model.MaintenanceSources = types.ListValueMust(types.ObjectType{AttrTypes: dataModels.IntegrationMaintenanceSourcesResponseModelMap}, maintenanceSources)
 
-	directions := make([]attr.Value, len(dtoObj.Directions))
-	if len(dtoObj.Directions) != 0 {
+	if dtoObj.Directions != nil {
+		directions := make([]attr.Value, len(dtoObj.Directions))
 		for i, direction := range dtoObj.Directions {
 			directions[i] = types.StringValue(direction)
 		}
+		model.Directions = types.ListValueMust(types.StringType, directions)
+	} else if !(oldModel.Directions.IsNull() || oldModel.Directions.IsUnknown()) {
+		model.Directions = oldModel.Directions
+	} else {
+		model.Directions = types.ListValueMust(types.StringType, []attr.Value{})
 	}
-	model.Directions = types.ListValueMust(types.StringType, directions)
 
-	domains := make([]attr.Value, len(dtoObj.Domains))
-	if len(dtoObj.Domains) != 0 {
+	if dtoObj.Domains != nil {
+		domains := make([]attr.Value, len(dtoObj.Domains))
 		for i, domain := range dtoObj.Domains {
 			domains[i] = types.StringValue(domain)
 		}
+		model.Domains = types.ListValueMust(types.StringType, domains)
+	} else if !(oldModel.Domains.IsNull() || oldModel.Domains.IsUnknown()) {
+		model.Domains = oldModel.Domains
+	} else {
+		model.Domains = types.ListValueMust(types.StringType, []attr.Value{})
 	}
-	model.Domains = types.ListValueMust(types.StringType, domains)
 
 	return model
 }
@@ -2279,11 +2340,51 @@ func IntegrationActionModelToDto(ctx context.Context, model *dataModels.Integrat
 	}, diags
 }
 
+// containsUnknownValues reports whether value, or anything nested in it, is
+// unknown.
+func containsUnknownValues(value attr.Value) bool {
+	if value.IsUnknown() {
+		return true
+	}
+	if value.IsNull() {
+		return false
+	}
+	var nested []attr.Value
+	switch v := value.(type) {
+	case types.Object:
+		for _, attribute := range v.Attributes() {
+			nested = append(nested, attribute)
+		}
+	case types.List:
+		nested = v.Elements()
+	case types.Set:
+		nested = v.Elements()
+	case types.Map:
+		for _, element := range v.Elements() {
+			nested = append(nested, element)
+		}
+	}
+	for _, element := range nested {
+		if containsUnknownValues(element) {
+			return true
+		}
+	}
+	return false
+}
+
 func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationActionDto, integrationID types.String, model *dataModels.IntegrationActionModel) (*dataModels.IntegrationActionModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	if dto == nil {
 		return nil, diags
+	}
+
+	// A known prior (plan or state) value fills in whatever the response
+	// omits; values the response reports win (for the JSON attributes, see
+	// mergeJsonExact).
+	var prior dataModels.IntegrationActionModel
+	if model != nil {
+		prior = *model
 	}
 
 	var filter types.Object
@@ -2312,6 +2413,13 @@ func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationAction
 				"conditions":           types.ListValueMust(types.ObjectType{AttrTypes: dataModels.FilterConditionModelMap}, conditions),
 			},
 		)
+	} else if !(prior.Filter.IsNull() || prior.Filter.IsUnknown()) {
+		// Unknown nested plan values are not allowed in applied state.
+		attrs := prior.Filter.Attributes()
+		if containsUnknownValues(attrs["conditions"]) {
+			attrs["conditions"] = types.ListNull(types.ObjectType{AttrTypes: dataModels.FilterConditionModelMap})
+		}
+		filter = types.ObjectValueMust(dataModels.FilterModelMap, attrs)
 	} else {
 		filter = types.ObjectNull(dataModels.FilterModelMap)
 	}
@@ -2327,6 +2435,12 @@ func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationAction
 				"parameter": jsontypes.NewExactValue(string(parameterMap)),
 			},
 		)
+	} else if !(prior.ActionMapping.IsNull() || prior.ActionMapping.IsUnknown()) {
+		attrs := prior.ActionMapping.Attributes()
+		if containsUnknownValues(attrs["parameter"]) {
+			attrs["parameter"] = jsontypes.NewExactNull()
+		}
+		actionMapping = types.ObjectValueMust(dataModels.ActionMappingModelMap, attrs)
 	} else {
 		actionMapping = types.ObjectNull(dataModels.ActionMappingModelMap)
 	}
@@ -2353,10 +2467,6 @@ func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationAction
 		enabled = types.BoolPointerValue(dto.Enabled)
 	}
 
-	typeSpecificPropsMap, _ := json.Marshal(dto.TypeSpecificProperties)
-
-	fieldMappingsMap, _ := json.Marshal(dto.FieldMappings)
-
 	return &dataModels.IntegrationActionModel{
 		ID:                     types.StringValue(dto.ID),
 		IntegrationID:          integrationID,
@@ -2366,8 +2476,8 @@ func IntegrationActionDtoToModel(ctx context.Context, dto *dto.IntegrationAction
 		Direction:              types.StringValue(dto.Direction),
 		GroupType:              groupType,
 		Filter:                 filter,
-		TypeSpecificProperties: jsontypes.NewExactValue(string(typeSpecificPropsMap)),
-		FieldMappings:          jsontypes.NewExactValue(string(fieldMappingsMap)),
+		TypeSpecificProperties: mergeJsonExact(prior.TypeSpecificProperties, dto.TypeSpecificProperties),
+		FieldMappings:          mergeJsonExact(prior.FieldMappings, dto.FieldMappings),
 		ActionMapping:          actionMapping,
 		Enabled:                enabled,
 	}, diags

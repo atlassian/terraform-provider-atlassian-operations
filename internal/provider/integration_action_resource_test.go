@@ -282,3 +282,92 @@ resource "atlassian-operations_integration_action" "example" {
 		},
 	})
 }
+
+// Regression test for JSDCLOUD-19687: a field_mappings value with fewer keys
+// than the server's default template (alias/note/user on close actions) must
+// survive apply unchanged and produce a converged plan, even though the API
+// merges the defaulted keys into its copy.
+func TestAccIntegrationActionResource_PartialFieldMappings(t *testing.T) {
+	teamName := uuid.NewString()
+	apiIntegrationName := uuid.NewString()
+	organizationId := os.Getenv("ATLASSIAN_ACCTEST_ORGANIZATION_ID")
+	emailPrimary := os.Getenv("ATLASSIAN_ACCTEST_EMAIL_PRIMARY")
+
+	baseConfig := providerConfig + `
+data "atlassian-operations_user" "test1" {
+	email_address = "` + emailPrimary + `"
+  	organization_id = "` + organizationId + `"
+}
+
+resource "atlassian-operations_team" "example" {
+  organization_id = "` + organizationId + `"
+  description = "This is a team created by Terraform"
+  display_name = "` + teamName + `"
+  team_type = "MEMBER_INVITE"
+  member = [
+    {
+      account_id = data.atlassian-operations_user.test1.account_id
+    }
+  ]
+}
+
+resource "atlassian-operations_api_integration" "example" {
+  name    = "` + apiIntegrationName + `"
+  team_id = atlassian-operations_team.example.id
+  type = "API"
+  enabled = true
+}
+
+resource "atlassian-operations_integration_action" "example" {
+  integration_id = atlassian-operations_api_integration.example.id
+  name          = "Partial Field Mappings Action"
+  type          = "close"
+  domain        = "alert"
+  direction     = "incoming"
+  group_type    = "updating"
+
+  filter = {
+    conditions_empty = false
+    condition_match_type = "match-all"
+  }
+`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			if organizationId == "" {
+				t.Fatal("ATLASSIAN_ACCTEST_ORGANIZATION_ID must be set for acceptance tests")
+			}
+			if emailPrimary == "" {
+				t.Fatal("ATLASSIAN_ACCTEST_EMAIL_PRIMARY must be set for acceptance tests")
+			}
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create with a single mapped field. Before the fix this failed
+			// with "Provider produced inconsistent result after apply".
+			{
+				Config: baseConfig + `
+  field_mappings = jsonencode({
+    alias = "{{alias}}"
+  })
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("atlassian-operations_integration_action.example", "type", "close"),
+					resource.TestCheckResourceAttr("atlassian-operations_integration_action.example", "field_mappings", `{"alias":"{{alias}}"}`),
+				),
+			},
+			// In-place update of the partial mapping must also converge.
+			{
+				Config: baseConfig + `
+  field_mappings = jsonencode({
+    alias = "{{alias}}"
+    note  = "closed by terraform"
+  })
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("atlassian-operations_integration_action.example", "field_mappings", `{"alias":"{{alias}}","note":"closed by terraform"}`),
+				),
+			},
+		},
+	})
+}

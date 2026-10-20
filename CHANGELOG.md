@@ -1,3 +1,16 @@
+## Unreleased
+
+#### Product:
+
+- Fixed perpetual plan drift on `atlassian-operations_api_integration` (JSDCLOUD-19666):
+  - `Read` preserves prior state for fields the API response omits (`advanced`, `directions`, `domains`, `maintenance_sources`) instead of overwriting them with zero values.
+  - `type_specific_properties` keeps the configured value while the API copy only adds server-side defaulted keys; a value changed on the Atlassian side still wins and is reported as drift.
+  - Computed attributes use `UseStateForUnknown`, so an update to one attribute no longer shows the others as `(known after apply)`.
+- Fixed `atlassian-operations_integration_action` apply failures ("Provider produced inconsistent result after apply") and perpetual plan drift (JSDCLOUD-19687, JSDCLOUD-19666):
+  - `field_mappings` and `type_specific_properties` keep the configured value while the API copy only adds server-side defaulted keys; values changed on the Atlassian side still win and are reported as drift.
+  - `Read` preserves prior state for `filter`, `action_mapping`, `field_mappings` and `type_specific_properties` when the API response omits them.
+  - These attributes carry `UseStateForUnknown`, so an update to one attribute no longer shows the others as `(known after apply)`.
+
 ## v2.0.6
 
 #### Product:
