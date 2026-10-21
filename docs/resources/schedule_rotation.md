@@ -26,7 +26,7 @@ description: |-
 - `end_date` (String) The date and time when this rotation ends, in RFC3339 format. If not specified, the rotation continues indefinitely.
 - `length` (Number) The duration of each rotation shift in units matching the rotation type (hours for hourly, days for daily, weeks for weekly). Defaults to 1.
 - `name` (String) The name of the rotation. Must be at least 1 character long. This helps identify the rotation's purpose.
-- `participants` (Attributes List) The list of participants in this rotation. Can include users, teams, escalation policies, or empty slots (noone). (see [below for nested schema](#nestedatt--participants))
+- `participants` (Attributes List) The list of participants in this rotation. Can include users, teams, escalation policies, or empty slots (noone). Service accounts cannot be participants. (see [below for nested schema](#nestedatt--participants))
 - `time_restriction` (Attributes) Optional time restrictions for when this rotation is active. Used to define specific hours or days when the rotation applies. (see [below for nested schema](#nestedatt--time_restriction))
 
 ### Read-Only

@@ -46,14 +46,14 @@ var TeamResourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"user_permissions": schema.SingleNestedAttribute{
-		Description: "The set of permissions that define what operations users can perform on this team. These are computed based on team type and user roles.",
+		Description: "The set of permissions that define what operations users can perform on this team. These are computed based on team type and user roles. With `is_scoped_token = true` these come from the Teams GraphQL permissions: `CAN_MANAGE_TEAM` sets update_team, add_members and remove_members, and `CAN_DELETE_TEAM` sets delete_team.",
 		Computed:    true,
 		Optional:    false,
 		Required:    false,
 		Attributes:  PublicApiUserPermissionsResourceAttributes,
 	},
 	"member": schema.SetNestedAttribute{
-		Description: "The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID.",
+		Description: "The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID. The first member becomes the team's Operations admin, so it must be a human JSM user, not a service account.",
 		Required:    true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: TeamMemberResourceAttributes,
@@ -100,7 +100,7 @@ var PublicApiUserPermissionsResourceAttributes = map[string]schema.Attribute{
 
 var TeamMemberResourceAttributes = map[string]schema.Attribute{
 	"account_id": schema.StringAttribute{
-		Description: "The unique Atlassian account identifier for the team member. This is used to uniquely identify users across Atlassian products.",
+		Description: "The unique Atlassian account identifier for the team member, a raw account ID such as `70121:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` (not an ARI). This is used to uniquely identify users across Atlassian products.",
 		Required:    true,
 	},
 }

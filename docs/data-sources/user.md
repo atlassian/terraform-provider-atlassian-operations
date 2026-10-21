@@ -3,12 +3,15 @@
 page_title: "atlassian-operations_user Data Source - atlassian-operations"
 subcategory: ""
 description: |-
-  User data source
+  User data source.
+  With is_scoped_token = true (a scoped API token or a service account), users are looked up through api.atlassian.com/ex/jira/{cloud_id}; the token needs the read:jira-user scope.
 ---
 
 # atlassian-operations_user (Data Source)
 
-User data source
+User data source.
+
+With `is_scoped_token = true` (a scoped API token or a service account), users are looked up through `api.atlassian.com/ex/jira/{cloud_id}`; the token needs the `read:jira-user` scope.
 
 
 

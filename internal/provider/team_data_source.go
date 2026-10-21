@@ -39,8 +39,10 @@ func (d *teamDataSource) Metadata(_ context.Context, req datasource.MetadataRequ
 
 func (d *teamDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Team data source",
-		Attributes:          schemaAttributes.TeamDataSourceAttributes,
+		MarkdownDescription: "Team data source.\n\n" +
+			"With `is_scoped_token = true` (a scoped API token or a service account), the team is read through the Teams GraphQL API " +
+			"(`user_permissions` is mapped from the GraphQL permissions). See the [Scoped API Tokens and Service Accounts](https://registry.terraform.io/providers/atlassian/atlassian-operations/latest/docs/guides/scoped-api-tokens-and-service-accounts) guide.",
+		Attributes: schemaAttributes.TeamDataSourceAttributes,
 	}
 }
 

@@ -36,7 +36,7 @@ var MaintenanceResourceAttributes = map[string]schema.Attribute{
 	},
 	"team_id": schema.StringAttribute{
 		Optional:            true,
-		MarkdownDescription: "The ID of the team associated with this maintenance window",
+		MarkdownDescription: "The ID of the team associated with this maintenance window. Team maintenance windows are not supported with service accounts; global ones (no `team_id`) are.",
 		PlanModifiers: []planmodifier.String{
 			stringplanmodifier.RequiresReplaceIf(func(ctx context.Context, request planmodifier.StringRequest, response *stringplanmodifier.RequiresReplaceIfFuncResponse) {
 				if request.StateValue.ValueString() != request.ConfigValue.ValueString() {

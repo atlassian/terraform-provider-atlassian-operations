@@ -3,12 +3,12 @@
 page_title: "atlassian-operations_custom_role Resource - atlassian-operations"
 subcategory: ""
 description: |-
-  
+  Not supported with service accounts.
 ---
 
 # atlassian-operations_custom_role (Resource)
 
-
+Not supported with service accounts.
 
 
 

@@ -38,8 +38,10 @@ func (d *userDataSource) Metadata(_ context.Context, req datasource.MetadataRequ
 
 func (d *userDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "User data source",
-		Attributes:          schemaAttributes.UserDataSourceAttributes,
+		MarkdownDescription: "User data source.\n\n" +
+			"With `is_scoped_token = true` (a scoped API token or a service account), users are looked up through " +
+			"`api.atlassian.com/ex/jira/{cloud_id}`; the token needs the `read:jira-user` scope.",
+		Attributes: schemaAttributes.UserDataSourceAttributes,
 	}
 }
 

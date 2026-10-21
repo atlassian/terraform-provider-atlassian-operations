@@ -3,12 +3,15 @@
 page_title: "atlassian-operations_team Data Source - atlassian-operations"
 subcategory: ""
 description: |-
-  Team data source
+  Team data source.
+  With is_scoped_token = true (a scoped API token or a service account), the team is read through the Teams GraphQL API (user_permissions is mapped from the GraphQL permissions). See the Scoped API Tokens and Service Accounts https://registry.terraform.io/providers/atlassian/atlassian-operations/latest/docs/guides/scoped-api-tokens-and-service-accounts guide.
 ---
 
 # atlassian-operations_team (Data Source)
 
-Team data source
+Team data source.
+
+With `is_scoped_token = true` (a scoped API token or a service account), the team is read through the Teams GraphQL API (`user_permissions` is mapped from the GraphQL permissions). See the [Scoped API Tokens and Service Accounts](https://registry.terraform.io/providers/atlassian/atlassian-operations/latest/docs/guides/scoped-api-tokens-and-service-accounts) guide.
 
 
 
@@ -31,7 +34,7 @@ Team data source
 - `display_name` (String) The human-readable name of the team as it appears in the Atlassian interface.
 - `member` (Attributes Set) The set of users who are members of this team. Each member has their own role and permissions. (see [below for nested schema](#nestedatt--member))
 - `team_type` (String) The type of team (e.g., `OPEN`, `MEMBER_INVITE`, `EXTERNAL`). Determines team access and invitation policies.
-- `user_permissions` (Attributes) The set of permissions that define what operations users can perform on this team. (see [below for nested schema](#nestedatt--user_permissions))
+- `user_permissions` (Attributes) The set of permissions that define what operations users can perform on this team. With `is_scoped_token = true` these come from the Teams GraphQL permissions: `CAN_MANAGE_TEAM` sets update_team, add_members and remove_members, and `CAN_DELETE_TEAM` sets delete_team. (see [below for nested schema](#nestedatt--user_permissions))
 
 <a id="nestedatt--member"></a>
 ### Nested Schema for `member`

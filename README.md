@@ -45,6 +45,33 @@ And the following data sources:
 
 \*Due to the internal structure of the Operations, _user_ is implemented solely as a data source and supports **read operations only**.
 
+## Scoped API Tokens and Service Accounts
+
+Besides classic API tokens, the provider supports scoped API tokens of users and of service accounts
+(`...@serviceaccount.atlassian.com`). Set `is_scoped_token = true` in the provider block, or the
+`ATLASSIAN_OPS_IS_SCOPED_TOKEN=true` environment variable:
+
+```hcl
+provider "atlassian-operations" {
+  cloud_id        = "<YOUR_CLOUD_ID>"
+  domain_name     = "<YOUR_DOMAIN>"
+  email_address   = "my-bot@serviceaccount.atlassian.com"
+  token           = "<SCOPED_API_TOKEN>"
+  is_scoped_token = true
+}
+```
+
+The Teams REST API does not accept scoped tokens, so teams are then managed through the Teams GraphQL API and users are
+looked up through `api.atlassian.com/ex/jira/{cloud_id}`. Everything else, including IDs and import formats, stays the
+same. Service accounts also need:
+
+* a group with the **Manage teams** and **Delete teams** permissions (team permissions page of the Teams product) to update or delete teams
+* a human JSM user as the first team `member` (the team's Operations admin)
+* to stay out of schedule rotation `participants`
+
+The required token scopes, the resources service accounts cannot use and troubleshooting tips are in the
+[Scoped API Tokens and Service Accounts](docs/guides/scoped-api-tokens-and-service-accounts.md) guide.
+
 ## Important Notes
 
 ### Policy Ordering
@@ -190,6 +217,7 @@ provider "atlassian-operations" {
    email_address = "<YOUR_EMAIL_ADDRESS>"     // e.g. user@example.com
    token = "<YOUR_TOKEN_HERE>"   // API token created in Atlassian account settings
    org_admin_token = "<YOUR_ORGANIZATION_ADMIN_TOKEN>"   // **NON-SCOPED** API Token created in Organization administration (only required for Compass)
+   is_scoped_token = false   // true when token is a scoped API token of a user or service account
    product_type = "<YOUR_ATLASSIAN_OPERATIONS_PRODUCT>"   // jira-service-desk (default) or compass
 }
 
@@ -212,6 +240,7 @@ export ATLASSIAN_OPS_API_EMAIL_ADDRESS=YOUR_EMAIL_ADDRESS
 export ATLASSIAN_OPS_API_TOKEN=YOUR_TOKEN
 export ATLASSIAN_OPS_API_ORG_ADMIN_TOKEN=YOUR_ORGANIZATION_ADMIN_TOKEN
 export ATLASSIAN_OPS_PRODUCT_TYPE=YOUR_ATLASSIAN_OPERATIONS_PRODUCT
+export ATLASSIAN_OPS_IS_SCOPED_TOKEN=true   # only for scoped API tokens and service accounts
 ```
 
 #### 5.2. Enable Debugging

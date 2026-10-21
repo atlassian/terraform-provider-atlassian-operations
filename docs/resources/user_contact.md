@@ -3,12 +3,12 @@
 page_title: "atlassian-operations_user_contact Resource - atlassian-operations"
 subcategory: ""
 description: |-
-  
+  Not supported with service accounts.
 ---
 
 # atlassian-operations_user_contact (Resource)
 
-
+Not supported with service accounts.
 
 
 

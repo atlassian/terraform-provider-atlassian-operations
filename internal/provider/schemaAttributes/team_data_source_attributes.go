@@ -32,11 +32,11 @@ var TeamDataSourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"team_type": schema.StringAttribute{
-		Description: "The type of team (e.g., 'OPEN', 'MEMBER_INVITE', 'EXTERNAL'). Determines team access and invitation policies.",
+		Description: "The type of team (e.g., `OPEN`, `MEMBER_INVITE`, `EXTERNAL`). Determines team access and invitation policies.",
 		Computed:    true,
 	},
 	"user_permissions": schema.SingleNestedAttribute{
-		Description: "The set of permissions that define what operations users can perform on this team.",
+		Description: "The set of permissions that define what operations users can perform on this team. With `is_scoped_token = true` these come from the Teams GraphQL permissions: `CAN_MANAGE_TEAM` sets update_team, add_members and remove_members, and `CAN_DELETE_TEAM` sets delete_team.",
 		Computed:    true,
 		Attributes:  PublicApiUserPermissionsDataSourceAttributes,
 	},

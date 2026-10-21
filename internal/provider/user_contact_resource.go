@@ -37,7 +37,8 @@ func (r *UserContactResource) Metadata(_ context.Context, req resource.MetadataR
 
 func (r *UserContactResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Attributes: schemaAttributes.UserContactResourceAttributes,
+		MarkdownDescription: "Not supported with service accounts.",
+		Attributes:          schemaAttributes.UserContactResourceAttributes,
 	}
 }
 

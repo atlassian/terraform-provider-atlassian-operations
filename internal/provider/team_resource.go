@@ -42,6 +42,11 @@ func (r *TeamResource) Metadata(_ context.Context, req resource.MetadataRequest,
 
 func (r *TeamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "Manages an Atlassian team and enables JSM Operations for it.\n\n" +
+			"With `is_scoped_token = true` (a scoped API token or a service account), the team is managed through the Teams " +
+			"GraphQL API, which is in beta. See the [Scoped API Tokens and Service Accounts](https://registry.terraform.io/providers/atlassian/atlassian-operations/latest/docs/guides/scoped-api-tokens-and-service-accounts) guide for the " +
+			"required scopes and the service account requirements. To update or delete teams, a service account must be in a " +
+			"group that has the Manage teams and Delete teams permissions on the team permissions page of the Teams product.",
 		Attributes: schemaAttributes.TeamResourceAttributes,
 	}
 }

@@ -35,7 +35,8 @@ func (r *CustomRoleResource) Metadata(_ context.Context, req resource.MetadataRe
 
 func (r *CustomRoleResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Attributes: schemaAttributes.CustomRoleResourceAttributes,
+		MarkdownDescription: "Not supported with service accounts.",
+		Attributes:          schemaAttributes.CustomRoleResourceAttributes,
 	}
 }
 

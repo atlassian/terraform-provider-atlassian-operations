@@ -23,11 +23,11 @@ var ProviderAttributes = map[string]schema.Attribute{
 		Optional:    true,
 	},
 	"email_address": schema.StringAttribute{
-		Description: "The email address associated with your Atlassian Cloud account. This must be an admin account.",
+		Description: "The email address of the Atlassian account the token belongs to: an admin user, or a service account (`...@serviceaccount.atlassian.com`).",
 		Optional:    true,
 	},
 	"token": schema.StringAttribute{
-		Description: "Your Atlassian API token. You can generate this from your Atlassian account settings.",
+		Description: "Your Atlassian API token: a classic API token from your Atlassian account settings, or a scoped API token of a user or service account (then also set `is_scoped_token = true`).",
 		Optional:    true,
 		Sensitive:   true,
 	},
@@ -52,7 +52,8 @@ var ProviderAttributes = map[string]schema.Attribute{
 		Description: "Set to true when `token` is a scoped API token. The Teams REST API does not accept scoped tokens, so teams " +
 			"are then managed through the Atlassian GraphQL Gateway, and Jira user lookups go through " +
 			"api.atlassian.com/ex/jira/{cloud_id}. Defaults to false (classic API token). " +
-			"Can also be set via the ATLASSIAN_OPS_IS_SCOPED_TOKEN environment variable.",
+			"Can also be set via the ATLASSIAN_OPS_IS_SCOPED_TOKEN environment variable. The required token scopes are listed in the " +
+			"Scoped API Tokens and Service Accounts guide.",
 		Optional: true,
 	},
 }

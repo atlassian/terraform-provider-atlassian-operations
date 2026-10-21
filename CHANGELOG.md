@@ -1,3 +1,9 @@
+## v2.1.0
+
+#### Product:
+
+- Added the `is_scoped_token` provider setting (or `ATLASSIAN_OPS_IS_SCOPED_TOKEN`) for scoped API tokens of users and service accounts. When it is `true`, teams are managed through the Teams GraphQL API, because the Teams REST API rejects scoped tokens, and users are looked up through `api.atlassian.com/ex/jira/{cloud_id}`. Classic API token configurations are unchanged. See the [Scoped API Tokens and Service Accounts](docs/guides/scoped-api-tokens-and-service-accounts.md) guide for the required token scopes and service account requirements.
+
 ## v2.0.6
 
 #### Product:

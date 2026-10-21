@@ -24,7 +24,7 @@ Manage maintenance windows in Atlassian Operations.
 ### Optional
 
 - `description` (String) The description of the maintenance window
-- `team_id` (String) The ID of the team associated with this maintenance window
+- `team_id` (String) The ID of the team associated with this maintenance window. Team maintenance windows are not supported with service accounts; global ones (no `team_id`) are.
 
 ### Read-Only
 

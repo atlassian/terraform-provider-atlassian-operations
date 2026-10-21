@@ -72,7 +72,7 @@ var RotationResourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"participants": schema.ListNestedAttribute{
-		Description: "The list of participants in this rotation. Can include users, teams, escalation policies, or empty slots (noone).",
+		Description: "The list of participants in this rotation. Can include users, teams, escalation policies, or empty slots (noone). Service accounts cannot be participants.",
 		Optional:    true,
 		Computed:    true,
 		NestedObject: schema.NestedAttributeObject{
