@@ -9,6 +9,7 @@ type AtlassianOpsProviderModel struct {
 	emailAddress    string
 	token           string
 	orgAdminToken   string
+	isScopedToken   bool
 	apiRetryCount   int
 	apiRetryWait    time.Duration
 	apiRetryWaitMax time.Duration
@@ -22,6 +23,7 @@ func NewAtlassianOpsProviderModel(
 	emailAddress string,
 	token string,
 	orgAdminToken string,
+	isScopedToken bool,
 	apiRetryCount int,
 	apiRetryWait time.Duration,
 	apiRetryWaitMax time.Duration,
@@ -34,6 +36,7 @@ func NewAtlassianOpsProviderModel(
 		emailAddress:    emailAddress,
 		token:           token,
 		orgAdminToken:   orgAdminToken,
+		isScopedToken:   isScopedToken,
 		apiRetryCount:   apiRetryCount,
 		apiRetryWait:    apiRetryWait,
 		apiRetryWaitMax: apiRetryWaitMax,
@@ -63,6 +66,11 @@ func (receiver AtlassianOpsProviderModel) GetToken() string {
 
 func (receiver AtlassianOpsProviderModel) GetOrgAdminToken() string {
 	return receiver.orgAdminToken
+}
+
+// IsScopedToken reports whether the configured token is a scoped API token rather than a classic (unscoped) one.
+func (receiver AtlassianOpsProviderModel) IsScopedToken() bool {
+	return receiver.isScopedToken
 }
 
 func (receiver AtlassianOpsProviderModel) GetApiRetryCount() int {

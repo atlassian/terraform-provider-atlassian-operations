@@ -5,7 +5,11 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
+
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/aggClient"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
@@ -83,31 +87,44 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	tflog.Trace(ctx, "Creating the Team")
 
-	httpResp, err := httpClientHelpers.
-		GenerateTeamsClientRequest(r.clientConfiguration).
-		JoinBaseUrl(fmt.Sprintf("%s/teams/", teamDto.OrganizationId)).
-		Method(httpClient.POST).
-		SetBody(teamDto).
-		SetBodyParseObject(&teamDto).
-		Send()
-
-	if httpResp == nil {
-		tflog.Error(ctx, "Client Error. Unable to create team, got nil response")
-		resp.Diagnostics.AddError("Client Error", "Unable to create team, got nil response")
-	} else if httpResp.IsError() {
-		statusCode := httpResp.GetStatusCode()
-		errorResponse := httpResp.GetErrorBody()
-		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, status code: %d. Got response: %s", statusCode, *errorResponse))
+	var httpResp *httpClient.Response
+	var err error
+	if r.clientConfiguration.IsScopedToken() {
+		var created dto.TeamDto
+		created, err = aggClient.New(r.clientConfiguration).CreateTeam(ctx, teamDto, memberAccountIds(membersDto))
+		if err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, got error: %s", err))
 		} else {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, got http response: %d", statusCode))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, got http response: %d", statusCode))
+			teamDto = created
 		}
-	}
-	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, got error: %s", err))
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, got error: %s", err))
+	} else {
+		httpResp, err = httpClientHelpers.
+			GenerateTeamsClientRequest(r.clientConfiguration).
+			JoinBaseUrl(fmt.Sprintf("%s/teams/", teamDto.OrganizationId)).
+			Method(httpClient.POST).
+			SetBody(teamDto).
+			SetBodyParseObject(&teamDto).
+			Send()
+
+		if httpResp == nil {
+			tflog.Error(ctx, "Client Error. Unable to create team, got nil response")
+			resp.Diagnostics.AddError("Client Error", "Unable to create team, got nil response")
+		} else if httpResp.IsError() {
+			statusCode := httpResp.GetStatusCode()
+			errorResponse := httpResp.GetErrorBody()
+			if errorResponse != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, status code: %d. Got response: %s", statusCode, *errorResponse))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			} else {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, got http response: %d", statusCode))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, got http response: %d", statusCode))
+			}
+		}
+		if err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, got error: %s", err))
+		}
 	}
 
 	if resp.Diagnostics.HasError() {
@@ -132,35 +149,42 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	if len(addedUsers) > 0 {
 		tflog.Trace(ctx, "Adding users to the team")
-		memberAddResponse := dto.PublicApiMembershipAddResponse{}
-		httpResp, err = httpClientHelpers.
-			GenerateTeamsClientRequest(r.clientConfiguration).
-			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/add", teamDto.OrganizationId, teamDto.TeamId)).
-			Method(httpClient.POST).
-			SetBody(dto.TeamMemberList{Members: addedUsers}).
-			SetBodyParseObject(&memberAddResponse).
-			Send()
-
-		if httpResp == nil {
-			tflog.Error(ctx, "Client Error. Unable to add users to the team, got nil response")
-			resp.Diagnostics.AddError("Client Error", "Unable to add users to the team, got nil response")
-		} else if httpResp.IsError() {
-			statusCode := httpResp.GetStatusCode()
-			errorResponse := httpResp.GetErrorBody()
-			if errorResponse != nil {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, status code: %d. Got response: %s", statusCode, *errorResponse))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			} else {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got http response: %d", statusCode))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got http response: %d", statusCode))
+		if r.clientConfiguration.IsScopedToken() {
+			if err = aggClient.New(r.clientConfiguration).AddMembers(ctx, teamDto.TeamId, stringValue(teamDto.SiteId), memberAccountIds(addedUsers)); err != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got error: %s", err))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got error: %s", err))
 			}
-		}
-		if err != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got error: %s", err))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got error: %s", err))
-		} else if len(memberAddResponse.Errors) > 0 {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got errors: %v", memberAddResponse.Errors))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got errors: %v", memberAddResponse.Errors))
+		} else {
+			memberAddResponse := dto.PublicApiMembershipAddResponse{}
+			httpResp, err = httpClientHelpers.
+				GenerateTeamsClientRequest(r.clientConfiguration).
+				JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/add", teamDto.OrganizationId, teamDto.TeamId)).
+				Method(httpClient.POST).
+				SetBody(dto.TeamMemberList{Members: addedUsers}).
+				SetBodyParseObject(&memberAddResponse).
+				Send()
+
+			if httpResp == nil {
+				tflog.Error(ctx, "Client Error. Unable to add users to the team, got nil response")
+				resp.Diagnostics.AddError("Client Error", "Unable to add users to the team, got nil response")
+			} else if httpResp.IsError() {
+				statusCode := httpResp.GetStatusCode()
+				errorResponse := httpResp.GetErrorBody()
+				if errorResponse != nil {
+					tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, status code: %d. Got response: %s", statusCode, *errorResponse))
+					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, status code: %d. Got response: %s", statusCode, *errorResponse))
+				} else {
+					tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got http response: %d", statusCode))
+					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got http response: %d", statusCode))
+				}
+			}
+			if err != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got error: %s", err))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got error: %s", err))
+			} else if len(memberAddResponse.Errors) > 0 {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got errors: %v", memberAddResponse.Errors))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got errors: %v", memberAddResponse.Errors))
+			}
 		}
 
 		if resp.Diagnostics.HasError() {
@@ -175,35 +199,42 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	if len(removedUsers) > 0 {
 		tflog.Trace(ctx, "Removing extra users from the team")
-		removeMemberResponse := dto.PublicApiMembershipRemoveResponse{}
-		httpResp, err = httpClientHelpers.
-			GenerateTeamsClientRequest(r.clientConfiguration).
-			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/remove", teamDto.OrganizationId, teamDto.TeamId)).
-			Method(httpClient.POST).
-			SetBody(dto.TeamMemberList{Members: removedUsers}).
-			SetBodyParseObject(&removeMemberResponse).
-			Send()
-
-		if httpResp == nil {
-			tflog.Error(ctx, "Client Error. Unable to remove extra team members, got nil response")
-			resp.Diagnostics.AddError("Client Error", "Unable to remove extra team members, got nil response")
-		} else if httpResp.IsError() {
-			statusCode := httpResp.GetStatusCode()
-			errorResponse := httpResp.GetErrorBody()
-			if errorResponse != nil {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, status code: %d. Got response: %s", statusCode, *errorResponse))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, status code: %d. Got response: %s", statusCode, *errorResponse))
-			} else {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, got http response: %d", statusCode))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, got http response: %d", statusCode))
+		if r.clientConfiguration.IsScopedToken() {
+			if err = aggClient.New(r.clientConfiguration).RemoveMembers(ctx, teamDto.TeamId, stringValue(teamDto.SiteId), memberAccountIds(removedUsers)); err != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, got error: %s", err))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, got error: %s", err))
 			}
-		}
-		if err != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, got error: %s", err))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, got error: %s", err))
-		} else if len(removeMemberResponse.Errors) > 0 {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, got errors: %v", removeMemberResponse.Errors))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, got errors: %v", removeMemberResponse.Errors))
+		} else {
+			removeMemberResponse := dto.PublicApiMembershipRemoveResponse{}
+			httpResp, err = httpClientHelpers.
+				GenerateTeamsClientRequest(r.clientConfiguration).
+				JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/remove", teamDto.OrganizationId, teamDto.TeamId)).
+				Method(httpClient.POST).
+				SetBody(dto.TeamMemberList{Members: removedUsers}).
+				SetBodyParseObject(&removeMemberResponse).
+				Send()
+
+			if httpResp == nil {
+				tflog.Error(ctx, "Client Error. Unable to remove extra team members, got nil response")
+				resp.Diagnostics.AddError("Client Error", "Unable to remove extra team members, got nil response")
+			} else if httpResp.IsError() {
+				statusCode := httpResp.GetStatusCode()
+				errorResponse := httpResp.GetErrorBody()
+				if errorResponse != nil {
+					tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+				} else {
+					tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, got http response: %d", statusCode))
+					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, got http response: %d", statusCode))
+				}
+			}
+			if err != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, got error: %s", err))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, got error: %s", err))
+			} else if len(removeMemberResponse.Errors) > 0 {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, got errors: %v", removeMemberResponse.Errors))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, got errors: %v", removeMemberResponse.Errors))
+			}
 		}
 	}
 
@@ -222,8 +253,13 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	// Enable OPS for the Team
-	httpResp, err = httpClientHelpers.
-		GenerateJsmOpsClientRequest(r.clientConfiguration).
+	enableOpsRequest := httpClientHelpers.GenerateJsmOpsClientRequest(r.clientConfiguration)
+	if r.clientConfiguration.IsScopedToken() {
+		// A team created through AGG takes a while to reach JSM Ops (404/422 "Team not found"), so retry until it
+		// does, independently of api_retry_count (which is 0 unless set).
+		enableOpsRequest.SetRetryCount(aggEnableOpsRetryCount).SetRetryWaitTime(aggEnableOpsRetryWait).SetRetryMaxWaitTime(aggEnableOpsRetryWaitMax)
+	}
+	httpResp, err = enableOpsRequest.
 		AddRetryCondition(func(response *httpClient.Response, err error) bool {
 			if response.GetStatusCode() == 404 || response.GetStatusCode() == 422 {
 				return true
@@ -452,39 +488,58 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		siteId = r.clientConfiguration.GetCloudId()
 	}
 
-	httpResp, err := httpClientHelpers.
-		GenerateTeamsClientRequest(r.clientConfiguration).
-		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
-		Method(httpClient.GET).
-		SetQueryParam("siteId", siteId).
-		SetBodyParseObject(&teamDto).
-		Send()
-
-	if httpResp == nil {
-		tflog.Error(ctx, "Client Error. Unable to read team, got nil response")
-		resp.Diagnostics.AddError("Client Error", "Unable to read team, got nil response")
-	} else if httpResp.GetStatusCode() == 404 {
-		resp.State.RemoveResource(ctx)
-
-		return
-	} else if httpResp.IsError() {
-		statusCode := httpResp.GetStatusCode()
-		errorResponse := httpResp.GetErrorBody()
-		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
-		} else {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got http response: %d", statusCode))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, got http response: %d", statusCode))
+	if r.clientConfiguration.IsScopedToken() {
+		var err error
+		teamDto, err = aggClient.New(r.clientConfiguration).GetTeam(ctx, data.Id.ValueString(), siteId)
+		if errors.Is(err, aggClient.ErrTeamNotFound) {
+			resp.State.RemoveResource(ctx)
+			return
 		}
-	}
-	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got error: %s", err))
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team or to parse received data, got error: %s", err))
-	}
+		if err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, got error: %s", err))
+			return
+		}
+		// AGG does not return the organization ID used by the REST API; keep the one in state.
+		teamDto.OrganizationId = data.OrganizationId.ValueString()
+		if teamDto.TeamType == "" {
+			teamDto.TeamType = dto.TeamType(data.TeamType.ValueString())
+		}
+	} else {
+		httpResp, err := httpClientHelpers.
+			GenerateTeamsClientRequest(r.clientConfiguration).
+			JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
+			Method(httpClient.GET).
+			SetQueryParam("siteId", siteId).
+			SetBodyParseObject(&teamDto).
+			Send()
 
-	if resp.Diagnostics.HasError() {
-		return
+		if httpResp == nil {
+			tflog.Error(ctx, "Client Error. Unable to read team, got nil response")
+			resp.Diagnostics.AddError("Client Error", "Unable to read team, got nil response")
+		} else if httpResp.GetStatusCode() == 404 {
+			resp.State.RemoveResource(ctx)
+
+			return
+		} else if httpResp.IsError() {
+			statusCode := httpResp.GetStatusCode()
+			errorResponse := httpResp.GetErrorBody()
+			if errorResponse != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			} else {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got http response: %d", statusCode))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, got http response: %d", statusCode))
+			}
+		}
+		if err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team or to parse received data, got error: %s", err))
+		}
+
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
 	tflog.Trace(ctx, "Fetching team members")
@@ -535,31 +590,44 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	newTeamDto, newUsersDto := TeamModelToDto(ctx, newData)
 	_, currentUsersDto := TeamModelToDto(ctx, currentData)
 
-	httpResp, err := httpClientHelpers.
-		GenerateTeamsClientRequest(r.clientConfiguration).
-		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", newData.OrganizationId.ValueString(), newData.Id.ValueString())).
-		Method(httpClient.PATCH).
-		SetBody(newTeamDto).
-		SetBodyParseObject(&newTeamDto).
-		Send()
-
-	if httpResp == nil {
-		tflog.Error(ctx, "Client Error. Unable to update team, got nil response")
-		resp.Diagnostics.AddError("Client Error", "Unable to update team, got nil response")
-	} else if httpResp.IsError() {
-		statusCode := httpResp.GetStatusCode()
-		errorResponse := httpResp.GetErrorBody()
-		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, status code: %d. Got response: %s", statusCode, *errorResponse))
+	var httpResp *httpClient.Response
+	var err error
+	if r.clientConfiguration.IsScopedToken() {
+		var updated dto.TeamDto
+		updated, err = aggClient.New(r.clientConfiguration).UpdateTeam(ctx, newTeamDto)
+		if err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, got error: %s", err))
 		} else {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, got http response: %d", statusCode))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, got http response: %d", statusCode))
+			newTeamDto = updated
 		}
-	}
-	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, got error: %s", err))
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, got error: %s", err))
+	} else {
+		httpResp, err = httpClientHelpers.
+			GenerateTeamsClientRequest(r.clientConfiguration).
+			JoinBaseUrl(fmt.Sprintf("%s/teams/%s", newData.OrganizationId.ValueString(), newData.Id.ValueString())).
+			Method(httpClient.PATCH).
+			SetBody(newTeamDto).
+			SetBodyParseObject(&newTeamDto).
+			Send()
+
+		if httpResp == nil {
+			tflog.Error(ctx, "Client Error. Unable to update team, got nil response")
+			resp.Diagnostics.AddError("Client Error", "Unable to update team, got nil response")
+		} else if httpResp.IsError() {
+			statusCode := httpResp.GetStatusCode()
+			errorResponse := httpResp.GetErrorBody()
+			if errorResponse != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, status code: %d. Got response: %s", statusCode, *errorResponse))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			} else {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, got http response: %d", statusCode))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, got http response: %d", statusCode))
+			}
+		}
+		if err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, got error: %s", err))
+		}
 	}
 
 	if resp.Diagnostics.HasError() {
@@ -571,30 +639,37 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	if len(addedUsers) > 0 {
 		tflog.Trace(ctx, "Adding new team members")
-		httpResp, err = httpClientHelpers.
-			GenerateTeamsClientRequest(r.clientConfiguration).
-			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/add", newData.OrganizationId.ValueString(), newData.Id.ValueString())).
-			Method(httpClient.POST).
-			SetBody(dto.TeamMemberList{Members: addedUsers}).
-			Send()
-
-		if httpResp == nil {
-			tflog.Error(ctx, "Client Error. Unable to add new team members, got nil response")
-			resp.Diagnostics.AddError("Client Error", "Unable to add new team members, got nil response")
-		} else if httpResp.IsError() {
-			statusCode := httpResp.GetStatusCode()
-			errorResponse := httpResp.GetErrorBody()
-			if errorResponse != nil {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, status code: %d. Got response: %s", statusCode, *errorResponse))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, status code: %d. Got response: %s", statusCode, *errorResponse))
-			} else {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, got http response: %d", statusCode))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, got http response: %d", statusCode))
+		if r.clientConfiguration.IsScopedToken() {
+			if err = aggClient.New(r.clientConfiguration).AddMembers(ctx, newData.Id.ValueString(), newData.SiteId.ValueString(), memberAccountIds(addedUsers)); err != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, got error: %s", err))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, got error: %s", err))
 			}
-		}
-		if err != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, got error: %s", err))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, got error: %s", err))
+		} else {
+			httpResp, err = httpClientHelpers.
+				GenerateTeamsClientRequest(r.clientConfiguration).
+				JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/add", newData.OrganizationId.ValueString(), newData.Id.ValueString())).
+				Method(httpClient.POST).
+				SetBody(dto.TeamMemberList{Members: addedUsers}).
+				Send()
+
+			if httpResp == nil {
+				tflog.Error(ctx, "Client Error. Unable to add new team members, got nil response")
+				resp.Diagnostics.AddError("Client Error", "Unable to add new team members, got nil response")
+			} else if httpResp.IsError() {
+				statusCode := httpResp.GetStatusCode()
+				errorResponse := httpResp.GetErrorBody()
+				if errorResponse != nil {
+					tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+				} else {
+					tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, got http response: %d", statusCode))
+					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, got http response: %d", statusCode))
+				}
+			}
+			if err != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, got error: %s", err))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, got error: %s", err))
+			}
 		}
 
 		if resp.Diagnostics.HasError() {
@@ -604,35 +679,42 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	if len(removedUsers) > 0 {
 		tflog.Trace(ctx, "Removing old team members")
-		removeMembersResponse := dto.PublicApiMembershipRemoveResponse{}
-		httpResp, err = httpClientHelpers.
-			GenerateTeamsClientRequest(r.clientConfiguration).
-			JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/remove", currentData.OrganizationId.ValueString(), currentData.Id.ValueString())).
-			Method(httpClient.POST).
-			SetBody(dto.TeamMemberList{Members: removedUsers}).
-			SetBodyParseObject(&removeMembersResponse).
-			Send()
-
-		if httpResp == nil {
-			tflog.Error(ctx, "Client Error. Unable to remove old team members, got nil response")
-			resp.Diagnostics.AddError("Client Error", "Unable to remove old team members, got nil response")
-		} else if httpResp.IsError() {
-			statusCode := httpResp.GetStatusCode()
-			errorResponse := httpResp.GetErrorBody()
-			if errorResponse != nil {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, status code: %d. Got response: %s", statusCode, *errorResponse))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, status code: %d. Got response: %s", statusCode, *errorResponse))
-			} else {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, got http response: %d", statusCode))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, got http response: %d", statusCode))
+		if r.clientConfiguration.IsScopedToken() {
+			if err = aggClient.New(r.clientConfiguration).RemoveMembers(ctx, currentData.Id.ValueString(), currentData.SiteId.ValueString(), memberAccountIds(removedUsers)); err != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, got error: %s", err))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, got error: %s", err))
 			}
-		}
-		if err != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, got error: %s", err))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, got error: %s", err))
-		} else if len(removeMembersResponse.Errors) > 0 {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, got errors: %v", removeMembersResponse.Errors))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, got errors: %v", removeMembersResponse.Errors))
+		} else {
+			removeMembersResponse := dto.PublicApiMembershipRemoveResponse{}
+			httpResp, err = httpClientHelpers.
+				GenerateTeamsClientRequest(r.clientConfiguration).
+				JoinBaseUrl(fmt.Sprintf("%s/teams/%s/members/remove", currentData.OrganizationId.ValueString(), currentData.Id.ValueString())).
+				Method(httpClient.POST).
+				SetBody(dto.TeamMemberList{Members: removedUsers}).
+				SetBodyParseObject(&removeMembersResponse).
+				Send()
+
+			if httpResp == nil {
+				tflog.Error(ctx, "Client Error. Unable to remove old team members, got nil response")
+				resp.Diagnostics.AddError("Client Error", "Unable to remove old team members, got nil response")
+			} else if httpResp.IsError() {
+				statusCode := httpResp.GetStatusCode()
+				errorResponse := httpResp.GetErrorBody()
+				if errorResponse != nil {
+					tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+				} else {
+					tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, got http response: %d", statusCode))
+					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, got http response: %d", statusCode))
+				}
+			}
+			if err != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, got error: %s", err))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, got error: %s", err))
+			} else if len(removeMembersResponse.Errors) > 0 {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, got errors: %v", removeMembersResponse.Errors))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, got errors: %v", removeMembersResponse.Errors))
+			}
 		}
 
 		if resp.Diagnostics.HasError() {
@@ -660,29 +742,36 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 	tflog.Trace(ctx, "Deleting the TeamResource")
 
-	httpResp, err := httpClientHelpers.
-		GenerateTeamsClientRequest(r.clientConfiguration).
-		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
-		Method(httpClient.DELETE).
-		Send()
-
-	if httpResp == nil {
-		tflog.Error(ctx, "Client Error. Unable to delete team, got nil response")
-		resp.Diagnostics.AddError("Client Error", "Unable to delete team, got nil response")
-	} else if httpResp.IsError() {
-		statusCode := httpResp.GetStatusCode()
-		errorResponse := httpResp.GetErrorBody()
-		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, status code: %d. Got response: %s", statusCode, *errorResponse))
-		} else {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, got http response: %d", statusCode))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, got http response: %d", statusCode))
+	if r.clientConfiguration.IsScopedToken() {
+		if err := aggClient.New(r.clientConfiguration).DeleteTeam(ctx, data.Id.ValueString(), data.SiteId.ValueString()); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, got error: %s", err))
 		}
-	}
-	if httpResp != nil && err != nil {
-		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, got http response: %d", httpResp.GetStatusCode()))
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, got error: %s", err))
+	} else {
+		httpResp, err := httpClientHelpers.
+			GenerateTeamsClientRequest(r.clientConfiguration).
+			JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
+			Method(httpClient.DELETE).
+			Send()
+
+		if httpResp == nil {
+			tflog.Error(ctx, "Client Error. Unable to delete team, got nil response")
+			resp.Diagnostics.AddError("Client Error", "Unable to delete team, got nil response")
+		} else if httpResp.IsError() {
+			statusCode := httpResp.GetStatusCode()
+			errorResponse := httpResp.GetErrorBody()
+			if errorResponse != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, status code: %d. Got response: %s", statusCode, *errorResponse))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			} else {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, got http response: %d", statusCode))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, got http response: %d", statusCode))
+			}
+		}
+		if httpResp != nil && err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, got http response: %d", httpResp.GetStatusCode()))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, got error: %s", err))
+		}
 	}
 
 	if resp.Diagnostics.HasError() {
@@ -709,6 +798,9 @@ func (r *TeamResource) ImportState(ctx context.Context, req resource.ImportState
 }
 
 func (r *TeamResource) fetchTeamMembers(organizationId string, teamId string, siteId string) ([]dto.TeamMember, error) {
+	if r.clientConfiguration.IsScopedToken() {
+		return fetchTeamMembersViaAGG(r.clientConfiguration, teamId, siteId)
+	}
 	if siteId == "" {
 		siteId = r.clientConfiguration.GetCloudId()
 	}
@@ -750,7 +842,35 @@ func (r *TeamResource) fetchTeamMembers(organizationId string, teamId string, si
 	return members, nil
 }
 
+// fetchTeamMembersViaAGG pages through the team's members in AGG with the same loop as the Teams REST API
+// members list above: same request (first, after) and response (results, pageInfo) shapes.
+func fetchTeamMembersViaAGG(configuration dto.AtlassianOpsProviderModel, teamId string, siteId string) ([]dto.TeamMember, error) {
+	client := aggClient.New(configuration)
+	var members []dto.TeamMember
+
+	doneLooping := false
+	request := dto.DefaultTeamMemberListRequest()
+	for !doneLooping {
+		response, err := client.ListTeamMembers(context.Background(), teamId, siteId, request)
+		if err != nil {
+			return nil, err
+		}
+
+		members = append(members, response.Results...)
+		if !response.PageInfo.HasNextPage {
+			doneLooping = true
+		} else {
+			request.After = response.PageInfo.EndCursor
+		}
+	}
+	return members, nil
+}
+
 func (r *TeamResource) cleanupTeamSilent(teamDto dto.TeamDto) {
+	if r.clientConfiguration.IsScopedToken() {
+		_ = aggClient.New(r.clientConfiguration).DeleteTeam(context.Background(), teamDto.TeamId, stringValue(teamDto.SiteId))
+		return
+	}
 	_, _ = httpClientHelpers.
 		GenerateTeamsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", teamDto.OrganizationId, teamDto.TeamId)).
@@ -791,4 +911,26 @@ func diffUsers(newDto []dto.TeamMember, oldDto []dto.TeamMember) ([]dto.TeamMemb
 	}
 
 	return addedUsers, removedUsers
+}
+
+// A team created through AGG takes a while to reach JSM Ops, so enable-ops retries for about two minutes.
+const (
+	aggEnableOpsRetryCount   = 10
+	aggEnableOpsRetryWait    = 2 * time.Second
+	aggEnableOpsRetryWaitMax = 15 * time.Second
+)
+
+func memberAccountIds(members []dto.TeamMember) []string {
+	ids := make([]string, len(members))
+	for i, m := range members {
+		ids[i] = m.AccountId
+	}
+	return ids
+}
+
+func stringValue(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
 }

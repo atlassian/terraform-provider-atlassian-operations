@@ -43,11 +43,28 @@ func GenerateServiceClientRequest(providerModel dto.AtlassianOpsProviderModel) *
 	return req
 }
 
+// GenerateAGGClientRequest builds a request for the Atlassian GraphQL Gateway, which manages teams for scoped API
+// tokens; the Teams REST API rejects them.
+func GenerateAGGClientRequest(providerModel dto.AtlassianOpsProviderModel) *httpClient.Request {
+	req := httpClient.NewRequest()
+	req.SetUrl(fmt.Sprintf("https://%s/gateway/api/graphql", providerModel.GetDomainName()))
+	req.SetRetryCount(providerModel.GetApiRetryCount())
+	req.SetRetryWaitTime(providerModel.GetApiRetryWait())
+	req.SetRetryMaxWaitTime(providerModel.GetApiRetryWaitMax())
+	req.SetBasicAuth(providerModel.GetEmailAddress(), providerModel.GetToken())
+	return req
+}
+
 func GenerateUserClientRequest(providerModel dto.AtlassianOpsProviderModel) *httpClient.Request {
 	req := httpClient.NewRequest()
 	switch providerModel.GetProductType() {
 	case "jira-service-desk":
-		req.SetUrl(fmt.Sprintf("https://%s/rest/api/3/user/", providerModel.GetDomainName()))
+		if providerModel.IsScopedToken() {
+			// Scoped API tokens are rejected by the user API on the site domain; it must be reached through the gateway.
+			req.SetUrl(fmt.Sprintf("%s/ex/jira/%s/rest/api/3/user/", getAtlassianApiDomain(providerModel.GetIsStaging()), providerModel.GetCloudId()))
+		} else {
+			req.SetUrl(fmt.Sprintf("https://%s/rest/api/3/user/", providerModel.GetDomainName()))
+		}
 		req.SetBasicAuth(providerModel.GetEmailAddress(), providerModel.GetToken())
 	default:
 		req.SetUrl(fmt.Sprintf("%s/admin/v2/orgs/", getAtlassianApiDomain(providerModel.GetIsStaging())))

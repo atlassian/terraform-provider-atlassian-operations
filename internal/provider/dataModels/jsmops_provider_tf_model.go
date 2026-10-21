@@ -12,4 +12,5 @@ type AtlassianOpsProviderTfModel struct {
 	ApiRetryCount   types.Int32  `tfsdk:"api_retry_count"`
 	ApiRetryWait    types.Int32  `tfsdk:"api_retry_wait"`
 	ApiRetryWaitMax types.Int32  `tfsdk:"api_retry_wait_max"`
+	IsScopedToken   types.Bool   `tfsdk:"is_scoped_token"`
 }

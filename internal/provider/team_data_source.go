@@ -6,6 +6,8 @@ package provider
 import (
 	"context"
 	"fmt"
+
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/aggClient"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
@@ -86,68 +88,87 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		siteId = d.clientConfiguration.GetCloudId()
 	}
 
-	tflog.Trace(ctx, "Preparing HTTP Request to fetch team data from JSM Teams API")
-
-	teamFetchUrl := fmt.Sprintf("/%s/teams/%s",
-		model.OrganizationId.ValueString(),
-		model.Id.ValueString())
-
-	tflog.Trace(ctx, "Preparing HTTP Request to fetch team member data from JSM Team Members API")
-
-	teamMembersFetchUrl := fmt.Sprintf("/%s/teams/%s/members",
-		model.OrganizationId.ValueString(),
-		model.Id.ValueString())
-
-	tflog.Trace(ctx, "Sending HTTP request to JSM Teams API")
-
-	clientResp, err := httpClientHelpers.
-		GenerateTeamsClientRequest(d.clientConfiguration).
-		Method("GET").
-		JoinBaseUrl(teamFetchUrl).
-		SetQueryParam("siteId", siteId).
-		SetBodyParseObject(&data).
-		Send()
-
-	if err != nil {
-		tflog.Error(ctx, "Sending HTTP request to JSM Teams API Failed")
-		resp.Diagnostics.AddError("Client Error",
-			fmt.Sprintf("Unable to read team, got error: %s", err))
-	} else if clientResp.IsError() {
-		statusCode := clientResp.GetStatusCode()
-		errorResponse := clientResp.GetErrorBody()
-		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
-		} else {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got http response: %d", statusCode))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, got http response: %d", statusCode))
+	if d.clientConfiguration.IsScopedToken() {
+		teamDto, err := aggClient.New(d.clientConfiguration).GetTeam(ctx, model.Id.ValueString(), siteId)
+		if err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, got error: %s", err))
+			return
 		}
-	}
+		members, err := fetchTeamMembersViaAGG(d.clientConfiguration, model.Id.ValueString(), siteId)
+		if err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team members, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team members, got error: %s", err))
+			return
+		}
+		// AGG does not return the organization ID used by the REST API; keep the configured one.
+		teamDto.OrganizationId = model.OrganizationId.ValueString()
+		data = teamDto
+		memberData.Results = members
+	} else {
+		tflog.Trace(ctx, "Preparing HTTP Request to fetch team data from JSM Teams API")
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
+		teamFetchUrl := fmt.Sprintf("/%s/teams/%s",
+			model.OrganizationId.ValueString(),
+			model.Id.ValueString())
 
-	tflog.Trace(ctx, "Sending HTTP request to JSM Team Members API")
+		tflog.Trace(ctx, "Preparing HTTP Request to fetch team member data from JSM Team Members API")
 
-	clientResp, err = httpClientHelpers.
-		GenerateTeamsClientRequest(d.clientConfiguration).
-		Method("POST").
-		JoinBaseUrl(teamMembersFetchUrl).
-		SetQueryParam("siteId", siteId).
-		SetBodyParseObject(&memberData).
-		Send()
+		teamMembersFetchUrl := fmt.Sprintf("/%s/teams/%s/members",
+			model.OrganizationId.ValueString(),
+			model.Id.ValueString())
 
-	if err != nil {
-		tflog.Error(ctx, "Sending HTTP request to JSM Team Members API Failed")
-		resp.Diagnostics.AddError("Client Error",
-			fmt.Sprintf("Unable to read team members, got error: %s", err))
-		return
-	} else if clientResp.IsError() {
-		tflog.Error(ctx, "HTTP request to JSM Team Members API Returned an Error Code")
-		resp.Diagnostics.AddError("Client Error",
-			fmt.Sprintf("Unable to read team members, got status code: %d", clientResp.GetStatusCode()))
-		return
+		tflog.Trace(ctx, "Sending HTTP request to JSM Teams API")
+
+		clientResp, err := httpClientHelpers.
+			GenerateTeamsClientRequest(d.clientConfiguration).
+			Method("GET").
+			JoinBaseUrl(teamFetchUrl).
+			SetQueryParam("siteId", siteId).
+			SetBodyParseObject(&data).
+			Send()
+
+		if err != nil {
+			tflog.Error(ctx, "Sending HTTP request to JSM Teams API Failed")
+			resp.Diagnostics.AddError("Client Error",
+				fmt.Sprintf("Unable to read team, got error: %s", err))
+		} else if clientResp.IsError() {
+			statusCode := clientResp.GetStatusCode()
+			errorResponse := clientResp.GetErrorBody()
+			if errorResponse != nil {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			} else {
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got http response: %d", statusCode))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, got http response: %d", statusCode))
+			}
+		}
+
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		tflog.Trace(ctx, "Sending HTTP request to JSM Team Members API")
+
+		clientResp, err = httpClientHelpers.
+			GenerateTeamsClientRequest(d.clientConfiguration).
+			Method("POST").
+			JoinBaseUrl(teamMembersFetchUrl).
+			SetQueryParam("siteId", siteId).
+			SetBodyParseObject(&memberData).
+			Send()
+
+		if err != nil {
+			tflog.Error(ctx, "Sending HTTP request to JSM Team Members API Failed")
+			resp.Diagnostics.AddError("Client Error",
+				fmt.Sprintf("Unable to read team members, got error: %s", err))
+			return
+		} else if clientResp.IsError() {
+			tflog.Error(ctx, "HTTP request to JSM Team Members API Returned an Error Code")
+			resp.Diagnostics.AddError("Client Error",
+				fmt.Sprintf("Unable to read team members, got status code: %d", clientResp.GetStatusCode()))
+			return
+		}
 	}
 
 	tflog.Trace(ctx, "Converting Team Data into Terraform Model")

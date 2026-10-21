@@ -48,4 +48,11 @@ var ProviderAttributes = map[string]schema.Attribute{
 		Description: "The maximum wait time in seconds between API retries. Defaults to 30.",
 		Optional:    true,
 	},
+	"is_scoped_token": schema.BoolAttribute{
+		Description: "Set to true when `token` is a scoped API token. The Teams REST API does not accept scoped tokens, so teams " +
+			"are then managed through the Atlassian GraphQL Gateway, and Jira user lookups go through " +
+			"api.atlassian.com/ex/jira/{cloud_id}. Defaults to false (classic API token). " +
+			"Can also be set via the ATLASSIAN_OPS_IS_SCOPED_TOKEN environment variable.",
+		Optional: true,
+	},
 }

@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
@@ -160,12 +161,27 @@ func (p *atlassianOpsProvider) Configure(ctx context.Context, req provider.Confi
 		}
 	}
 
+	isScopedToken := config.IsScopedToken.ValueBool()
+	if envScoped := os.Getenv("ATLASSIAN_OPS_IS_SCOPED_TOKEN"); envScoped != "" {
+		parsed, err := strconv.ParseBool(envScoped)
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("is_scoped_token"),
+				"Invalid ATLASSIAN_OPS_IS_SCOPED_TOKEN value",
+				"ATLASSIAN_OPS_IS_SCOPED_TOKEN must be true or false, got: "+envScoped,
+			)
+			return
+		}
+		isScopedToken = parsed
+	}
+
 	ctx = tflog.SetField(ctx, "atlassian-operations_product_type", productType)
 	ctx = tflog.SetField(ctx, "atlassian-operations_cloud_id", cloudId)
 	ctx = tflog.SetField(ctx, "atlassian-operations_domain_name", domainName)
 	ctx = tflog.SetField(ctx, "atlassian-operations_email_address", emailAddress)
 	ctx = tflog.SetField(ctx, "atlassian-operations_org_admin_token", orgAdminToken)
 	ctx = tflog.SetField(ctx, "atlassian-operations_token", token)
+	ctx = tflog.SetField(ctx, "atlassian-operations_is_scoped_token", isScopedToken)
 	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "atlassian-operations_token")
 	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "atlassian-operations_org_admin_token")
 
@@ -179,6 +195,7 @@ func (p *atlassianOpsProvider) Configure(ctx context.Context, req provider.Confi
 		emailAddress,
 		token,
 		orgAdminToken,
+		isScopedToken,
 		int(config.ApiRetryCount.ValueInt32()),
 		time.Duration(config.ApiRetryWait.ValueInt32())*time.Second,
 		time.Duration(config.ApiRetryWaitMax.ValueInt32())*time.Second,
