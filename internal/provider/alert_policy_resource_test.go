@@ -8,6 +8,9 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
 func TestAccAlertPolicyResource(t *testing.T) {
@@ -475,6 +478,247 @@ resource "atlassian-operations_alert_policy" "test" {
 				),
 			},
 			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+// testAccAlertPolicyPriorityConfig renders a minimal team-scoped alert policy used by the
+// priority_value regression tests. priorityAttrs is injected verbatim so each step can vary
+// update_priority / priority_value (or omit priority_value entirely).
+func testAccAlertPolicyPriorityConfig(organizationId, emailPrimary, teamName, alertPolicyName, message, priorityAttrs string) string {
+	return providerConfig + `
+data "atlassian-operations_user" "test1" {
+	email_address = "` + emailPrimary + `"
+	organization_id = "` + organizationId + `"
+}
+
+resource "atlassian-operations_team" "example" {
+  display_name = "` + teamName + `"
+  description = "team description"
+  organization_id = "` + organizationId + `"
+  team_type = "MEMBER_INVITE"
+  member = [
+    {
+       account_id = data.atlassian-operations_user.test1.account_id
+    }
+  ]
+}
+
+resource "atlassian-operations_alert_policy" "test" {
+  name        = "` + alertPolicyName + `"
+  team_id     = atlassian-operations_team.example.id
+  type        = "alert"
+  enabled     = true
+  message     = "` + message + `"
+
+  filter = {
+    type = "match-any-condition"
+    conditions = [
+      {
+        field          = "message"
+        not            = false
+        operation      = "contains"
+        expected_value = "error"
+        order          = 0
+      }
+    ]
+  }
+
+  ` + priorityAttrs + `
+}`
+}
+
+// TestAccAlertPolicyResource_UpdatePriorityFalseWithoutValue reproduces JSDCLOUD-19677: with
+// update_priority = false and no priority_value, the API omits priorityValue, and priority_value
+// must stay null in every plan instead of becoming (known after apply). The second step changes an
+// unrelated attribute because that is what triggers the framework to re-plan unset computed values.
+func TestAccAlertPolicyResource_UpdatePriorityFalseWithoutValue(t *testing.T) {
+	alertPolicyName := uuid.NewString()
+	teamName := uuid.NewString()
+
+	organizationId := os.Getenv("ATLASSIAN_ACCTEST_ORGANIZATION_ID")
+	emailPrimary := os.Getenv("ATLASSIAN_ACCTEST_EMAIL_PRIMARY")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAlertPolicyPriorityConfig(organizationId, emailPrimary, teamName, alertPolicyName,
+					"Test alert message", `update_priority = false`),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectKnownValue("atlassian-operations_alert_policy.test", tfjsonpath.New("priority_value"), knownvalue.Null()),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "update_priority", "false"),
+					resource.TestCheckNoResourceAttr("atlassian-operations_alert_policy.test", "priority_value"),
+				),
+			},
+			{
+				Config: testAccAlertPolicyPriorityConfig(organizationId, emailPrimary, teamName, alertPolicyName,
+					"Updated alert message", `update_priority = false`),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("atlassian-operations_alert_policy.test", plancheck.ResourceActionUpdate),
+						plancheck.ExpectKnownValue("atlassian-operations_alert_policy.test", tfjsonpath.New("priority_value"), knownvalue.Null()),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "message", "Updated alert message"),
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "update_priority", "false"),
+					resource.TestCheckNoResourceAttr("atlassian-operations_alert_policy.test", "priority_value"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccAlertPolicyResource_UpdatePriorityTrueWithValue verifies an explicit priority_value is
+// stored as configured, survives an unrelated update, and re-plans empty.
+func TestAccAlertPolicyResource_UpdatePriorityTrueWithValue(t *testing.T) {
+	alertPolicyName := uuid.NewString()
+	teamName := uuid.NewString()
+
+	organizationId := os.Getenv("ATLASSIAN_ACCTEST_ORGANIZATION_ID")
+	emailPrimary := os.Getenv("ATLASSIAN_ACCTEST_EMAIL_PRIMARY")
+
+	priorityAttrs := `update_priority = true
+  priority_value  = "P2"`
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAlertPolicyPriorityConfig(organizationId, emailPrimary, teamName, alertPolicyName,
+					"Test alert message", priorityAttrs),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "update_priority", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "priority_value", "P2"),
+				),
+			},
+			{
+				Config: testAccAlertPolicyPriorityConfig(organizationId, emailPrimary, teamName, alertPolicyName,
+					"Updated alert message", priorityAttrs),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("atlassian-operations_alert_policy.test", plancheck.ResourceActionUpdate),
+						plancheck.ExpectKnownValue("atlassian-operations_alert_policy.test", tfjsonpath.New("priority_value"), knownvalue.StringExact("P2")),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "message", "Updated alert message"),
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "priority_value", "P2"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccAlertPolicyResource_UpdatePriorityTrueToFalse verifies switching from
+// update_priority = true / priority_value = "P2" to update_priority = false with no value plans
+// priority_value as null (matching what the API returns) and settles to an empty plan.
+func TestAccAlertPolicyResource_UpdatePriorityTrueToFalse(t *testing.T) {
+	alertPolicyName := uuid.NewString()
+	teamName := uuid.NewString()
+
+	organizationId := os.Getenv("ATLASSIAN_ACCTEST_ORGANIZATION_ID")
+	emailPrimary := os.Getenv("ATLASSIAN_ACCTEST_EMAIL_PRIMARY")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAlertPolicyPriorityConfig(organizationId, emailPrimary, teamName, alertPolicyName,
+					"Test alert message", `update_priority = true
+  priority_value  = "P2"`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "update_priority", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "priority_value", "P2"),
+				),
+			},
+			{
+				Config: testAccAlertPolicyPriorityConfig(organizationId, emailPrimary, teamName, alertPolicyName,
+					"Test alert message", `update_priority = false`),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("atlassian-operations_alert_policy.test", plancheck.ResourceActionUpdate),
+						plancheck.ExpectKnownValue("atlassian-operations_alert_policy.test", tfjsonpath.New("priority_value"), knownvalue.Null()),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "update_priority", "false"),
+					resource.TestCheckNoResourceAttr("atlassian-operations_alert_policy.test", "priority_value"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccAlertPolicyResource_UpdatePriorityTrueValueOmittedFromConfig guards the existing behaviour for
+// update_priority = true when priority_value is not in config but the server already holds one (for
+// example a policy created outside Terraform). The API rejects creating update_priority = true without a
+// priority value, so the policy is created with "P2" first and the value is then dropped from config.
+// The message also changes so an update is planned: priority_value must keep the server value from state
+// instead of becoming (known after apply) or null.
+func TestAccAlertPolicyResource_UpdatePriorityTrueValueOmittedFromConfig(t *testing.T) {
+	alertPolicyName := uuid.NewString()
+	teamName := uuid.NewString()
+
+	organizationId := os.Getenv("ATLASSIAN_ACCTEST_ORGANIZATION_ID")
+	emailPrimary := os.Getenv("ATLASSIAN_ACCTEST_EMAIL_PRIMARY")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAlertPolicyPriorityConfig(organizationId, emailPrimary, teamName, alertPolicyName,
+					"Test alert message", `update_priority = true
+  priority_value  = "P2"`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "update_priority", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "priority_value", "P2"),
+				),
+			},
+			{
+				Config: testAccAlertPolicyPriorityConfig(organizationId, emailPrimary, teamName, alertPolicyName,
+					"Updated alert message", `update_priority = true`),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("atlassian-operations_alert_policy.test", plancheck.ResourceActionUpdate),
+						plancheck.ExpectKnownValue("atlassian-operations_alert_policy.test", tfjsonpath.New("priority_value"), knownvalue.StringExact("P2")),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "message", "Updated alert message"),
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "update_priority", "true"),
+					resource.TestCheckResourceAttr("atlassian-operations_alert_policy.test", "priority_value", "P2"),
+				),
+			},
 		},
 	})
 }
