@@ -5,6 +5,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -55,6 +57,9 @@ var ApiIntegrationResourceAttributes = map[string]schema.Attribute{
 		Description: "Indicates whether this is an advanced API integration with additional configuration options.",
 		Computed:    true,
 		Optional:    false,
+		PlanModifiers: []planmodifier.Bool{
+			boolplanmodifier.UseStateForUnknown(),
+		},
 	},
 	"maintenance_sources": schema.ListNestedAttribute{
 		Description: "List of maintenance windows associated with this API integration. These define when the integration is under maintenance.",
@@ -64,24 +69,36 @@ var ApiIntegrationResourceAttributes = map[string]schema.Attribute{
 		Computed: true,
 		Required: false,
 		Optional: false,
+		PlanModifiers: []planmodifier.List{
+			listplanmodifier.UseStateForUnknown(),
+		},
 	},
 	"directions": schema.ListAttribute{
 		Description: "List of supported communication directions for this integration (e.g., 'inbound', 'outbound').",
 		ElementType: types.StringType,
 		Computed:    true,
 		Optional:    false,
+		PlanModifiers: []planmodifier.List{
+			listplanmodifier.UseStateForUnknown(),
+		},
 	},
 	"domains": schema.ListAttribute{
 		Description: "List of domains associated with this API integration. Used for routing and security purposes.",
 		ElementType: types.StringType,
 		Computed:    true,
 		Optional:    false,
+		PlanModifiers: []planmodifier.List{
+			listplanmodifier.UseStateForUnknown(),
+		},
 	},
 	"type_specific_properties": schema.StringAttribute{
 		Description: "JSON object containing integration-specific configuration properties. The schema depends on the integration type.",
 		CustomType:  jsontypes.ExactType{},
 		Computed:    true,
 		Optional:    true,
+		PlanModifiers: []planmodifier.String{
+			stringplanmodifier.UseStateForUnknown(),
+		},
 	},
 	"delete_default_actions": schema.BoolAttribute{
 		Description: "Set to true to remove default actions for this API integration. This is useful for custom integrations where default actions are not applicable. Defaults to false.",

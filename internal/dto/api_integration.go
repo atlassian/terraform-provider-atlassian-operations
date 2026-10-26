@@ -8,7 +8,8 @@ type (
 		Type                   string                 `json:"type"`
 		Enabled                bool                   `json:"enabled"`
 		TeamId                 string                 `json:"teamId"`
-		Advanced               bool                   `json:"advanced,omitempty"`
+		// Pointer: distinguishes an omitted field from false.
+		Advanced               *bool                  `json:"advanced,omitempty"`
 		MaintenanceSources     []MaintenanceSource    `json:"maintenanceSources,omitempty"`
 		Directions             []string               `json:"directions,omitempty"`
 		Domains                []string               `json:"domains,omitempty"`

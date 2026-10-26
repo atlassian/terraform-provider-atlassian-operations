@@ -33,7 +33,6 @@ func TestAccApiIntegrationResource_Api(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				ExpectNonEmptyPlan: true,
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
@@ -90,7 +89,6 @@ resource "atlassian-operations_api_integration" "example" {
 			},
 			// Update and Read testing
 			{
-				ExpectNonEmptyPlan: true,
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
@@ -161,7 +159,6 @@ func TestAccApiIntegrationResource_DeleteDefaultActions(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create with delete_default_actions = true
 			{
-				ExpectNonEmptyPlan: true,
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
@@ -234,7 +231,6 @@ func TestAccApiIntegrationResource_SecurityHub(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				ExpectNonEmptyPlan: true,
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
@@ -303,7 +299,6 @@ resource "atlassian-operations_api_integration" "example" {
 			},
 			// Update and Read testing
 			{
-				ExpectNonEmptyPlan: true,
 				Config: providerConfig + `
 data "atlassian-operations_user" "test1" {
 	email_address = "` + apiPrimary + `"
