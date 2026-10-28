@@ -1398,6 +1398,8 @@ func AlertPolicyModelToDto(ctx context.Context, model *dataModels.AlertPolicyMod
 					StartMinute: int(period.StartMinute.ValueInt64()),
 					EndHour:     int(period.EndHour.ValueInt64()),
 					EndMinute:   int(period.EndMinute.ValueInt64()),
+					StartDay:    period.StartDay.ValueInt64Pointer(),
+					EndDay:      period.EndDay.ValueInt64Pointer(),
 				}
 			}
 		}
@@ -1578,12 +1580,16 @@ func AlertPolicyDtoToModel(_ context.Context, order int64, dto *dto.AlertPolicyD
 					"start_minute": types.Int64Type,
 					"end_hour":     types.Int64Type,
 					"end_minute":   types.Int64Type,
+					"start_day":    types.Int64Type,
+					"end_day":      types.Int64Type,
 				},
 				map[string]attr.Value{
 					"start_hour":   types.Int64Value(int64(period.StartHour)),
 					"start_minute": types.Int64Value(int64(period.StartMinute)),
 					"end_hour":     types.Int64Value(int64(period.EndHour)),
 					"end_minute":   types.Int64Value(int64(period.EndMinute)),
+					"start_day":    types.Int64PointerValue(period.StartDay),
+					"end_day":      types.Int64PointerValue(period.EndDay),
 				},
 			)
 		}
@@ -1596,6 +1602,8 @@ func AlertPolicyDtoToModel(_ context.Context, order int64, dto *dto.AlertPolicyD
 					"start_minute": types.Int64Type,
 					"end_hour":     types.Int64Type,
 					"end_minute":   types.Int64Type,
+					"start_day":    types.Int64Type,
+					"end_day":      types.Int64Type,
 				}}},
 			},
 			map[string]attr.Value{
@@ -1605,6 +1613,8 @@ func AlertPolicyDtoToModel(_ context.Context, order int64, dto *dto.AlertPolicyD
 					"start_minute": types.Int64Type,
 					"end_hour":     types.Int64Type,
 					"end_minute":   types.Int64Type,
+					"start_day":    types.Int64Type,
+					"end_day":      types.Int64Type,
 				}}, periods),
 			},
 		)
@@ -1616,6 +1626,8 @@ func AlertPolicyDtoToModel(_ context.Context, order int64, dto *dto.AlertPolicyD
 				"start_minute": types.Int64Type,
 				"end_hour":     types.Int64Type,
 				"end_minute":   types.Int64Type,
+				"start_day":    types.Int64Type,
+				"end_day":      types.Int64Type,
 			}}},
 		})
 	}
