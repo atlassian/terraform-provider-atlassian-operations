@@ -1,3 +1,9 @@
+## v2.0.9
+
+#### Product:
+
+- Fix to bug https://jira.atlassian.com/browse/JSDCLOUD-19677. Fixed a recurring `priority_value = (known after apply)` diff on alert policies with `update_priority = false` and no `priority_value` set. `priority_value` is now planned as null whenever `update_priority` is false and no value is configured.
+
 ## v2.0.8
 
 #### Product:

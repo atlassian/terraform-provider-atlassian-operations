@@ -3,6 +3,8 @@ package schemaAttributes
 import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/schemaAttributes/customPlanModifiers"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
@@ -285,7 +287,7 @@ var AlertPolicyResourceAttributes = map[string]schema.Attribute{
 			stringvalidator.OneOf("P1", "P2", "P3", "P4", "P5"),
 		},
 		PlanModifiers: []planmodifier.String{
-			stringplanmodifier.UseStateForUnknown(),
+			customPlanModifiers.StringNullIfBoolFieldFalse(path.Root("update_priority")),
 		},
 	},
 	"keep_original_responders": schema.BoolAttribute{
