@@ -52,8 +52,10 @@ type AlertTimeRestrictionModel struct {
 }
 
 type AlertTimeRestrictionPeriodModel struct {
+	StartDay    types.Int64 `tfsdk:"start_day"`
 	StartHour   types.Int64 `tfsdk:"start_hour"`
 	StartMinute types.Int64 `tfsdk:"start_minute"`
+	EndDay      types.Int64 `tfsdk:"end_day"`
 	EndHour     types.Int64 `tfsdk:"end_hour"`
 	EndMinute   types.Int64 `tfsdk:"end_minute"`
 }

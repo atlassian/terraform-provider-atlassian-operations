@@ -1,3 +1,9 @@
+## v2.0.8
+
+#### Product:
+
+- Added `StartDay` and `EndDay` configuration for the Alert Policy resource.
+
 ## v2.0.7
 
 #### Product:

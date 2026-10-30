@@ -47,10 +47,12 @@ type TimeRestrictionDto struct {
 }
 
 type TimeRestrictionPeriodDto struct {
-	StartHour   int `json:"startHour"`
-	StartMinute int `json:"startMinute"`
-	EndHour     int `json:"endHour"`
-	EndMinute   int `json:"endMinute"`
+	StartDay    *int64 `json:"startDay,omitempty"`
+	StartHour   int    `json:"startHour"`
+	StartMinute int    `json:"startMinute"`
+	EndDay      *int64 `json:"endDay,omitempty"`
+	EndHour     int    `json:"endHour"`
+	EndMinute   int    `json:"endMinute"`
 }
 
 type ResponderDto struct {

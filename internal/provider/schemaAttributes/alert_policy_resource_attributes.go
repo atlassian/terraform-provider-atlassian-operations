@@ -8,10 +8,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -137,6 +137,15 @@ var AlertPolicyResourceAttributes = map[string]schema.Attribute{
 				Description: "List of time restriction periods",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
+						"start_day": schema.Int64Attribute{
+							Required:    false,
+							Optional:    true,
+							Description: "Start day of the restriction period",
+							Validators: []validator.Int64{
+								int64validator.AtLeast(0),
+								int64validator.AtMost(7),
+							},
+						},
 						"start_hour": schema.Int64Attribute{
 							Required:    true,
 							Description: "Start hour of the restriction period",
@@ -144,6 +153,15 @@ var AlertPolicyResourceAttributes = map[string]schema.Attribute{
 						"start_minute": schema.Int64Attribute{
 							Required:    true,
 							Description: "Start minute of the restriction period",
+						},
+						"end_day": schema.Int64Attribute{
+							Required:    false,
+							Optional:    true,
+							Description: "End day of the restriction period",
+							Validators: []validator.Int64{
+								int64validator.AtLeast(0),
+								int64validator.AtMost(7),
+							},
 						},
 						"end_hour": schema.Int64Attribute{
 							Required:    true,
