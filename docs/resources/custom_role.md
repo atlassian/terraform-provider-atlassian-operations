@@ -3,12 +3,12 @@
 page_title: "atlassian-operations_custom_role Resource - atlassian-operations"
 subcategory: ""
 description: |-
-  
+  Manages a custom role in JSM Operations. Not supported with service accounts.
 ---
 
 # atlassian-operations_custom_role (Resource)
 
-
+Manages a custom role in JSM Operations. Not supported with service accounts.
 
 
 

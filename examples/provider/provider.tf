@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    atlassian-operations = {
+      source = "atlassian/atlassian-operations"
+    }
+  }
+}
+
 provider "atlassian-operations" {
   cloud_id      = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
   domain_name   = "xxxx.atlassian.net"

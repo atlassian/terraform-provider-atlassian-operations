@@ -3,12 +3,12 @@
 page_title: "atlassian-operations_user_contact Resource - atlassian-operations"
 subcategory: ""
 description: |-
-  
+  Manages a user's contact method (email, SMS, voice or mobile) in JSM Operations. Not supported with service accounts.
 ---
 
 # atlassian-operations_user_contact (Resource)
 
-
+Manages a user's contact method (email, SMS, voice or mobile) in JSM Operations. Not supported with service accounts.
 
 
 

@@ -45,6 +45,41 @@ And the following data sources:
 
 \*Due to the internal structure of the Operations, _user_ is implemented solely as a data source and supports **read operations only**.
 
+## Scoped API Tokens and Service Accounts
+
+Scoped API tokens and service accounts are supported on Jira Service Management sites only (`product_type =
+"jira-service-desk"`). The Compass Operations API accepts basic authentication with classic API tokens only and
+defines no scopes, so with `product_type = "compass"` use a classic API token.
+
+Besides classic API tokens, the provider supports scoped API tokens of users and of service accounts
+(`...@serviceaccount.atlassian.com`). Set `auth_type = "scoped"` in the provider block, or the
+`ATLASSIAN_OPS_AUTH_TYPE=scoped` environment variable; a `@serviceaccount.atlassian.com` address gets `scoped` by default (service accounts have no classic API token):
+
+```hcl
+provider "atlassian-operations" {
+  cloud_id      = "<YOUR_CLOUD_ID>"
+  domain_name   = "<YOUR_DOMAIN>"
+  email_address = "my-bot@serviceaccount.atlassian.com"
+  token         = "<SCOPED_API_TOKEN>" # a service account holds all scopes on one token
+  # teams_token = "<SCOPED_TEAMS_API_TOKEN>" # only for a USER's scoped tokens, which are split per product
+}
+```
+
+A user's scoped API tokens are created per product and cannot hold the Teams scopes and the JSM Operations scopes together, so
+such a user sets `teams_token` (or `ATLASSIAN_OPS_API_TEAMS_TOKEN`) with the Teams scopes next to `token` with the rest; a service
+account's token carries all scopes and needs no `teams_token`. Without `teams_token`, `token` is used for teams too.
+The provider then calls api.atlassian.com instead of your site domain for teams and for user lookups; add
+api.atlassian.com to network allowlists. Everything else, including IDs and import formats, stays the
+same. Service accounts also need:
+
+* to be listed in the team's `member` set themselves, together with at least one human member, when Terraform must update members or delete the team later: a service account can update or delete a team, and manage its members, only while it is a member of that team, and the provider removes the creator from a new team unless it is in `member`
+* at least one human member in the team's `member` set, who can administer the team in the Operations UI; the provider nominates the member whose account ID sorts first as text as the team's Operations admin, change it in the Operations UI afterwards if needed
+* to stay out of schedule rotation `participants`
+* the Jira **Browse users and groups** [global permission](https://support.atlassian.com/jira-cloud-administration/docs/manage-global-permissions/) to look up users with the `atlassian-operations_user` data source (the [Find users API](https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-user-search/#api-rest-api-3-user-search-get) returns empty results without it)
+
+The required token scopes, the resources service accounts cannot use and troubleshooting tips are in the
+[Scoped API Tokens and Service Accounts](docs/guides/scoped-api-tokens-and-service-accounts.md) guide.
+
 ## Important Notes
 
 ### Policy Ordering
@@ -190,6 +225,7 @@ provider "atlassian-operations" {
    email_address = "<YOUR_EMAIL_ADDRESS>"     // e.g. user@example.com
    token = "<YOUR_TOKEN_HERE>"   // API token created in Atlassian account settings
    org_admin_token = "<YOUR_ORGANIZATION_ADMIN_TOKEN>"   // **NON-SCOPED** API Token created in Organization administration (only required for Compass)
+   auth_type = "classic"   // optional, classic is the default; "scoped" when token is a scoped API token of a user or service account (the default for @serviceaccount.atlassian.com addresses)
    product_type = "<YOUR_ATLASSIAN_OPERATIONS_PRODUCT>"   // jira-service-desk (default) or compass
 }
 
@@ -210,8 +246,10 @@ export ATLASSIAN_OPS_CLOUD_ID=YOUR_CLOUD_ID
 export ATLASSIAN_OPS_DOMAIN_NAME=YOUR_DOMAIN
 export ATLASSIAN_OPS_API_EMAIL_ADDRESS=YOUR_EMAIL_ADDRESS
 export ATLASSIAN_OPS_API_TOKEN=YOUR_TOKEN
+export ATLASSIAN_OPS_API_TEAMS_TOKEN=YOUR_TEAMS_TOKEN   # only for a user's scoped tokens: the token with the Teams scopes
 export ATLASSIAN_OPS_API_ORG_ADMIN_TOKEN=YOUR_ORGANIZATION_ADMIN_TOKEN
 export ATLASSIAN_OPS_PRODUCT_TYPE=YOUR_ATLASSIAN_OPERATIONS_PRODUCT
+export ATLASSIAN_OPS_AUTH_TYPE=scoped   # scoped API tokens and service accounts; classic is the default
 ```
 
 #### 5.2. Enable Debugging
