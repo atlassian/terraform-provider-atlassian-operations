@@ -91,6 +91,7 @@ func (p *atlassianOpsProvider) Configure(ctx context.Context, req provider.Confi
 	}
 	orgAdminToken := os.Getenv("ATLASSIAN_OPS_API_ORG_ADMIN_TOKEN")
 	token := os.Getenv("ATLASSIAN_OPS_API_TOKEN")
+	teamsToken := os.Getenv("ATLASSIAN_OPS_API_TEAMS_TOKEN")
 
 	if productType == "" {
 		if config.ProductType.IsNull() {
@@ -148,6 +149,11 @@ func (p *atlassianOpsProvider) Configure(ctx context.Context, req provider.Confi
 		}
 	}
 
+	// Optional second token for the Teams APIs; GetTeamsToken falls back to token when it stays empty.
+	if teamsToken == "" && !config.TeamsToken.IsNull() {
+		teamsToken = config.TeamsToken.ValueString()
+	}
+
 	if orgAdminToken == "" {
 		if config.OrgAdminToken.IsNull() && productType != "jira-service-desk" {
 			resp.Diagnostics.AddAttributeError(
@@ -160,13 +166,24 @@ func (p *atlassianOpsProvider) Configure(ctx context.Context, req provider.Confi
 		}
 	}
 
+	// auth_type: environment variable first (like every setting here), then the configuration value, then the
+	// default; see resolveAuthType for the normalisation of the values.
+	authType, err := resolveAuthType(os.Getenv("ATLASSIAN_OPS_AUTH_TYPE"), config.AuthType.ValueString(), emailAddress)
+	if err != nil {
+		resp.Diagnostics.AddAttributeError(path.Root("auth_type"), "Invalid auth_type value", err.Error())
+		return
+	}
+
 	ctx = tflog.SetField(ctx, "atlassian-operations_product_type", productType)
 	ctx = tflog.SetField(ctx, "atlassian-operations_cloud_id", cloudId)
 	ctx = tflog.SetField(ctx, "atlassian-operations_domain_name", domainName)
 	ctx = tflog.SetField(ctx, "atlassian-operations_email_address", emailAddress)
 	ctx = tflog.SetField(ctx, "atlassian-operations_org_admin_token", orgAdminToken)
 	ctx = tflog.SetField(ctx, "atlassian-operations_token", token)
+	ctx = tflog.SetField(ctx, "atlassian-operations_teams_token", teamsToken)
+	ctx = tflog.SetField(ctx, "atlassian-operations_auth_type", authType)
 	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "atlassian-operations_token")
+	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "atlassian-operations_teams_token")
 	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "atlassian-operations_org_admin_token")
 
 	tflog.Debug(ctx, "Creating atlassian-operations clientConfiguration")
@@ -178,7 +195,9 @@ func (p *atlassianOpsProvider) Configure(ctx context.Context, req provider.Confi
 		domainName,
 		emailAddress,
 		token,
+		teamsToken,
 		orgAdminToken,
+		authType,
 		int(config.ApiRetryCount.ValueInt32()),
 		time.Duration(config.ApiRetryWait.ValueInt32())*time.Second,
 		time.Duration(config.ApiRetryWaitMax.ValueInt32())*time.Second,
