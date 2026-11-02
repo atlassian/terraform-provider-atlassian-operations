@@ -34,6 +34,8 @@ func (r *ServiceResource) Metadata(_ context.Context, req resource.MetadataReque
 
 func (r *ServiceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "This resource only works for Jira Service Management services. " +
+			"[Read more about services](https://support.atlassian.com/jira-service-management-cloud/docs/what-is-services/).",
 		Attributes: schemaAttributes.ServiceResourceAttributes,
 	}
 }

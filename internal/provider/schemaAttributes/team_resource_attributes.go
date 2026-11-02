@@ -32,7 +32,7 @@ var TeamResourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"site_id": schema.StringAttribute{
-		Description: "The identifier of the Atlassian site where this team is configured. Must be between 1 and 255 characters.",
+		Description: "The identifier of the Atlassian site where this team is configured. Must be between 1 and 255 characters. When importing a team that is scoped to a site, include the site_id as the third part of the import identifier: `<team_id>,<organization_id>,<site_id>`; without site scoping the identifier is `<team_id>,<organization_id>`.",
 		Optional:    true,
 		Validators: []validator.String{
 			stringvalidator.LengthBetween(1, 255),

@@ -30,7 +30,7 @@ description: |-
 - `delay_action` (Attributes) Configuration for delaying alert notifications (see [below for nested schema](#nestedatt--delay_action))
 - `description` (String) The description of the notification policy
 - `filter` (Attributes) The filter configuration for the notification policy (see [below for nested schema](#nestedatt--filter))
-- `order` (Number) Order of the notification policy
+- `order` (Number) Order of the notification policy. Must be >= 1 (1 means first position, 2 means second, etc.). Requires explicit depends_on to ensure sequential creation.
 - `suppress` (Boolean) Whether to suppress notifications for this policy
 - `time_restriction` (Attributes) Time restriction configuration for the notification policy (see [below for nested schema](#nestedatt--time_restriction))
 

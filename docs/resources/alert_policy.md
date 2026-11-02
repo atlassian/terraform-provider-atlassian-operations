@@ -36,11 +36,11 @@ description: |-
 - `keep_original_details` (Boolean) Whether to keep the original details
 - `keep_original_responders` (Boolean) Whether to keep the original responders
 - `keep_original_tags` (Boolean) Whether to keep the original tags
-- `order` (Number) The order of the alert policy
+- `order` (Number) The order of the alert policy. Must be >= 1 (1 means first position, 2 means second, etc.). Requires explicit depends_on to ensure sequential creation.
 - `priority_value` (String) If update priorty is enabled, this is the value to set the priority to
 - `responders` (Attributes List) List of responders for the alert (see [below for nested schema](#nestedatt--responders))
 - `source` (String) Alert source template
-- `tags` (List of String) List of tags for the alert
+- `tags` (Set of String) Set of tags for the alert. Stored as an unordered set so that API-returned tag order changes do not produce a perpetual diff.
 - `team_id` (String) The ID of the team this alert policy belongs to
 - `time_restriction` (Attributes) Time restriction configuration for the alert policy (see [below for nested schema](#nestedatt--time_restriction))
 - `update_priority` (Boolean) Whether to update the priority of the alert
