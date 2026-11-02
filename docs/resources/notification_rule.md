@@ -3,12 +3,12 @@
 page_title: "atlassian-operations_notification_rule Resource - atlassian-operations"
 subcategory: ""
 description: |-
-  
+  Manages a user's notification rule in JSM Operations. Not supported with service accounts.
 ---
 
 # atlassian-operations_notification_rule (Resource)
 
-
+Manages a user's notification rule in JSM Operations. Not supported with service accounts.
 
 
 

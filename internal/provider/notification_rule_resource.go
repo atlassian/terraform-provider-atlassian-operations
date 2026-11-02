@@ -34,7 +34,8 @@ func (r *NotificationRuleResource) Metadata(_ context.Context, req resource.Meta
 
 func (r *NotificationRuleResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Attributes: schemaAttributes.NotificationRuleResourceAttributes,
+		MarkdownDescription: "Manages a user's notification rule in JSM Operations. Not supported with service accounts.",
+		Attributes:          schemaAttributes.NotificationRuleResourceAttributes,
 	}
 }
 
