@@ -3,12 +3,21 @@
 page_title: "atlassian-operations_user Data Source - atlassian-operations"
 subcategory: ""
 description: |-
-  User data source
+  User data source.
+  With product_type = "jira-service-desk" and auth_type = "scoped" (a scoped API token or a service account), users are looked up through api.atlassian.com/ex/jira/{cloud_id}; the token needs the read:jira-user scope. The account the token belongs to also needs the Jira Browse users and groups global permission; a service account must be added to a group that has it, otherwise the search returns no users (see Find users https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-user-search/#api-rest-api-3-user-search-get and Manage global permissions https://support.atlassian.com/jira-cloud-administration/docs/manage-global-permissions/).
+  With product_type = "compass", the lookup instead always goes through the organization admin API and authenticates with org_admin_token, regardless of auth_type. Service accounts cannot be looked up by email on Compass; find the service account's account_id at admin.atlassian.com and use it directly wherever it is needed, instead of this data source.
+  Each instance of this data source makes one API call on every plan, apply and refresh; the organization admin API rate-limits (429) a busy site. For large configurations, prefer raw account IDs in a team's member set over this data source where you can.
 ---
 
 # atlassian-operations_user (Data Source)
 
-User data source
+User data source.
+
+With `product_type = "jira-service-desk"` and `auth_type = "scoped"` (a scoped API token or a service account), users are looked up through `api.atlassian.com/ex/jira/{cloud_id}`; the token needs the `read:jira-user` scope. The account the token belongs to also needs the Jira **Browse users and groups** global permission; a service account must be added to a group that has it, otherwise the search returns no users (see [Find users](https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-user-search/#api-rest-api-3-user-search-get) and [Manage global permissions](https://support.atlassian.com/jira-cloud-administration/docs/manage-global-permissions/)).
+
+With `product_type = "compass"`, the lookup instead always goes through the organization admin API and authenticates with `org_admin_token`, regardless of `auth_type`. Service accounts cannot be looked up by email on Compass; find the service account's `account_id` at admin.atlassian.com and use it directly wherever it is needed, instead of this data source.
+
+Each instance of this data source makes one API call on every `plan`, `apply` and `refresh`; the organization admin API rate-limits (`429`) a busy site. For large configurations, prefer raw account IDs in a team's `member` set over this data source where you can.
 
 
 

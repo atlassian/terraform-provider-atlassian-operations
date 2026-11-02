@@ -24,7 +24,7 @@ func resolveAuthType(envValue, configValue, emailAddress string) (string, error)
 		authType = strings.ToLower(strings.TrimSpace(configValue))
 	}
 	if authType == "" {
-		if strings.HasSuffix(strings.ToLower(strings.TrimSpace(emailAddress)), dto.ServiceAccountEmailSuffix) {
+		if dto.IsServiceAccountEmail(emailAddress) {
 			return dto.AuthTypeScoped, nil
 		}
 		return dto.AuthTypeClassic, nil

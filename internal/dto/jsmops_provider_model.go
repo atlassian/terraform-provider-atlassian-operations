@@ -1,6 +1,9 @@
 package dto
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Values of the auth_type provider setting.
 const (
@@ -13,6 +16,11 @@ const (
 // ServiceAccountEmailSuffix ends the email address of every Atlassian service account. A service account never has a
 // classic API token, so auth_type defaults to AuthTypeScoped for such an address.
 const ServiceAccountEmailSuffix = "@serviceaccount.atlassian.com"
+
+// IsServiceAccountEmail reports whether the address is a service account's, ignoring case and surrounding whitespace.
+func IsServiceAccountEmail(email string) bool {
+	return strings.HasSuffix(strings.ToLower(strings.TrimSpace(email)), ServiceAccountEmailSuffix)
+}
 
 type AtlassianOpsProviderModel struct {
 	productType     string

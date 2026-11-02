@@ -53,7 +53,7 @@ var TeamResourceAttributes = map[string]schema.Attribute{
 		Attributes:  PublicApiUserPermissionsResourceAttributes,
 	},
 	"member": schema.SetNestedAttribute{
-		Description: "The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID. The provider nominates the member whose account ID sorts first as text as the team's Operations admin; include at least one human JSM user. " +
+		Description: "The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID. The provider nominates the member whose account ID sorts first as text as the team's Operations admin; include at least one human member, who can administer the team in the Operations UI. " +
 			"If the token belongs to a service account, that service account's own account ID must also be listed here, together with at least one human member, or it is removed from the team once creation finishes; without membership it can no longer update or delete the team, so every later `update` or `destroy` of this resource then fails. " +
 			"Find a service account's account ID at admin.atlassian.com, under Directory > Service accounts.",
 		Required: true,
