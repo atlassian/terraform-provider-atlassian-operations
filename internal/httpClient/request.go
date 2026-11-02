@@ -120,6 +120,11 @@ func (r *Request) SetOAuth2Auth(token string) *Request {
 	return r
 }
 
+func (r *Request) SetContext(ctx context.Context) *Request {
+	r.innerRequest = r.innerRequest.WithContext(ctx)
+	return r
+}
+
 func (r *Request) SetUrl(url string) *Request {
 	parse, err := r.innerRequest.URL.Parse(url)
 	if err != nil {
