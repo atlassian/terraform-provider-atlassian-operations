@@ -3,12 +3,15 @@
 page_title: "atlassian-operations_team Resource - atlassian-operations"
 subcategory: ""
 description: |-
-  
+  Manages an Atlassian team and enables JSM Operations for it.
+  With auth_type = "scoped" (a scoped API token or a service account), the team is managed through the Teams GraphQL API, which Atlassian currently labels beta. See the Scoped API Tokens and Service Accounts https://registry.terraform.io/providers/atlassian/atlassian-operations/latest/docs/guides/scoped-api-tokens-and-service-accounts guide for the required scopes and the service account requirements. A service account can update or delete a team, and manage its members, only while it is a member of that team, and the provider removes the creator from a new team unless it is listed in member; list the service account in member, together with at least one human member, when Terraform must update members or delete the team later. To create the team's schedules, policies, integrations and heartbeats in the same apply, the account running Terraform must be a JSM Operations product admin or the member whose account ID sorts first as text, which the provider nominates as the team's Operations admin. Otherwise those resources fail with 403 "You are not authorized …" until a team admin makes the account an Operations admin of the team in the Operations UI. Service accounts are not affected.
 ---
 
 # atlassian-operations_team (Resource)
 
+Manages an Atlassian team and enables JSM Operations for it.
 
+With `auth_type = "scoped"` (a scoped API token or a service account), the team is managed through the Teams GraphQL API, which Atlassian currently labels beta. See the [Scoped API Tokens and Service Accounts](https://registry.terraform.io/providers/atlassian/atlassian-operations/latest/docs/guides/scoped-api-tokens-and-service-accounts) guide for the required scopes and the service account requirements. A service account can update or delete a team, and manage its members, only while it is a member of that team, and the provider removes the creator from a new team unless it is listed in `member`; list the service account in `member`, together with at least one human member, when Terraform must update members or delete the team later. To create the team's schedules, policies, integrations and heartbeats in the same apply, the account running Terraform must be a JSM Operations product admin or the member whose account ID sorts first as text, which the provider nominates as the team's Operations admin. Otherwise those resources fail with 403 "You are not authorized …" until a team admin makes the account an Operations admin of the team in the Operations UI. Service accounts are not affected.
 
 
 
@@ -19,7 +22,7 @@ description: |-
 
 - `description` (String) A detailed description of the team's purpose, responsibilities, and scope of operations.
 - `display_name` (String) The human-readable name of the team as it appears in the Atlassian interface. This should be clear and identifiable.
-- `member` (Attributes Set) The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID. (see [below for nested schema](#nestedatt--member))
+- `member` (Attributes Set) The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID. The provider nominates the member whose account ID sorts first as text as the team's Operations admin; include at least one human JSM user. If the token belongs to a service account, that service account's own account ID must also be listed here, together with at least one human member, or it is removed from the team once creation finishes; without membership it can no longer update or delete the team, so every later `update` or `destroy` of this resource then fails. Find a service account's account ID at admin.atlassian.com, under Directory > Service accounts. (see [below for nested schema](#nestedatt--member))
 - `organization_id` (String) The unique identifier of the organization this team belongs to. This determines the team's organizational context.
 - `team_type` (String) The type of team that determines access and invitation policies. Valid values are `OPEN` (anyone can join), `MEMBER_INVITE` (members can invite others), or `EXTERNAL` (managed externally).
 
@@ -31,14 +34,14 @@ description: |-
 ### Read-Only
 
 - `id` (String) The unique identifier of the team. This is automatically generated when the team is created.
-- `user_permissions` (Attributes) The set of permissions that define what operations users can perform on this team. These are computed based on team type and user roles. (see [below for nested schema](#nestedatt--user_permissions))
+- `user_permissions` (Attributes) The set of permissions that define what operations users can perform on this team. These are computed based on team type and user roles. With `auth_type = "scoped"`, `update_team`, `add_members` and `remove_members` are reported together, and `delete_team` separately, based on what the token's account can do on this team. (see [below for nested schema](#nestedatt--user_permissions))
 
 <a id="nestedatt--member"></a>
 ### Nested Schema for `member`
 
 Required:
 
-- `account_id` (String) The unique Atlassian account identifier for the team member. This is used to uniquely identify users across Atlassian products.
+- `account_id` (String) The unique Atlassian account identifier for the team member, a raw account ID such as `70121:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. This is used to uniquely identify users across Atlassian products.
 
 
 <a id="nestedatt--user_permissions"></a>

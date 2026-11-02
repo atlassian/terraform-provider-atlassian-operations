@@ -42,19 +42,21 @@ var TeamResourceAttributes = map[string]schema.Attribute{
 		Description: "The type of team that determines access and invitation policies. Valid values are 'OPEN' (anyone can join), 'MEMBER_INVITE' (members can invite others), or 'EXTERNAL' (managed externally).",
 		Required:    true,
 		Validators: []validator.String{
-			stringvalidator.OneOf(string(dto.OPEN), string(dto.MEMBER_INVITE), string(dto.EXTERNAL)),
+			stringvalidator.OneOf(string(dto.OPEN), string(dto.MEMBER_INVITE)),
 		},
 	},
 	"user_permissions": schema.SingleNestedAttribute{
-		Description: "The set of permissions that define what operations users can perform on this team. These are computed based on team type and user roles.",
+		Description: "The set of permissions that define what operations users can perform on this team. These are computed based on team type and user roles. With `auth_type = \"scoped\"`, `update_team`, `add_members` and `remove_members` are reported together, and `delete_team` separately, based on what the token's account can do on this team.",
 		Computed:    true,
 		Optional:    false,
 		Required:    false,
 		Attributes:  PublicApiUserPermissionsResourceAttributes,
 	},
 	"member": schema.SetNestedAttribute{
-		Description: "The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID.",
-		Required:    true,
+		Description: "The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID. The provider nominates the member whose account ID sorts first as text as the team's Operations admin; include at least one human JSM user. " +
+			"If the token belongs to a service account, that service account's own account ID must also be listed here, together with at least one human member, or it is removed from the team once creation finishes; without membership it can no longer update or delete the team, so every later `update` or `destroy` of this resource then fails. " +
+			"Find a service account's account ID at admin.atlassian.com, under Directory > Service accounts.",
+		Required: true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: TeamMemberResourceAttributes,
 		},
@@ -100,7 +102,7 @@ var PublicApiUserPermissionsResourceAttributes = map[string]schema.Attribute{
 
 var TeamMemberResourceAttributes = map[string]schema.Attribute{
 	"account_id": schema.StringAttribute{
-		Description: "The unique Atlassian account identifier for the team member. This is used to uniquely identify users across Atlassian products.",
+		Description: "The unique Atlassian account identifier for the team member, a raw account ID such as `70121:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. This is used to uniquely identify users across Atlassian products.",
 		Required:    true,
 	},
 }

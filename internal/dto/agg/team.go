@@ -17,8 +17,8 @@ const (
 )
 
 type (
-	// MembershipSettings is TeamMembershipSettings (OPEN, MEMBER_INVITE, EXTERNAL, ORG_ADMIN_MANAGED): who can join
-	// the team. It has the same values as the REST teamType, so the two are converted with a plain cast.
+	// MembershipSettings is the API's TeamMembershipSettings: who can join the team (OPEN or MEMBER_INVITE for teams
+	// the provider creates).
 	MembershipSettings string
 	TeamState          string
 	Permission         string

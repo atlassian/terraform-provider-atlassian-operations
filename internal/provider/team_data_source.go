@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/aggClient"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/provider/dataModels"
@@ -37,8 +38,10 @@ func (d *teamDataSource) Metadata(_ context.Context, req datasource.MetadataRequ
 
 func (d *teamDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Team data source",
-		Attributes:          schemaAttributes.TeamDataSourceAttributes,
+		MarkdownDescription: "Team data source.\n\n" +
+			"With `auth_type = \"scoped\"` (a scoped API token or a service account), the team is read through the Teams GraphQL API, " +
+			"which Atlassian currently labels beta (`user_permissions` reflects what the token's account can do on this team). See the [Scoped API Tokens and Service Accounts](https://registry.terraform.io/providers/atlassian/atlassian-operations/latest/docs/guides/scoped-api-tokens-and-service-accounts) guide.",
+		Attributes: schemaAttributes.TeamDataSourceAttributes,
 	}
 }
 
@@ -86,6 +89,18 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		siteId = d.clientConfiguration.GetCloudId()
 	}
 
+	if d.clientConfiguration.IsScopedToken() {
+		teamDto, members, err := d.readViaAGG(ctx, model, siteId)
+		if err != nil {
+			tflog.Error(ctx, "Client Error. "+err.Error())
+			resp.Diagnostics.AddError("Client Error", err.Error())
+			return
+		}
+		model = TeamDtoToModel(teamDto, members, basetypes.NewBoolValue(false), siteId)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+		return
+	}
+
 	tflog.Trace(ctx, "Preparing HTTP Request to fetch team data from JSM Teams API")
 
 	teamFetchUrl := fmt.Sprintf("/%s/teams/%s",
@@ -116,8 +131,8 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		statusCode := clientResp.GetStatusCode()
 		errorResponse := clientResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(d.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(d.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, got http response: %d", statusCode))
@@ -160,4 +175,20 @@ func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+}
+
+// readViaAGG reads the team and its members through the Teams GraphQL API, which accepts scoped API tokens.
+func (d *teamDataSource) readViaAGG(ctx context.Context, model dataModels.TeamModel, siteId string) (dto.TeamDto, []dto.TeamMember, error) {
+	client := aggClient.New(d.clientConfiguration)
+	teamDto, err := client.GetTeam(ctx, model.Id.ValueString(), siteId)
+	if err != nil {
+		return dto.TeamDto{}, nil, fmt.Errorf("Unable to read team, got error: %w", err)
+	}
+	members, err := fetchTeamMembersViaAGG(ctx, client, model.Id.ValueString(), siteId)
+	if err != nil {
+		return dto.TeamDto{}, nil, fmt.Errorf("Unable to read team members, got error: %w", err)
+	}
+	// AGG does not return the organization ID used by the REST API; keep the configured one.
+	teamDto.OrganizationId = model.OrganizationId.ValueString()
+	return teamDto, members, nil
 }

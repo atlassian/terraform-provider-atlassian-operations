@@ -3,12 +3,15 @@
 page_title: "atlassian-operations_team Data Source - atlassian-operations"
 subcategory: ""
 description: |-
-  Team data source
+  Team data source.
+  With auth_type = "scoped" (a scoped API token or a service account), the team is read through the Teams GraphQL API, which Atlassian currently labels beta (user_permissions reflects what the token's account can do on this team). See the Scoped API Tokens and Service Accounts https://registry.terraform.io/providers/atlassian/atlassian-operations/latest/docs/guides/scoped-api-tokens-and-service-accounts guide.
 ---
 
 # atlassian-operations_team (Data Source)
 
-Team data source
+Team data source.
+
+With `auth_type = "scoped"` (a scoped API token or a service account), the team is read through the Teams GraphQL API, which Atlassian currently labels beta (`user_permissions` reflects what the token's account can do on this team). See the [Scoped API Tokens and Service Accounts](https://registry.terraform.io/providers/atlassian/atlassian-operations/latest/docs/guides/scoped-api-tokens-and-service-accounts) guide.
 
 
 

@@ -36,7 +36,7 @@ var TeamDataSourceAttributes = map[string]schema.Attribute{
 		Computed:    true,
 	},
 	"user_permissions": schema.SingleNestedAttribute{
-		Description: "The set of permissions that define what operations users can perform on this team.",
+		Description: "The set of permissions that define what operations users can perform on this team. With `auth_type = \"scoped\"`, `update_team`, `add_members` and `remove_members` are reported together, and `delete_team` separately, based on what the token's account can do on this team.",
 		Computed:    true,
 		Attributes:  PublicApiUserPermissionsDataSourceAttributes,
 	},
