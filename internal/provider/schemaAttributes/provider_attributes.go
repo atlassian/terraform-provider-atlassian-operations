@@ -8,8 +8,9 @@ import (
 
 var ProviderAttributes = map[string]schema.Attribute{
 	"product_type": schema.StringAttribute{
-		Optional:    true,
-		Description: "The type of Atlassian Operations product you are using. This can be 'jira-service-desk' or 'compass'. Defaults to 'jira-service-desk'.",
+		Optional: true,
+		Description: "The type of Atlassian Operations product you are using. This can be 'jira-service-desk' or 'compass'. Defaults to 'jira-service-desk'. " +
+			"Scoped API tokens and service accounts (`auth_type = \"scoped\"`) are supported with 'jira-service-desk' only; use a classic API token with 'compass'.",
 		Validators: []validator.String{
 			stringvalidator.OneOf("jira-service-desk", "compass"),
 		},
@@ -59,6 +60,7 @@ var ProviderAttributes = map[string]schema.Attribute{
 	},
 	"auth_type": schema.StringAttribute{
 		Description: "How the token authenticates: `classic` (default) for a classic API token, `scoped` for a scoped API token of a user or a service account (either value is matched case-insensitively). " +
+			"Scoped API tokens and service accounts are supported with `product_type = \"jira-service-desk\"` only; use a classic API token with `product_type = \"compass\"`. " +
 			"With `scoped`, the provider then calls api.atlassian.com for some requests instead of your site domain; add api.atlassian.com to network allowlists. " +
 			"Defaults to `scoped` when `email_address` ends in @serviceaccount.atlassian.com, since service accounts have no classic API token; an explicit value wins. " +
 			"Can also be set via the ATLASSIAN_OPS_AUTH_TYPE environment variable (takes precedence; its value is compared case-insensitively with surrounding whitespace ignored). Required scopes: see the Scoped API Tokens and Service Accounts guide.",

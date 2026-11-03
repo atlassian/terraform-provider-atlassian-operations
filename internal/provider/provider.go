@@ -48,6 +48,8 @@ func (p *atlassianOpsProvider) Metadata(_ context.Context, _ provider.MetadataRe
 // Schema defines the provider-level schema for configuration data.
 func (p *atlassianOpsProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "Manages Jira Service Management Operations and Compass Operations: teams, schedules, rotations, escalations, " +
+			"routing rules, alert and notification policies, integrations, heartbeats and maintenance windows.",
 		Attributes: schemaAttributes.ProviderAttributes,
 	}
 }
@@ -158,8 +160,9 @@ func (p *atlassianOpsProvider) Configure(ctx context.Context, req provider.Confi
 		if config.OrgAdminToken.IsNull() && productType != "jira-service-desk" {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("org_admin_token"),
-				"Unknown atlassian-operations API OrgAdminToken",
-				"The provider cannot create the atlassian-operations API clientConfiguration as there is an unknown configuration value for the atlassian-operations API org_admin_token. ",
+				"Missing atlassian-operations API OrgAdminToken",
+				"The provider cannot create the atlassian-operations API clientConfiguration because org_admin_token is not set. "+
+					"org_admin_token (or ATLASSIAN_OPS_API_ORG_ADMIN_TOKEN) is required for product_type = \"compass\".",
 			)
 		} else {
 			orgAdminToken = config.OrgAdminToken.ValueString()

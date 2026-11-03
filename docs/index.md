@@ -2,12 +2,12 @@
 page_title: "atlassian-operations Provider"
 subcategory: ""
 description: |-
-  
+  Manages Jira Service Management Operations and Compass Operations: teams, schedules, rotations, escalations, routing rules, alert and notification policies, integrations, heartbeats and maintenance windows.
 ---
 
 # atlassian-operations Provider
 
-
+Manages Jira Service Management Operations and Compass Operations: teams, schedules, rotations, escalations, routing rules, alert and notification policies, integrations, heartbeats and maintenance windows.
 
 ## Example Usage
 
@@ -76,11 +76,11 @@ The token scopes, service account requirements and limitations are described in 
 - `api_retry_count` (Number) The number of times to retry failed API requests. Defaults to 3.
 - `api_retry_wait` (Number) The initial wait time in seconds between API retries. This value is doubled for each subsequent retry. Defaults to 1.
 - `api_retry_wait_max` (Number) The maximum wait time in seconds between API retries. Defaults to 30.
-- `auth_type` (String) How the token authenticates: `classic` (default) for a classic API token, `scoped` for a scoped API token of a user or a service account (either value is matched case-insensitively). With `scoped`, the provider then calls api.atlassian.com for some requests instead of your site domain; add api.atlassian.com to network allowlists. Defaults to `scoped` when `email_address` ends in @serviceaccount.atlassian.com, since service accounts have no classic API token; an explicit value wins. Can also be set via the ATLASSIAN_OPS_AUTH_TYPE environment variable (takes precedence; its value is compared case-insensitively with surrounding whitespace ignored). Required scopes: see the Scoped API Tokens and Service Accounts guide.
+- `auth_type` (String) How the token authenticates: `classic` (default) for a classic API token, `scoped` for a scoped API token of a user or a service account (either value is matched case-insensitively). Scoped API tokens and service accounts are supported with `product_type = "jira-service-desk"` only; use a classic API token with `product_type = "compass"`. With `scoped`, the provider then calls api.atlassian.com for some requests instead of your site domain; add api.atlassian.com to network allowlists. Defaults to `scoped` when `email_address` ends in @serviceaccount.atlassian.com, since service accounts have no classic API token; an explicit value wins. Can also be set via the ATLASSIAN_OPS_AUTH_TYPE environment variable (takes precedence; its value is compared case-insensitively with surrounding whitespace ignored). Required scopes: see the Scoped API Tokens and Service Accounts guide.
 - `cloud_id` (String) The unique identifier of your Atlassian Cloud instance. This can be found in your Atlassian Cloud URL.
 - `domain_name` (String) The domain name of your Atlassian Cloud instance (e.g., 'your-domain.atlassian.net').
 - `email_address` (String) The email address of the Atlassian account the token belongs to: an admin user, or a service account (`...@serviceaccount.atlassian.com`).
 - `org_admin_token` (String, Sensitive) The API token of the organization admin, to be able to use User APIs. This field is only required & used for Compass.
-- `product_type` (String) The type of Atlassian Operations product you are using. This can be 'jira-service-desk' or 'compass'. Defaults to 'jira-service-desk'.
+- `product_type` (String) The type of Atlassian Operations product you are using. This can be 'jira-service-desk' or 'compass'. Defaults to 'jira-service-desk'. Scoped API tokens and service accounts (`auth_type = "scoped"`) are supported with 'jira-service-desk' only; use a classic API token with 'compass'.
 - `teams_token` (String, Sensitive) A second API token used only with `auth_type = "scoped"`, for the Teams GraphQL API calls of the team resource and data source. A user's scoped API tokens are created per product and cannot combine the Teams scopes (view:team:teams, view:membership:teams, write:team:teams, write:membership:teams, read:account) with the JSM Operations scopes, so a user with a scoped token puts the Jira and JSM Operations scopes on `token` and the Teams scopes on `teams_token`. Service accounts can hold all scopes on one token and do not need it. Defaults to `token`. Can also be set via the ATLASSIAN_OPS_API_TEAMS_TOKEN environment variable.
 - `token` (String, Sensitive) Your Atlassian API token: a classic API token from your Atlassian account settings, or a scoped API token of a user or service account (then also set `auth_type = "scoped"`).

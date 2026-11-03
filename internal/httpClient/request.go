@@ -77,6 +77,16 @@ func (receiver *Request) SetRetryMaxWaitTime(maxWaitTime time.Duration) *Request
 	return receiver
 }
 
+// SetRetryPolicy replaces the retry decision of this request with policy alone: the default policy and the retry
+// conditions are skipped. It is for requests that must not be retried after an unknown outcome (mutations) but may be
+// retried when the server did not run them (429).
+func (receiver *Request) SetRetryPolicy(policy func(resp *Response, err error) bool) *Request {
+	receiver.innerClient.CheckRetry = func(_ context.Context, resp *http.Response, err error) (bool, error) {
+		return policy(&Response{nativeResponse: resp}, err), nil
+	}
+	return receiver
+}
+
 func (receiver *Request) AddRetryHook(hook OnRetryFunc) *Request {
 	receiver.onRetryFuncs = append(receiver.onRetryFuncs, hook)
 	return receiver

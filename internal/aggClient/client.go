@@ -38,9 +38,10 @@ func (c Client) query(ctx context.Context, operationName, document string, varia
 	return c.send(ctx, operationName, document, variables, true)
 }
 
-// mutate posts a write operation exactly once, whatever api_retry_count says (it defaults to 3): a retry after a lost
-// response would apply the change a second time, and a repeated CreateTeam would leave a second team behind. Every
-// write goes through here, so the decision never depends on the text of the GraphQL document.
+// mutate posts a write operation once, whatever api_retry_count says (it defaults to 3), except after a 429, which
+// means the gateway did not run the request (retryablehttp's default backoff already honours Retry-After): a retry
+// after a lost response would apply the change a second time, and a repeated CreateTeam would leave a second team
+// behind. Every write goes through here, so the decision never depends on the text of the GraphQL document.
 func (c Client) mutate(ctx context.Context, operationName, document string, variables map[string]any) (agg.Response, error) {
 	return c.send(ctx, operationName, document, variables, false)
 }
@@ -52,7 +53,9 @@ func (c Client) send(ctx context.Context, operationName, document string, variab
 	req := c.newRequest(c.config)
 	req.SetContext(ctx)
 	if !retry {
-		req.SetRetryCount(0)
+		req.SetRetryPolicy(func(resp *httpClient.Response, err error) bool {
+			return err == nil && resp != nil && resp.GetStatusCode() == http.StatusTooManyRequests
+		})
 	}
 
 	var resp agg.Response

@@ -21,7 +21,8 @@ import (
 type gateway struct {
 	bodies    map[string]string
 	status    int  // answer every request with this HTTP status
-	failFirst bool // answer the first request with a 500, like a flaky gateway
+	first     int  // answer the first request with this HTTP status, like a flaky gateway
+	dropFirst bool // close the connection of the first request without answering it
 	url       string
 	// Requests are answered one at a time and calls is read only after Send returned, so no lock.
 	calls []agg.Request
@@ -36,9 +37,18 @@ func newGateway(t *testing.T, bodies map[string]string) *gateway {
 			t.Errorf("gateway: cannot decode request: %v", err)
 		}
 		g.calls = append(g.calls, req)
+		if g.dropFirst && len(g.calls) == 1 {
+			conn, _, err := w.(http.Hijacker).Hijack()
+			if err != nil {
+				t.Errorf("gateway: cannot drop the connection: %v", err)
+				return
+			}
+			_ = conn.Close()
+			return
+		}
 		status := g.status
-		if g.failFirst && len(g.calls) == 1 {
-			status = http.StatusInternalServerError
+		if g.first != 0 && len(g.calls) == 1 {
+			status = g.first
 		}
 		if status != 0 {
 			w.WriteHeader(status)
@@ -343,10 +353,34 @@ func TestAddAndRemoveMembers(t *testing.T) {
 	}
 }
 
+func retryingModel() dto.AtlassianOpsProviderModel {
+	return dto.NewAtlassianOpsProviderModel("jira-service-desk", "cloud-id", "example.atlassian.net", "me@example.com",
+		"token", "", "", dto.AuthTypeScoped, 2, time.Millisecond, 5*time.Millisecond, false)
+}
+
+// A 429 means the gateway did not run the mutation, so it is safe to send it again.
+func TestMutationsAreRetriedOnTooManyRequests(t *testing.T) {
+	g := newGateway(t, map[string]string{"AddMembers": `{"data":{"team":{"addMembers":{"success":true,"errors":[]}}}}`})
+	g.first = http.StatusTooManyRequests
+
+	if err := g.client(retryingModel()).AddMembers(context.Background(), "team-1", "site-1", []string{"a1"}); err != nil || len(g.calls) != 2 {
+		t.Errorf("a mutation must be retried after a 429, got %d calls and error %v", len(g.calls), err)
+	}
+}
+
+// A dropped connection leaves it unknown whether the gateway ran the mutation, so it is not sent again.
+func TestMutationsAreNotRetriedAfterADroppedConnection(t *testing.T) {
+	g := newGateway(t, map[string]string{"AddMembers": `{"data":{"team":{"addMembers":{"success":true,"errors":[]}}}}`})
+	g.dropFirst = true
+
+	if err := g.client(retryingModel()).AddMembers(context.Background(), "team-1", "site-1", []string{"a1"}); err == nil || len(g.calls) != 1 {
+		t.Errorf("a mutation must be sent once and fail after a dropped connection, got %d calls and error %v", len(g.calls), err)
+	}
+}
+
 func TestReadsAreRetriedAndMutationsAreNot(t *testing.T) {
 	ctx := context.Background()
-	retrying := dto.NewAtlassianOpsProviderModel("jira-service-desk", "cloud-id", "example.atlassian.net", "me@example.com",
-		"token", "", "", dto.AuthTypeScoped, 2, time.Millisecond, 5*time.Millisecond, false)
+	retrying := retryingModel()
 	calls := map[string]func(c Client) error{
 		"TeamV2": func(c Client) error { _, err := c.GetTeam(ctx, "team-1", "site-1"); return err },
 		"TeamMembers": func(c Client) error {
@@ -371,7 +405,7 @@ func TestReadsAreRetriedAndMutationsAreNot(t *testing.T) {
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
 			g := newGateway(t, map[string]string{"TeamV2": activeTeam, "TeamMembers": activeTeam})
-			g.failFirst = true
+			g.first = http.StatusInternalServerError
 
 			err := calls[operation](g.client(retrying))
 			isRead := operation == "TeamV2" || operation == "TeamMembers"
