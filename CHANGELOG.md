@@ -1,3 +1,12 @@
+## v2.1.0
+
+#### Product:
+
+- Added the `auth_type` provider setting (`classic`, the default, or `scoped`; also `ATLASSIAN_OPS_AUTH_TYPE`) for scoped API tokens of users and service accounts. It defaults to `scoped` when `email_address` ends in `@serviceaccount.atlassian.com`, because a service account has no classic API token. With `scoped`, teams are managed through the Teams GraphQL API, because the Teams REST API rejects scoped tokens, and for `product_type = "jira-service-desk"` users are looked up through `api.atlassian.com/ex/jira/{cloud_id}`. A user's scoped API tokens are created per product and cannot combine the Teams scopes with the JSM Operations scopes, so the new optional `teams_token` setting (or `ATLASSIAN_OPS_API_TEAMS_TOKEN`) carries the Teams scopes for the team resource and data source; it defaults to `token`, and service accounts (one token with all scopes) do not need it. Classic API token configurations are unchanged. Scoped API tokens and service accounts are supported for `product_type = "jira-service-desk"` only; Compass still requires a classic API token. User contacts, custom roles and notification rules are documented as not supported with service accounts. See the [Scoped API Tokens and Service Accounts](docs/guides/scoped-api-tokens-and-service-accounts.md) guide for the required token scopes and service account requirements.
+- The `atlassian-operations_user` data source now reports a rejected token as an authentication error instead of an empty response: a classic token that Jira cannot authenticate (`X-Seraph-LoginReason: AUTHENTICATED_FAILED`), or an invalid or expired scoped token rejected by `api.atlassian.com`. Team errors caused by a token's scopes (a scoped token sent to the Teams REST API, or a token missing a required scope) now say how to fix them.
+- The plan-time error for a missing `org_admin_token` now says that it is required for `product_type = "compass"`.
+- `atlassian-operations_team` with `auth_type = "scoped"`: Teams GraphQL mutations are sent once and retried only on `429`; reads retry as before.
+
 ## v2.0.9
 
 #### Product:
