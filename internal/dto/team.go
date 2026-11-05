@@ -3,6 +3,7 @@ package dto
 const (
 	OPEN          TeamType = "OPEN"
 	MEMBER_INVITE TeamType = "MEMBER_INVITE"
+	EXTERNAL      TeamType = "EXTERNAL"
 )
 
 type (
