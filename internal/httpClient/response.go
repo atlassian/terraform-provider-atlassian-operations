@@ -50,6 +50,14 @@ func (receiver *Response) GetStatusCode() int {
 	return receiver.nativeResponse.StatusCode
 }
 
+// GetHeader returns the first value of a response header, or "" when there is no response or no such header.
+func (receiver *Response) GetHeader(key string) string {
+	if receiver.nativeResponse == nil {
+		return ""
+	}
+	return receiver.nativeResponse.Header.Get(key)
+}
+
 func (receiver *Response) IsError() bool {
 	return receiver.GetStatusCode() == -1 || receiver.GetStatusCode() > 399
 }

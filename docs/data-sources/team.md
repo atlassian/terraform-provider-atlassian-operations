@@ -3,12 +3,15 @@
 page_title: "atlassian-operations_team Data Source - atlassian-operations"
 subcategory: ""
 description: |-
-  Team data source
+  Team data source.
+  With auth_type = "scoped" (a scoped API token or a service account), the team is read through the Teams GraphQL API, which Atlassian currently labels beta (user_permissions reflects what the token's account can do on this team). See the Scoped API Tokens and Service Accounts https://registry.terraform.io/providers/atlassian/atlassian-operations/latest/docs/guides/scoped-api-tokens-and-service-accounts guide.
 ---
 
 # atlassian-operations_team (Data Source)
 
-Team data source
+Team data source.
+
+With `auth_type = "scoped"` (a scoped API token or a service account), the team is read through the Teams GraphQL API, which Atlassian currently labels beta (`user_permissions` reflects what the token's account can do on this team). See the [Scoped API Tokens and Service Accounts](https://registry.terraform.io/providers/atlassian/atlassian-operations/latest/docs/guides/scoped-api-tokens-and-service-accounts) guide.
 
 
 
@@ -26,7 +29,7 @@ Team data source
 
 ### Read-Only
 
-- `delete_default_resources` (Boolean) Set to true to remove default escalation and schedule for newly created team. Be careful its also changes that team routing rule to None. That means you have to define routing rule as well. Defaults to false.
+- `delete_default_resources` (Boolean) Set to true to remove the default escalation and schedule of a newly created team. Be careful: it also sets the team's routing rule to None, so you must define a routing rule yourself. Defaults to false.
 - `description` (String) A detailed description of the team's purpose, responsibilities, and scope of operations.
 - `display_name` (String) The human-readable name of the team as it appears in the Atlassian interface.
 - `member` (Attributes Set) The set of users who are members of this team. Each member has their own role and permissions. (see [below for nested schema](#nestedatt--member))

@@ -49,11 +49,11 @@ resource "atlassian-operations_service" "example" {
   name        = "` + serviceName + `"
   description = "Test JSM Service Description"
   tier        = 3
-  type        = "SOFTWARE_SERVICES"
+  type        = "BUSINESS_SERVICES"
   owner = atlassian-operations_team.example.id
   change_approvers = {
     groups = [
-      "0c7a93f6-d6fc-44c7-ac4c-a16136ea91a7"
+      "af4a5948-3c4d-4703-834e-404b02c8b313"
     ]
   }
   responders = {
@@ -71,7 +71,7 @@ resource "atlassian-operations_service" "example" {
   }
   projects = {
     ids = [
-      "10002"
+      "10001"
     ]
   }
 }`,
@@ -79,13 +79,13 @@ resource "atlassian-operations_service" "example" {
 					resource.TestCheckResourceAttr("atlassian-operations_service.example", "name", serviceName),
 					resource.TestCheckResourceAttr("atlassian-operations_service.example", "description", "Test JSM Service Description"),
 					resource.TestCheckResourceAttr("atlassian-operations_service.example", "tier", "3"),
-					resource.TestCheckResourceAttr("atlassian-operations_service.example", "type", "SOFTWARE_SERVICES"),
+					resource.TestCheckResourceAttr("atlassian-operations_service.example", "type", "BUSINESS_SERVICES"),
 					resource.TestCheckResourceAttrPair("atlassian-operations_service.example", "owner", "atlassian-operations_team.example", "id"),
-					resource.TestCheckResourceAttr("atlassian-operations_service.example", "change_approvers.groups.0", "0c7a93f6-d6fc-44c7-ac4c-a16136ea91a7"),
+					resource.TestCheckResourceAttr("atlassian-operations_service.example", "change_approvers.groups.0", "af4a5948-3c4d-4703-834e-404b02c8b313"),
 					resource.TestCheckResourceAttrPair("atlassian-operations_service.example", "responders.users.0", "data.atlassian-operations_user.test1", "account_id"),
 					resource.TestCheckResourceAttrPair("atlassian-operations_service.example", "responders.teams.0", "atlassian-operations_team.example", "id"),
 					resource.TestCheckResourceAttrPair("atlassian-operations_service.example", "stakeholders.users.0", "data.atlassian-operations_user.test1", "account_id"),
-					resource.TestCheckResourceAttr("atlassian-operations_service.example", "projects.ids.0", "10002"),
+					resource.TestCheckResourceAttr("atlassian-operations_service.example", "projects.ids.0", "10001"),
 				),
 			},
 			// ImportState testing
@@ -119,18 +119,16 @@ resource "atlassian-operations_service" "example" {
   description = "Updated Test JSM Service Description"
   tier        = 2
   type        = "BUSINESS_SERVICES"
-  owner = ""
   change_approvers = {
     groups = [
-      "0c7a93f6-d6fc-44c7-ac4c-a16136ea91a7"
+      "af4a5948-3c4d-4703-834e-404b02c8b313"
     ]
   }
   responders = {
     users = [
       data.atlassian-operations_user.test1.account_id
     ]
-    teams = [
-    ]
+    teams = []
   }
   stakeholders = {
     users = [
@@ -139,7 +137,7 @@ resource "atlassian-operations_service" "example" {
   }
   projects = {
     ids = [
-      "10002"
+      "10001"
     ]
   }
 }`,
@@ -148,10 +146,10 @@ resource "atlassian-operations_service" "example" {
 					resource.TestCheckResourceAttr("atlassian-operations_service.example", "description", "Updated Test JSM Service Description"),
 					resource.TestCheckResourceAttr("atlassian-operations_service.example", "tier", "2"),
 					resource.TestCheckResourceAttr("atlassian-operations_service.example", "type", "BUSINESS_SERVICES"),
-					resource.TestCheckResourceAttr("atlassian-operations_service.example", "change_approvers.groups.0", "0c7a93f6-d6fc-44c7-ac4c-a16136ea91a7"),
+					resource.TestCheckResourceAttr("atlassian-operations_service.example", "change_approvers.groups.0", "af4a5948-3c4d-4703-834e-404b02c8b313"),
 					resource.TestCheckResourceAttrPair("atlassian-operations_service.example", "responders.users.0", "data.atlassian-operations_user.test1", "account_id"),
 					resource.TestCheckResourceAttrPair("atlassian-operations_service.example", "stakeholders.users.0", "data.atlassian-operations_user.test1", "account_id"),
-					resource.TestCheckResourceAttr("atlassian-operations_service.example", "projects.ids.0", "10002"),
+					resource.TestCheckResourceAttr("atlassian-operations_service.example", "projects.ids.0", "10001"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase

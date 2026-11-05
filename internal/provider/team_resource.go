@@ -5,7 +5,9 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/atlassian/terraform-provider-atlassian-operations/internal/aggClient"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/dto"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient"
 	"github.com/atlassian/terraform-provider-atlassian-operations/internal/httpClient/httpClientHelpers"
@@ -17,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -30,6 +33,7 @@ func NewTeamResource() resource.Resource {
 // TeamResource defines the resource implementation.
 type TeamResource struct {
 	clientConfiguration dto.AtlassianOpsProviderModel
+	agg                 aggClient.Client
 }
 
 func (r *TeamResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -38,6 +42,17 @@ func (r *TeamResource) Metadata(_ context.Context, req resource.MetadataRequest,
 
 func (r *TeamResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "Manages an Atlassian team and enables JSM Operations for it.\n\n" +
+			"With `auth_type = \"scoped\"` (a scoped API token or a service account), the team is managed through the Teams GraphQL API, " +
+			"which Atlassian currently labels beta. See the [Scoped API Tokens and Service Accounts](https://registry.terraform.io/providers/atlassian/atlassian-operations/latest/docs/guides/scoped-api-tokens-and-service-accounts) guide for the " +
+			"required scopes and the service account requirements. A service account can update or delete a team, and manage its " +
+			"members, only while it is a member of that team, and the provider removes the creator from a new team unless it is " +
+			"listed in `member`; list the service account in `member`, together with at least one human member, when Terraform must " +
+			"update members or delete the team later. To create the team's schedules, policies, integrations and heartbeats in the " +
+			"same apply, the account running Terraform must be a JSM Operations product admin or the member whose account ID sorts " +
+			"first as text, which the provider nominates as the team's Operations admin. " +
+			"Otherwise those resources fail with 403 \"You are not authorized …\" until a team admin makes the account an " +
+			"Operations admin of the team in the Operations UI. Service accounts are not affected.",
 		Attributes: schemaAttributes.TeamResourceAttributes,
 	}
 }
@@ -62,6 +77,7 @@ func (r *TeamResource) Configure(ctx context.Context, req resource.ConfigureRequ
 	}
 
 	r.clientConfiguration = client
+	r.agg = aggClient.New(client)
 
 	tflog.Trace(ctx, "Configured TeamResource")
 }
@@ -76,9 +92,15 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	plannedSiteId := data.SiteId
 
 	teamDto, membersDto := TeamModelToDto(ctx, data)
-	if teamDto.SiteId == nil {
-		siteId := r.clientConfiguration.GetCloudId()
-		teamDto.SiteId = &siteId
+	siteId := data.SiteId.ValueString()
+	if siteId == "" {
+		siteId = r.clientConfiguration.GetCloudId()
+	}
+	teamDto.SiteId = &siteId
+
+	if r.clientConfiguration.IsScopedToken() {
+		r.createViaAGG(ctx, data, teamDto, siteId, membersDto, resp)
+		return
 	}
 
 	tflog.Trace(ctx, "Creating the Team")
@@ -98,8 +120,8 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		statusCode := httpResp.GetStatusCode()
 		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, got http response: %d", statusCode))
@@ -123,8 +145,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch members for the created team, %s", err.Error()))
 	}
 	if resp.Diagnostics.HasError() {
-		tflog.Trace(ctx, "Deleting dangling team resource")
-		r.cleanupTeamSilent(teamDto)
+		r.rollbackCreatedTeam(ctx, teamDto, siteId, plannedSiteId.ValueString(), resp)
 		return
 	}
 
@@ -148,8 +169,8 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 			statusCode := httpResp.GetStatusCode()
 			errorResponse := httpResp.GetErrorBody()
 			if errorResponse != nil {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, status code: %d. Got response: %s", statusCode, *errorResponse))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, status code: %d. Got response: %s", statusCode, *errorResponse))
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
 			} else {
 				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got http response: %d", statusCode))
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got http response: %d", statusCode))
@@ -166,13 +187,26 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		if resp.Diagnostics.HasError() {
 			// If there is an error while adding users, the creation fails on Terraform's side, even though there is still a team on JSM side.
 			// So, we need to delete the team on JSM side if the adding users fails.
-			tflog.Trace(ctx, "Deleting dangling team resource")
-			r.cleanupTeamSilent(teamDto)
+			r.rollbackCreatedTeam(ctx, teamDto, siteId, plannedSiteId.ValueString(), resp)
 			return
 		}
 		tflog.Trace(ctx, "Users added to the team")
 	}
 
+	r.enableOps(ctx, teamDto, membersDto, resp)
+	if resp.Diagnostics.HasError() {
+		// If there is an error while enabling ops, the creation fails on Terraform's side, even though there is still a team on JSM side.
+		// So, we need to delete the team on JSM side if the enabling ops fails.
+		r.rollbackCreatedTeam(ctx, teamDto, siteId, plannedSiteId.ValueString(), resp)
+		return
+	}
+	tflog.Trace(ctx, "Enabled Operations for the Team")
+
+	if data.DeleteDefaultResources.ValueBool() {
+		r.deleteDefaultResources(ctx, teamDto.TeamId)
+	}
+
+	// Extra members (usually the creator) are removed last, so that a failure before this step can still be rolled back.
 	if len(removedUsers) > 0 {
 		tflog.Trace(ctx, "Removing extra users from the team")
 		removeMemberResponse := dto.PublicApiMembershipRemoveResponse{}
@@ -191,8 +225,8 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 			statusCode := httpResp.GetStatusCode()
 			errorResponse := httpResp.GetErrorBody()
 			if errorResponse != nil {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, status code: %d. Got response: %s", statusCode, *errorResponse))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
 			} else {
 				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, got http response: %d", statusCode))
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, got http response: %d", statusCode))
@@ -208,22 +242,34 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	if resp.Diagnostics.HasError() {
-		tflog.Trace(ctx, "Deleting dangling team resource")
-		r.cleanupTeamSilent(teamDto)
+		r.rollbackCreatedTeam(ctx, teamDto, siteId, plannedSiteId.ValueString(), resp)
 		return
 	}
 	tflog.Trace(ctx, "Extra users removed from the team")
 
+	data = TeamDtoToModel(teamDto, membersDto, data.DeleteDefaultResources, plannedSiteId.ValueString())
+
+	tflog.Trace(ctx, "Created the TeamResource")
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	tflog.Trace(ctx, "Saved the TeamResource into Terraform state")
+}
+
+// enableOps enables JSM Operations for a newly created team. A new team takes a while to reach JSM Ops (404, or 422
+// "Another request is already being processed now."), so this retries on its own dedicated budget for about two
+// minutes, independently of api_retry_count. A failure is reported in resp.
+func (r *TeamResource) enableOps(ctx context.Context, teamDto dto.TeamDto, membersDto []dto.TeamMember, resp *resource.CreateResponse) {
 	tflog.Trace(ctx, "Enabling Operations for the Team")
 	enableOpsBody := dto.TeamEnableOps{
 		TeamId:          teamDto.TeamId,
-		AdminAccountIds: []string{membersDto[0].AccountId},
+		AdminAccountIds: []string{adminAccountId(membersDto)},
 		InviteUsernames: make([]string, 0),
 	}
 
-	// Enable OPS for the Team
-	httpResp, err = httpClientHelpers.
+	httpResp, err := httpClientHelpers.
 		GenerateJsmOpsClientRequest(r.clientConfiguration).
+		SetRetryCount(enableOpsRetryCount).SetRetryWaitTime(enableOpsRetryWait).SetRetryMaxWaitTime(enableOpsRetryWaitMax).
 		AddRetryCondition(func(response *httpClient.Response, err error) bool {
 			if response.GetStatusCode() == 404 || response.GetStatusCode() == 422 {
 				return true
@@ -242,8 +288,8 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		statusCode := httpResp.GetStatusCode()
 		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to enable Operations for the created team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to enable Operations for the created team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to enable Operations for the created team, got http response: %d", statusCode))
@@ -253,36 +299,110 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to enable Operations for the created team, got error: %s", err))
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to enable Operations for the created team, got error: %s", err))
 	}
+}
 
+// deleteDefaultResources deletes the routing rule, escalation and schedule that JSM creates for a new team.
+func (r *TeamResource) deleteDefaultResources(ctx context.Context, teamId string) {
+	tflog.Trace(ctx, "Deleting default resources for the team")
+
+	err := findAndUpdateDefaultRoutingRule(teamId, r.clientConfiguration)
+	if err != nil {
+		tflog.Trace(ctx, "Could not find and update default routing rule for team", map[string]interface{}{"teamId": teamId, "error": err.Error()})
+	}
+
+	err = findAndDeleteDefaultEscalation(teamId, r.clientConfiguration)
+	if err != nil {
+		tflog.Trace(ctx, "Could not find and delete default escalation for team", map[string]interface{}{"teamId": teamId, "error": err.Error()})
+	}
+
+	err = findAndDeleteDefaultSchedule(teamId, r.clientConfiguration)
+	if err != nil {
+		tflog.Trace(ctx, "Could not find and delete default schedule for team", map[string]interface{}{"teamId": teamId, "error": err.Error()})
+	}
+}
+
+// createViaAGG is Create for scoped API tokens: the same steps in the same order as the Teams REST flow, through the
+// Teams GraphQL API.
+func (r *TeamResource) createViaAGG(ctx context.Context, data dataModels.TeamModel, teamDto dto.TeamDto, siteId string, membersDto []dto.TeamMember, resp *resource.CreateResponse) {
+	plannedSiteId := data.SiteId.ValueString()
+
+	tflog.Trace(ctx, "Creating the Team")
+
+	created, err := r.agg.CreateTeam(ctx, teamDto, siteId, memberAccountIds(membersDto))
+	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to create team, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create team, got error: %s", err))
+	} else {
+		teamDto = created
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Trace(ctx, "Team created")
+	tflog.Trace(ctx, "Fetch auto created members")
+
+	autoAddedMembers, err := fetchTeamMembersViaAGG(ctx, r.agg, teamDto.TeamId, siteId)
+	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch members for the created team, %s", err.Error()))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch members for the created team, %s", err.Error()))
+	}
+	if resp.Diagnostics.HasError() {
+		r.rollbackCreatedTeam(ctx, teamDto, siteId, plannedSiteId, resp)
+		return
+	}
+
+	addedUsers, removedUsers := diffUsers(membersDto, autoAddedMembers)
+
+	if len(addedUsers) > 0 {
+		tflog.Trace(ctx, "Adding users to the team")
+		if err = r.agg.AddMembers(ctx, teamDto.TeamId, siteId, memberAccountIds(addedUsers)); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add users to the team, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add users to the team, got error: %s", err))
+		}
+
+		if resp.Diagnostics.HasError() {
+			// If there is an error while adding users, the creation fails on Terraform's side, even though there is still a team on JSM side.
+			// So, we need to delete the team on JSM side if the adding users fails.
+			r.rollbackCreatedTeam(ctx, teamDto, siteId, plannedSiteId, resp)
+			return
+		}
+		tflog.Trace(ctx, "Users added to the team")
+	}
+
+	r.enableOps(ctx, teamDto, membersDto, resp)
 	if resp.Diagnostics.HasError() {
 		// If there is an error while enabling ops, the creation fails on Terraform's side, even though there is still a team on JSM side.
 		// So, we need to delete the team on JSM side if the enabling ops fails.
-		tflog.Trace(ctx, "Deleting dangling team resource")
-		r.cleanupTeamSilent(teamDto)
+		r.rollbackCreatedTeam(ctx, teamDto, siteId, plannedSiteId, resp)
 		return
 	}
 	tflog.Trace(ctx, "Enabled Operations for the Team")
 
 	if data.DeleteDefaultResources.ValueBool() {
-		tflog.Trace(ctx, "Deleting default resources for the team")
+		r.deleteDefaultResources(ctx, teamDto.TeamId)
+	}
 
-		err = findAndUpdateDefaultRoutingRule(teamDto.TeamId, r.clientConfiguration)
-		if err != nil {
-			tflog.Trace(ctx, "Could not find and update default routing rule for team", map[string]interface{}{"teamId": teamDto.TeamId, "error": err.Error()})
-		}
-
-		err = findAndDeleteDefaultEscalation(teamDto.TeamId, r.clientConfiguration)
-		if err != nil {
-			tflog.Trace(ctx, "Could not find and delete default escalation for team", map[string]interface{}{"teamId": teamDto.TeamId, "error": err.Error()})
-		}
-
-		err = findAndDeleteDefaultSchedule(teamDto.TeamId, r.clientConfiguration)
-		if err != nil {
-			tflog.Trace(ctx, "Could not find and delete default schedule for team", map[string]interface{}{"teamId": teamDto.TeamId, "error": err.Error()})
+	// Extra members (usually the creator) are removed last, after Operations is enabled and the default resources are
+	// handled. A service account that is not listed in `member` keeps its team permissions until here, so a creation
+	// that fails in one of the steps above can still be rolled back: DeleteTeam needs CAN_DELETE_TEAM, which a service
+	// account only has while it is a member.
+	if len(removedUsers) > 0 {
+		tflog.Trace(ctx, "Removing extra users from the team")
+		if err = r.agg.RemoveMembers(ctx, teamDto.TeamId, siteId, memberAccountIds(removedUsers)); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove extra team members, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove extra team members, got error: %s", err))
 		}
 	}
 
-	data = TeamDtoToModel(teamDto, membersDto, data.DeleteDefaultResources, plannedSiteId.ValueString())
+	if resp.Diagnostics.HasError() {
+		r.rollbackCreatedTeam(ctx, teamDto, siteId, plannedSiteId, resp)
+		return
+	}
+	tflog.Trace(ctx, "Extra users removed from the team")
+
+	data = TeamDtoToModel(teamDto, membersDto, data.DeleteDefaultResources, plannedSiteId)
 
 	tflog.Trace(ctx, "Created the TeamResource")
 
@@ -452,6 +572,11 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		siteId = r.clientConfiguration.GetCloudId()
 	}
 
+	if r.clientConfiguration.IsScopedToken() {
+		r.readViaAGG(ctx, data, siteId, resp)
+		return
+	}
+
 	httpResp, err := httpClientHelpers.
 		GenerateTeamsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", data.OrganizationId.ValueString(), data.Id.ValueString())).
@@ -471,8 +596,8 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		statusCode := httpResp.GetStatusCode()
 		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, got http response: %d", statusCode))
@@ -493,6 +618,46 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to fetch members for the created team, %s", err.Error()))
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch members for the created team, %s", err.Error()))
+	}
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	tflog.Trace(ctx, "Done fetching team members")
+
+	tflog.Trace(ctx, "Converting Team Data into Terraform Model")
+
+	data = TeamDtoToModel(teamDto, memberData, data.DeleteDefaultResources, data.SiteId.ValueString())
+
+	tflog.Trace(ctx, "Read the TeamResource")
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	tflog.Trace(ctx, "Saved the TeamResource into Terraform state")
+}
+
+// readViaAGG is Read for scoped API tokens: the team and its members come from the Teams GraphQL API.
+func (r *TeamResource) readViaAGG(ctx context.Context, data dataModels.TeamModel, siteId string, resp *resource.ReadResponse) {
+	teamDto, err := r.agg.GetTeam(ctx, data.Id.ValueString(), siteId)
+	if errors.Is(err, aggClient.ErrTeamNotFound) {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team, got error: %s", err))
+		return
+	}
+	// AGG does not return the organization ID used by the REST API; keep the one in state.
+	teamDto.OrganizationId = data.OrganizationId.ValueString()
+	if teamDto.TeamType == "" {
+		teamDto.TeamType = dto.TeamType(data.TeamType.ValueString())
+	}
+
+	tflog.Trace(ctx, "Fetching team members")
+
+	memberData, err := fetchTeamMembersViaAGG(ctx, r.agg, data.Id.ValueString(), siteId)
+	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to read team members, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read team members, got error: %s", err))
 	}
 	if resp.Diagnostics.HasError() {
 		return
@@ -532,6 +697,11 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	tflog.Trace(ctx, "Updating the TeamResource")
 
+	if r.clientConfiguration.IsScopedToken() {
+		r.updateViaAGG(ctx, currentData, newData, resp)
+		return
+	}
+
 	newTeamDto, newUsersDto := TeamModelToDto(ctx, newData)
 	_, currentUsersDto := TeamModelToDto(ctx, currentData)
 
@@ -550,8 +720,8 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		statusCode := httpResp.GetStatusCode()
 		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, got http response: %d", statusCode))
@@ -585,8 +755,8 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			statusCode := httpResp.GetStatusCode()
 			errorResponse := httpResp.GetErrorBody()
 			if errorResponse != nil {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, status code: %d. Got response: %s", statusCode, *errorResponse))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
 			} else {
 				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, got http response: %d", statusCode))
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, got http response: %d", statusCode))
@@ -620,8 +790,8 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			statusCode := httpResp.GetStatusCode()
 			errorResponse := httpResp.GetErrorBody()
 			if errorResponse != nil {
-				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, status code: %d. Got response: %s", statusCode, *errorResponse))
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, status code: %d. Got response: %s", statusCode, *errorResponse))
+				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
 			} else {
 				tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, got http response: %d", statusCode))
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, got http response: %d", statusCode))
@@ -652,6 +822,65 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	tflog.Trace(ctx, "Saved the TeamResource into Terraform state")
 }
 
+// updateViaAGG is Update for scoped API tokens: the team and its members are updated through the Teams GraphQL API.
+func (r *TeamResource) updateViaAGG(ctx context.Context, currentData dataModels.TeamModel, newData dataModels.TeamModel, resp *resource.UpdateResponse) {
+	newTeamDto, newUsersDto := TeamModelToDto(ctx, newData)
+	_, currentUsersDto := TeamModelToDto(ctx, currentData)
+
+	updated, err := r.agg.UpdateTeam(ctx, newTeamDto, newData.SiteId.ValueString())
+	if errors.Is(err, aggClient.ErrTeamNotFound) {
+		// Unlike Read, Update does not remove the resource from state: the plan already committed to an
+		// update, so the clearer outcome is an error telling the user to refresh and plan again, which lets
+		// Read notice the deletion and the next plan decide whether to recreate it.
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team: %s", err))
+		resp.Diagnostics.AddError("Client Error",
+			"Unable to update team: it no longer exists. Run `terraform apply` again to let Terraform notice the deletion and plan accordingly.")
+	} else if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to update team, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update team, got error: %s", err))
+	} else {
+		newTeamDto = updated
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Trace(ctx, "Updating the team members")
+	addedUsers, removedUsers := diffUsers(newUsersDto, currentUsersDto)
+
+	if len(addedUsers) > 0 {
+		tflog.Trace(ctx, "Adding new team members")
+		if err = r.agg.AddMembers(ctx, newData.Id.ValueString(), newData.SiteId.ValueString(), memberAccountIds(addedUsers)); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to add new team members, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to add new team members, got error: %s", err))
+		}
+
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
+	if len(removedUsers) > 0 {
+		tflog.Trace(ctx, "Removing old team members")
+		if err = r.agg.RemoveMembers(ctx, currentData.Id.ValueString(), currentData.SiteId.ValueString(), memberAccountIds(removedUsers)); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to remove old team members, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to remove old team members, got error: %s", err))
+		}
+
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
+	newData = TeamDtoToModel(newTeamDto, newUsersDto, newData.DeleteDefaultResources, newData.SiteId.ValueString())
+
+	tflog.Trace(ctx, "Updated the TeamResource")
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &newData)...)
+	tflog.Trace(ctx, "Saved the TeamResource into Terraform state")
+}
+
 func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var data dataModels.TeamModel
 
@@ -659,6 +888,17 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	tflog.Trace(ctx, "Deleting the TeamResource")
+
+	if r.clientConfiguration.IsScopedToken() {
+		if err := r.agg.DeleteTeam(ctx, data.Id.ValueString(), data.SiteId.ValueString()); err != nil {
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, got error: %s", err))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, got error: %s", err))
+		}
+		if !resp.Diagnostics.HasError() {
+			tflog.Trace(ctx, "Deleted the TeamResource")
+		}
+		return
+	}
 
 	httpResp, err := httpClientHelpers.
 		GenerateTeamsClientRequest(r.clientConfiguration).
@@ -673,8 +913,8 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		statusCode := httpResp.GetStatusCode()
 		errorResponse := httpResp.GetErrorBody()
 		if errorResponse != nil {
-			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, status code: %d. Got response: %s", statusCode, *errorResponse))
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, status code: %d. Got response: %s", statusCode, *errorResponse))
+			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, status code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse)))
 		} else {
 			tflog.Error(ctx, fmt.Sprintf("Client Error. Unable to delete team, got http response: %d", statusCode))
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete team, got http response: %d", statusCode))
@@ -734,7 +974,7 @@ func (r *TeamResource) fetchTeamMembers(organizationId string, teamId string, si
 			statusCode := httpResp.GetStatusCode()
 			errorResponse := httpResp.GetErrorBody()
 			if errorResponse != nil {
-				return nil, fmt.Errorf("error while fetching team members. Status Code: %d. Got response: %s", statusCode, *errorResponse)
+				return nil, fmt.Errorf("error while fetching team members. Status Code: %d. Got response: %s%s", statusCode, *errorResponse, scopedTokenHint(r.clientConfiguration.IsScopedToken(), statusCode, *errorResponse))
 			} else {
 				return nil, fmt.Errorf("error while fetching team members. Status Code: %d", httpResp.GetStatusCode())
 			}
@@ -750,12 +990,96 @@ func (r *TeamResource) fetchTeamMembers(organizationId string, teamId string, si
 	return members, nil
 }
 
-func (r *TeamResource) cleanupTeamSilent(teamDto dto.TeamDto) {
-	_, _ = httpClientHelpers.
+// fetchTeamMembersViaAGG pages through the team's members in AGG with the same loop as the Teams REST API
+// members list above: same request (first, after) and response (results, pageInfo) shapes.
+func fetchTeamMembersViaAGG(ctx context.Context, client aggClient.Client, teamId string, siteId string) ([]dto.TeamMember, error) {
+	var members []dto.TeamMember
+
+	doneLooping := false
+	request := dto.DefaultTeamMemberListRequest()
+	for !doneLooping {
+		response, err := client.ListTeamMembers(ctx, teamId, siteId, request)
+		if err != nil {
+			return nil, err
+		}
+
+		members = append(members, response.Results...)
+		if response.PageInfo.HasNextPage && (response.PageInfo.EndCursor == "" || response.PageInfo.EndCursor == request.After) {
+			return nil, fmt.Errorf("Teams GraphQL API TeamMembers returned an invalid page cursor for team %s", teamId)
+		}
+		if !response.PageInfo.HasNextPage {
+			doneLooping = true
+		} else {
+			request.After = response.PageInfo.EndCursor
+		}
+	}
+	return members, nil
+}
+
+// adminAccountId returns the member with the lexicographically smallest account ID: the provider's explicit,
+// specified choice for the team's Operations admin, so it does not depend on the order Terraform hands `member`
+// to the provider (a set has none) or on cty's internal, undefined ordering for object elements. Any member can be
+// made admin later in the Operations UI.
+func adminAccountId(members []dto.TeamMember) string {
+	admin := members[0].AccountId
+	for _, m := range members[1:] {
+		if m.AccountId < admin {
+			admin = m.AccountId
+		}
+	}
+	return admin
+}
+
+// rollbackCreatedTeam deletes a team whose creation failed halfway, so that it is not left behind outside Terraform
+// state. When the deletion fails too, it reports the orphaned team and how to recover it: the import ID follows
+// plannedSiteId (the plan's site_id), not siteId, which Create defaults to the provider's cloud_id when
+// site_id is not configured so the API has one to act on; importing that default would store site_id = cloud_id in
+// state, which then keeps diffing against a configuration that omits site_id.
+func (r *TeamResource) rollbackCreatedTeam(ctx context.Context, teamDto dto.TeamDto, siteId string, plannedSiteId string, resp *resource.CreateResponse) {
+	tflog.Trace(ctx, "Deleting the team whose creation failed")
+	// Ctrl-C or a deadline cancels ctx; the cleanup gets its own short budget so the team is not left behind.
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+	defer cancel()
+	if err := r.deleteCreatedTeam(cleanupCtx, teamDto, siteId); err != nil {
+		importId := teamDto.TeamId + "," + teamDto.OrganizationId
+		if plannedSiteId != "" {
+			importId += "," + plannedSiteId
+		}
+		tflog.Error(ctx, fmt.Sprintf("Unable to delete the team %s after its creation failed: %s", teamDto.TeamId, err))
+		resp.Diagnostics.AddError(
+			"Team left behind after a failed creation",
+			fmt.Sprintf("The team %q (id %s) was created, but it could not be deleted after the creation failed: %s. "+
+				"Delete it in Atlassian Administration, or import it with `terraform import atlassian-operations_team.<name> \"%s\"` and apply again.",
+				teamDto.DisplayName, teamDto.TeamId, err, importId),
+		)
+		return
+	}
+	tflog.Trace(ctx, "Deleted the team whose creation failed")
+}
+
+// deleteCreatedTeam deletes the team through the API that created it and reports a failed deletion.
+func (r *TeamResource) deleteCreatedTeam(ctx context.Context, teamDto dto.TeamDto, siteId string) error {
+	if r.clientConfiguration.IsScopedToken() {
+		return r.agg.DeleteTeam(ctx, teamDto.TeamId, siteId)
+	}
+	httpResp, err := httpClientHelpers.
 		GenerateTeamsClientRequest(r.clientConfiguration).
 		JoinBaseUrl(fmt.Sprintf("%s/teams/%s", teamDto.OrganizationId, teamDto.TeamId)).
 		Method(httpClient.DELETE).
 		Send()
+	if err != nil {
+		return err
+	}
+	if httpResp == nil {
+		return fmt.Errorf("got nil response")
+	}
+	if httpResp.IsError() {
+		if body := httpResp.GetErrorBody(); body != nil {
+			return fmt.Errorf("status code %d: %s", httpResp.GetStatusCode(), *body)
+		}
+		return fmt.Errorf("status code %d", httpResp.GetStatusCode())
+	}
+	return nil
 }
 
 func diffUsers(newDto []dto.TeamMember, oldDto []dto.TeamMember) ([]dto.TeamMember, []dto.TeamMember) {
@@ -791,4 +1115,20 @@ func diffUsers(newDto []dto.TeamMember, oldDto []dto.TeamMember) ([]dto.TeamMemb
 	}
 
 	return addedUsers, removedUsers
+}
+
+// A newly created team takes a while to reach JSM Ops on both the classic and the scoped path, so enable-ops retries
+// for about two minutes.
+const (
+	enableOpsRetryCount   = 10
+	enableOpsRetryWait    = 2 * time.Second
+	enableOpsRetryWaitMax = 15 * time.Second
+)
+
+func memberAccountIds(members []dto.TeamMember) []string {
+	ids := make([]string, len(members))
+	for i, m := range members {
+		ids[i] = m.AccountId
+	}
+	return ids
 }

@@ -32,7 +32,7 @@ var TeamResourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"site_id": schema.StringAttribute{
-		Description: "The identifier of the Atlassian site where this team is configured. Must be between 1 and 255 characters.",
+		Description: "The identifier of the Atlassian site where this team is configured. Must be between 1 and 255 characters. When importing a team that is scoped to a site, include the site_id as the third part of the import identifier: `<team_id>,<organization_id>,<site_id>`; without site scoping the identifier is `<team_id>,<organization_id>`.",
 		Optional:    true,
 		Validators: []validator.String{
 			stringvalidator.LengthBetween(1, 255),
@@ -46,15 +46,17 @@ var TeamResourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"user_permissions": schema.SingleNestedAttribute{
-		Description: "The set of permissions that define what operations users can perform on this team. These are computed based on team type and user roles.",
+		Description: "The set of permissions that define what operations users can perform on this team. These are computed based on team type and user roles. With `auth_type = \"scoped\"`, `update_team`, `add_members` and `remove_members` are reported together, and `delete_team` separately, based on what the token's account can do on this team.",
 		Computed:    true,
 		Optional:    false,
 		Required:    false,
 		Attributes:  PublicApiUserPermissionsResourceAttributes,
 	},
 	"member": schema.SetNestedAttribute{
-		Description: "The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID.",
-		Required:    true,
+		Description: "The set of users who are members of this team. Must contain at least one member. Each member is identified by their Atlassian account ID. The provider nominates the member whose account ID sorts first as text as the team's Operations admin; include at least one human member, who can administer the team in the Operations UI. " +
+			"If the token belongs to a service account, that service account's own account ID must also be listed here, together with at least one human member, or it is removed from the team once creation finishes; without membership it can no longer update or delete the team, so every later `update` or `destroy` of this resource then fails. " +
+			"Find a service account's account ID at admin.atlassian.com, under Directory > Service accounts.",
+		Required: true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: TeamMemberResourceAttributes,
 		},
@@ -63,7 +65,7 @@ var TeamResourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"delete_default_resources": schema.BoolAttribute{
-		Description: "Set to true to remove default escalation and schedule for newly created team. Be careful its also changes that team routing rule to None. That means you have to define routing rule as well. Defaults to false.",
+		Description: "Set to true to remove the default escalation and schedule of a newly created team. Be careful: it also sets the team's routing rule to None, so you must define a routing rule yourself. Defaults to false.",
 		Optional:    true,
 		Required:    false,
 		Computed:    true,
@@ -100,7 +102,7 @@ var PublicApiUserPermissionsResourceAttributes = map[string]schema.Attribute{
 
 var TeamMemberResourceAttributes = map[string]schema.Attribute{
 	"account_id": schema.StringAttribute{
-		Description: "The unique Atlassian account identifier for the team member. This is used to uniquely identify users across Atlassian products.",
+		Description: "The unique Atlassian account identifier for the team member, a raw account ID such as `70121:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`. This is used to uniquely identify users across Atlassian products.",
 		Required:    true,
 	},
 }

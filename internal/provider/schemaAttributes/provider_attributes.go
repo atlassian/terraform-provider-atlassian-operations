@@ -8,8 +8,9 @@ import (
 
 var ProviderAttributes = map[string]schema.Attribute{
 	"product_type": schema.StringAttribute{
-		Optional:    true,
-		Description: "The type of Atlassian Operations product you are using. This can be 'jira-service-desk' or 'compass'. Defaults to 'jira-service-desk'.",
+		Optional: true,
+		Description: "The type of Atlassian Operations product you are using. This can be 'jira-service-desk' or 'compass'. Defaults to 'jira-service-desk'. " +
+			"Scoped API tokens and service accounts (`auth_type = \"scoped\"`) are supported with 'jira-service-desk' only; use a classic API token with 'compass'.",
 		Validators: []validator.String{
 			stringvalidator.OneOf("jira-service-desk", "compass"),
 		},
@@ -23,13 +24,22 @@ var ProviderAttributes = map[string]schema.Attribute{
 		Optional:    true,
 	},
 	"email_address": schema.StringAttribute{
-		Description: "The email address associated with your Atlassian Cloud account. This must be an admin account.",
+		Description: "The email address of the Atlassian account the token belongs to: an admin user, or a service account (`...@serviceaccount.atlassian.com`).",
 		Optional:    true,
 	},
 	"token": schema.StringAttribute{
-		Description: "Your Atlassian API token. You can generate this from your Atlassian account settings.",
+		Description: "Your Atlassian API token: a classic API token from your Atlassian account settings, or a scoped API token of a user or service account (then also set `auth_type = \"scoped\"`).",
 		Optional:    true,
 		Sensitive:   true,
+	},
+	"teams_token": schema.StringAttribute{
+		Description: "A second API token used only with `auth_type = \"scoped\"`, for the Teams GraphQL API calls of the team resource and data source. A user's scoped API tokens are " +
+			"created per product and cannot combine the Teams scopes (view:team:teams, view:membership:teams, write:team:teams, " +
+			"write:membership:teams, read:account) with the JSM Operations scopes, so a user with a scoped token puts the Jira and JSM Operations scopes " +
+			"on `token` and the Teams scopes on `teams_token`. Service accounts can hold all scopes on one token and do not need it. " +
+			"Defaults to `token`. Can also be set via the ATLASSIAN_OPS_API_TEAMS_TOKEN environment variable.",
+		Optional:  true,
+		Sensitive: true,
 	},
 	"org_admin_token": schema.StringAttribute{
 		Description: "The API token of the organization admin, to be able to use User APIs. This field is only required & used for Compass.",
@@ -47,5 +57,13 @@ var ProviderAttributes = map[string]schema.Attribute{
 	"api_retry_wait_max": schema.Int32Attribute{
 		Description: "The maximum wait time in seconds between API retries. Defaults to 30.",
 		Optional:    true,
+	},
+	"auth_type": schema.StringAttribute{
+		Description: "How the token authenticates: `classic` (default) for a classic API token, `scoped` for a scoped API token of a user or a service account (either value is matched case-insensitively). " +
+			"Scoped API tokens and service accounts are supported with `product_type = \"jira-service-desk\"` only; use a classic API token with `product_type = \"compass\"`. " +
+			"With `scoped`, the provider then calls api.atlassian.com for some requests instead of your site domain; add api.atlassian.com to network allowlists. " +
+			"Defaults to `scoped` when `email_address` ends in @serviceaccount.atlassian.com, since service accounts have no classic API token; an explicit value wins. " +
+			"Can also be set via the ATLASSIAN_OPS_AUTH_TYPE environment variable (takes precedence; its value is compared case-insensitively with surrounding whitespace ignored). Required scopes: see the Scoped API Tokens and Service Accounts guide.",
+		Optional: true,
 	},
 }
