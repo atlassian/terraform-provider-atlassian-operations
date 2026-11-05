@@ -42,7 +42,7 @@ var TeamResourceAttributes = map[string]schema.Attribute{
 		Description: "The type of team that determines access and invitation policies. Valid values are 'OPEN' (anyone can join), 'MEMBER_INVITE' (members can invite others), or 'EXTERNAL' (managed externally).",
 		Required:    true,
 		Validators: []validator.String{
-			stringvalidator.OneOf(string(dto.OPEN), string(dto.MEMBER_INVITE)),
+			stringvalidator.OneOf(string(dto.OPEN), string(dto.MEMBER_INVITE), string(dto.EXTERNAL)),
 		},
 	},
 	"user_permissions": schema.SingleNestedAttribute{
