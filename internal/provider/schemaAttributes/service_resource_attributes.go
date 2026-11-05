@@ -47,8 +47,9 @@ var ServiceResourceAttributes = map[string]schema.Attribute{
 		},
 	},
 	"owner": schema.StringAttribute{
-		Description: "The owner team ID of the JSM service. If you want to remove the owner, set this to an empty string.",
-		Required:    true,
+		Description: "The owner team ID of the JSM service. Omit or set to an empty string to remove the owner.",
+		Optional:    true,
+		Computed:    true,
 		Validators: []validator.String{
 			stringvalidator.LengthBetween(0, 500),
 		},

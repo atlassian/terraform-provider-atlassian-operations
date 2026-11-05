@@ -6,7 +6,7 @@ type ServiceDto struct {
 	Description     string              `json:"description"`
 	Tier            int32               `json:"tier"`
 	Type            string              `json:"type"`
-	Owner           string              `json:"owner"`
+	Owner           string              `json:"owner,omitempty"`
 	ChangeApprovers *ChangeApproversDto `json:"changeApprovers,omitempty"`
 	Responders      *RespondersDto      `json:"responders,omitempty"`
 	Stakeholders    *StakeholdersDto    `json:"stakeholders,omitempty"`

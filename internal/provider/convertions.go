@@ -2611,8 +2611,11 @@ func ServiceModelToDto(ctx context.Context, model *dataModels.ServiceModel, clou
 		return nil, diags
 	}
 
-	// Owner is already a string (team ID)
-	owner := model.Owner.ValueString()
+	// Owner is already a string (team ID); omit when null or unknown so the API does not receive an empty string.
+	var owner string
+	if !model.Owner.IsNull() && !model.Owner.IsUnknown() {
+		owner = model.Owner.ValueString()
+	}
 
 	// Convert change approvers
 	var changeApprovers *dto.ChangeApproversDto
