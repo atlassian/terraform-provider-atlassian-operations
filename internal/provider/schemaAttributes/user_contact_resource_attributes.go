@@ -1,7 +1,6 @@
 package schemaAttributes
 
 import (
-	"context"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -22,14 +21,7 @@ var UserContactResourceAttributes = map[string]schema.Attribute{
 			stringvalidator.OneOf("email", "sms", "voice", "mobile"),
 		},
 		PlanModifiers: []planmodifier.String{
-			stringplanmodifier.RequiresReplaceIf(func(ctx context.Context, request planmodifier.StringRequest, response *stringplanmodifier.RequiresReplaceIfFuncResponse) {
-				if request.StateValue.ValueString() != request.ConfigValue.ValueString() {
-					response.RequiresReplace = true
-					return
-				}
-			},
-				"Force replacement since method value updated",
-				"Force replacement since method value updated"),
+			stringplanmodifier.RequiresReplace(),
 		},
 		Description: "The method of contact for the user. Valid values are 'email', 'sms', 'voice', or 'mobile'.",
 	},

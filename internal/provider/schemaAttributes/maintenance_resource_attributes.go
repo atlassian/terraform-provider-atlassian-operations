@@ -1,7 +1,6 @@
 package schemaAttributes
 
 import (
-	"context"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -36,16 +35,10 @@ var MaintenanceResourceAttributes = map[string]schema.Attribute{
 	},
 	"team_id": schema.StringAttribute{
 		Optional:            true,
+		Computed:            true,
 		MarkdownDescription: "The ID of the team associated with this maintenance window",
 		PlanModifiers: []planmodifier.String{
-			stringplanmodifier.RequiresReplaceIf(func(ctx context.Context, request planmodifier.StringRequest, response *stringplanmodifier.RequiresReplaceIfFuncResponse) {
-				if request.StateValue.ValueString() != request.ConfigValue.ValueString() {
-					response.RequiresReplace = true
-					return
-				}
-			},
-				"Force replacement since method value updated",
-				"Force replacement since method value updated"),
+			stringplanmodifier.RequiresReplace(),
 		},
 	},
 	"rules": schema.ListNestedAttribute{
