@@ -36,6 +36,7 @@ The provider is still under development. It currently supports the following res
 * Custom Role
 * Alert Policy
 * Notification Policy
+* Policy Ordering (optional, for alert and notification policies)
 * User Contact
 
 And the following data sources:
@@ -84,14 +85,33 @@ The required token scopes, the resources service accounts cannot use and trouble
 
 ### Policy Ordering
 
+#### Optional coordinated ordering
+
+`atlassian-operations_policy_ordering` is **opt-in**. Upgrading the provider does not enable it or require migration: existing alert/notification resources, schemas, and behavior remain unchanged. Add it only when you want one resource to manage the sequence of team/global alert policies or team notification policies.
+
+**Choose one place to configure a policy's position:**
+
+| Approach | Top-level `order` on each policy | `policies[*].order` on the ordering resource |
+| --- | --- | --- |
+| Existing per-policy ordering | Set the desired position | Do not add an ordering resource for those policies |
+| Opt-in coordinated ordering | Omit it on every referenced policy | Set unique positions `1..N` here |
+
+**Do not set order in both places, even to the same value.** Both resources can move the same policies, leading to shifted positions, inconsistent-state errors, or repeated diffs. Use only one ordering resource per scope and policy type. This is a configuration rule, not a cross-resource check enforced by the provider.
+
+A filter condition's nested `order` is unrelated; keep it unchanged. Computed order values may still appear in state when top-level `order` is omitted—do not copy them back into configuration or remove state to hide them.
+
+Existing policy updates can still replay a computed position, and dependencies do not force an otherwise unchanged ordering resource to run. A subsequent full plan/apply may be needed to reconcile drift. See the [usage and adoption guide](docs/resources/policy_ordering.md) and [complete example](examples/resources/policy_ordering/resource.tf).
+
+#### Existing per-policy ordering
+
 Both Alert Policies and Notification Policies support an optional `order` attribute to control the execution order of policies. However, due to how the Atlassian Operations API handles policy ordering, there are important constraints:
 
 #### Requirements for Using `order`
 
 1. **Must be >= 1**: The order attribute accepts values starting from 1 (first position), 2 (second position), etc.
-2. **Requires `depends_on`**: To ensure reliable ordering, you **must** use Terraform's `depends_on` to create policies sequentially.
+2. **Serialize initial creation where possible**: An ascending `depends_on` chain between separate resource blocks can avoid initial creation races. It cannot chain sibling instances within one `for_each` block, and it does not guarantee the final sequence after later moves, replacements, or deletions.
 
-**Example:**
+**Example (per-policy ordering only; do not also reference these policies in an ordering resource):**
 ```hcl
 resource "atlassian-operations_notification_policy" "policy_1" {
   name    = "First Policy"
@@ -126,7 +146,7 @@ If managing `depends_on` chains is too complex, you can:
 2. Let Terraform create policies in any order
 3. Manually reorder policies in the Atlassian Operations UI
 
-This approach is simpler and still allows you to manage policy configurations via Terraform while handling ordering through the UI.
+In this approach, do not add an ordering resource for the same policies: it would try to restore its configured sequence after UI changes. Existing policy-resource updates can still affect positions, so review the list after applying content changes.
 
 ### Related Links
 
