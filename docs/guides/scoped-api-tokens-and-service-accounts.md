@@ -170,7 +170,7 @@ created for it that carries all the scopes above (service accounts do not need `
   Change the admin in the Operations UI afterwards if needed.
 * **No on-call duty.** A service account cannot be a schedule rotation participant. Keep service accounts out of
   `participants`, otherwise the rotation fails with "A participant added to this rotation no longer exists".
-* **Team types.** `OPEN` and `MEMBER_INVITE` are the accepted values for every token; `EXTERNAL` teams are linked to an external source and cannot be created with this resource.
+* **Team types.** `OPEN` and `MEMBER_INVITE` are the values for teams created with this resource, with every token. `EXTERNAL` teams are linked to an external source and cannot be created through the API; an existing one can be imported and kept with `team_type = "EXTERNAL"`.
 
 A team managed with a service account's token, listing the service account itself alongside a human member:
 
