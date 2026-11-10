@@ -1,3 +1,9 @@
+## v2.1.1
+
+#### Documentation:
+
+- Scoped API Tokens and Service Accounts guide: the Teams UI cannot add a service account to a team, so the recovery steps go through the provider or a human team member; delegating the team type's **Manage teams** and **Delete teams** permissions to a group that contains the service account is documented as the alternative to team membership.
+
 ## v2.1.0
 
 #### Product:
