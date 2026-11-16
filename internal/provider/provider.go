@@ -237,6 +237,7 @@ func (p *atlassianOpsProvider) Resources(_ context.Context) []func() resource.Re
 		NewNotificationRuleResource,
 		NewUserContactResource,
 		NewAlertPolicyResource,
+		NewPolicyOrderingResource,
 		NewCustomRoleResource,
 		NewNotificationPolicyResource,
 		NewHeartbeatResource,

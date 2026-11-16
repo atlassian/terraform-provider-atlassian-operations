@@ -1,3 +1,7 @@
+## v2.2.0
+
+- Added opt-in `atlassian-operations_policy_ordering` for coordinated team/global alert policies and team notification policies, with drift detection, import, and non-destructive removal. Existing policy resources and their ordering behavior are unchanged; no migration is required. When opting in, omit top-level `order` on the referenced policies and configure their positions only in the ordering resource.
+
 ## v2.1.1
 
 #### Documentation:
